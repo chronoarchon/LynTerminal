@@ -23,6 +23,10 @@ export interface Settings {
   capital_cash?: number;
   capital_bank?: number;
   capital_mode?: "CASH" | "BANK" | "SPLIT";
+  custom_payment_1_name?: string;
+  custom_payment_1_enabled?: boolean;
+  custom_payment_2_name?: string;
+  custom_payment_2_enabled?: boolean;
 }
 
 export interface Item {
@@ -69,7 +73,7 @@ export interface Invoice {
   tax_amount: number;
   total_amount: number;
   paid_amount: number;
-  status: "PAID" | "PARTIAL" | "UNPAID" | "RETURNED";
+  status: "PAID" | "PARTIAL" | "UNPAID" | "RETURNED" | "CREDIT";
   payment_method: string;
   notes: string;
   created_at: string;
@@ -534,6 +538,10 @@ export interface OpeningCapitalPayload {
   capital_cash?: number;
   capital_bank?: number;
   capital_mode?: "CASH" | "BANK" | "SPLIT";
+  custom_payment_1_name?: string;
+  custom_payment_1_enabled?: boolean;
+  custom_payment_2_name?: string;
+  custom_payment_2_enabled?: boolean;
 }
 
 export interface AppUpdateInfo {

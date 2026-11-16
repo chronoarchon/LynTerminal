@@ -555,6 +555,10 @@ impl DatabaseManager {
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN capital_cash REAL DEFAULT 0.0", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN capital_bank REAL DEFAULT 0.0", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN capital_mode TEXT DEFAULT 'CASH'", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN custom_payment_1_name TEXT DEFAULT 'UPI'", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN custom_payment_1_enabled INTEGER DEFAULT 0", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN custom_payment_2_name TEXT DEFAULT 'Bank Transfer'", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN custom_payment_2_enabled INTEGER DEFAULT 0", []);
 
         // Safe backward-compatible mode backfill for existing databases
         let _ = conn.execute(

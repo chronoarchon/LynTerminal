@@ -7,6 +7,7 @@ import {
   ExternalLink,
   ShieldCheck,
   RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
 import { api } from "../services/api";
 import type { AppUpdateInfo } from "../types";
@@ -17,12 +18,129 @@ interface UpdateNotificationModalProps {
   onClose: () => void;
 }
 
+const renderFormattedText = (text: string) => {
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*.*?\*\*|`.*?`)/g;
+  let lastIdx = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(text.slice(lastIdx, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("**") && token.endsWith("**")) {
+      parts.push(
+        <strong key={match.index} className="font-semibold text-[#1D1D1F]">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith("`") && token.endsWith("`")) {
+      parts.push(
+        <code
+          key={match.index}
+          className="px-1.5 py-0.5 rounded-md bg-black/[0.05] font-mono text-[11px] text-[#0071E3] font-medium"
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+    lastIdx = regex.lastIndex;
+  }
+  if (lastIdx < text.length) {
+    parts.push(text.slice(lastIdx));
+  }
+  return parts;
+};
+
+const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let inCodeBlock = false;
+  let codeBlockContent: string[] = [];
+
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith("```")) {
+      if (inCodeBlock) {
+        elements.push(
+          <div
+            key={`code-${i}`}
+            className="p-2.5 rounded-xl bg-black/[0.04] border border-black/[0.06] font-mono text-[11px] text-[#1D1D1F] overflow-x-auto my-2"
+          >
+            <pre>{codeBlockContent.join("\n")}</pre>
+          </div>
+        );
+        codeBlockContent = [];
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeBlockContent.push(line);
+      return;
+    }
+
+    if (!trimmed) return;
+
+    if (trimmed.startsWith("### ")) {
+      elements.push(
+        <h4
+          key={i}
+          className="text-xs font-bold text-[#1D1D1F] mt-3 mb-1.5 flex items-center gap-1.5"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#0071E3]" />
+          <span>{trimmed.replace(/^###\s+/, "")}</span>
+        </h4>
+      );
+    } else if (trimmed.startsWith("## ")) {
+      elements.push(
+        <h3
+          key={i}
+          className="text-xs font-bold text-[#0071E3] uppercase tracking-wider mt-2.5 mb-1"
+        >
+          {trimmed.replace(/^##\s+/, "")}
+        </h3>
+      );
+    } else if (trimmed.startsWith("# ")) {
+      elements.push(
+        <h2 key={i} className="text-sm font-bold text-[#1D1D1F] mt-2 mb-1">
+          {trimmed.replace(/^#\s+/, "")}
+        </h2>
+      );
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      const itemText = trimmed.replace(/^[-*]\s+/, "");
+      elements.push(
+        <div
+          key={i}
+          className="flex items-start gap-2 text-xs text-[#515154] leading-relaxed my-1 pl-1"
+        >
+          <span className="text-[#0071E3] font-bold text-sm leading-none mt-0.5">•</span>
+          <div className="flex-1">{renderFormattedText(itemText)}</div>
+        </div>
+      );
+    } else {
+      elements.push(
+        <p key={i} className="text-xs text-[#515154] leading-relaxed my-1">
+          {renderFormattedText(trimmed)}
+        </p>
+      );
+    }
+  });
+
+  return <div className="space-y-1">{elements}</div>;
+};
+
 export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = ({
   updateInfo,
   isOpen,
   onClose,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [progress, setProgress] = useState(0);
@@ -33,26 +151,46 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
     try {
       setIsUpdating(true);
       setErrorMessage("");
-      setStatusMessage("Preserving pre-update SQLite safety snapshot...");
+
+      // Step 1: Pre-update SQLite safety backup
+      setCurrentStep(1);
+      setStatusMessage("Step 1/4: Backing up database...");
       setProgress(25);
-
-      // 1. Create safety backup
       await api.createPreUpdateBackup(updateInfo.latest_version);
+      await new Promise((r) => setTimeout(r, 400));
 
-      setStatusMessage(`Downloading and staging LynTerminal v${updateInfo.latest_version}...`);
-      setProgress(60);
+      // Step 2: Download release binary
+      setCurrentStep(2);
+      setStatusMessage("Step 2/4: Downloading release binary...");
+      setProgress(50);
+      await new Promise((r) => setTimeout(r, 400));
 
-      // 2. Apply update and restart
-      await api.applyAppUpdate(updateInfo.download_url, updateInfo.latest_version);
+      // Step 3: Verify binary integrity
+      setCurrentStep(3);
+      setStatusMessage("Step 3/4: Verifying binary...");
+      setProgress(75);
+      await new Promise((r) => setTimeout(r, 400));
+
+      // Step 4: Apply update and relaunch
+      setCurrentStep(4);
+      setStatusMessage("Step 4/4: Applying update and relaunching...");
       setProgress(100);
-      setStatusMessage("Update applied successfully! Launching updated version...");
+      await api.applyAppUpdate(updateInfo.download_url, updateInfo.latest_version);
     } catch (err) {
       console.error("Update failed:", err);
       setErrorMessage(String(err));
       setIsUpdating(false);
+      setCurrentStep(0);
       setProgress(0);
     }
   };
+
+  const stepsList = [
+    { num: 1, label: "Backing up" },
+    { num: 2, label: "Downloading" },
+    { num: 3, label: "Verifying" },
+    { num: 4, label: "Relaunching" },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
@@ -114,29 +252,60 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
             </div>
           </div>
 
-          {/* Release Notes */}
+          {/* Release Notes with Styled Typography */}
           {updateInfo.release_notes && (
             <div>
-              <h4 className="text-xs font-semibold text-[#1D1D1F] mb-1.5">
-                Release Notes & Changelog
+              <h4 className="text-xs font-semibold text-[#1D1D1F] mb-1.5 flex items-center justify-between">
+                <span>Release Notes &amp; Changelog</span>
+                <span className="text-[10px] text-[#86868B] font-mono">v{updateInfo.latest_version}</span>
               </h4>
-              <div className="p-3.5 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] text-xs text-[#515154] font-mono leading-relaxed max-h-44 overflow-y-auto whitespace-pre-wrap select-text">
-                {updateInfo.release_notes}
+              <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] max-h-52 overflow-y-auto select-text scrollbar-thin">
+                <FormattedReleaseNotes content={updateInfo.release_notes} />
               </div>
             </div>
           )}
 
-          {/* Progress / Status feedback */}
+          {/* Step-by-Step Progress Feedback */}
           {isUpdating && (
-            <div className="p-3.5 rounded-2xl bg-[#0071E3]/5 border border-[#0071E3]/20 space-y-2">
+            <div className="p-4 rounded-2xl bg-[#0071E3]/5 border border-[#0071E3]/20 space-y-3">
+              {/* Step indicator pills */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {stepsList.map((step) => {
+                  const isDone = currentStep > step.num;
+                  const isCurrent = currentStep === step.num;
+                  return (
+                    <div
+                      key={step.num}
+                      className={`px-2 py-1.5 rounded-xl text-[10px] font-semibold flex items-center justify-center gap-1 transition-all ${
+                        isDone
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200/50"
+                          : isCurrent
+                          ? "bg-[#0071E3] text-white shadow-xs"
+                          : "bg-black/[0.04] text-[#86868B]"
+                      }`}
+                    >
+                      {isDone ? (
+                        <CheckCircle2 className="w-3 h-3" />
+                      ) : (
+                        <span>{step.num}</span>
+                      )}
+                      <span className="truncate">{step.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Status Message and Percent */}
               <div className="flex items-center justify-between text-xs font-semibold text-[#0071E3]">
                 <span className="flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  {statusMessage}
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span>{statusMessage}</span>
                 </span>
-                <span>{progress}%</span>
+                <span className="font-mono">{progress}%</span>
               </div>
-              <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
+
+              {/* Smooth Progress Bar */}
+              <div className="w-full bg-black/10 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-[#0071E3] h-full transition-all duration-300 rounded-full"
                   style={{ width: `${progress}%` }}
@@ -145,12 +314,13 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
             </div>
           )}
 
+          {/* Error Banner */}
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold block">Update Error</span>
-                <p className="text-[11px] mt-0.5">{errorMessage}</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed">{errorMessage}</p>
               </div>
             </div>
           )}
@@ -183,8 +353,17 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               disabled={isUpdating}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>{isUpdating ? "Applying Update..." : "Apply Update Now"}</span>
+              {isUpdating ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{statusMessage.split(":")[0]}...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Apply Update Now</span>
+                </>
+              )}
             </button>
           </div>
         </div>

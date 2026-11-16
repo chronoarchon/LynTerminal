@@ -14,6 +14,9 @@ import {
   ShoppingCart,
   Boxes,
   UserPlus,
+  Building,
+  Users,
+  AlertCircle,
 } from "lucide-react";
 import type { Item, Party, Settings, InvoicePayload, InvoiceDetail } from "../types";
 import { api } from "../services/api";
@@ -59,8 +62,11 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   const [selectedPartyId, setSelectedPartyId] = useState<string>("");
   const [customCustomerName, setCustomCustomerName] = useState("");
 
-  // Payment methods: CASH, CARD, APPLE_PAY
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "APPLE_PAY">("CASH");
+  // Payment methods: CASH, CARD, CUSTOM_1, CUSTOM_2, CREDIT
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "CUSTOM_1" | "CUSTOM_2" | "CREDIT">("CASH");
+  const [isHalfCredit, setIsHalfCredit] = useState(false);
+  const [creditPaidAmount, setCreditPaidAmount] = useState<string>("");
+  const [creditPaidMethod, setCreditPaidMethod] = useState<string>("CASH");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [tenderedAmount, setTenderedAmount] = useState<string>("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -395,17 +401,42 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         return;
       }
 
+      let effectivePaid = Math.round(totalAmount * 100) / 100;
       let paymentMethodDesc = "Cash";
+
       if (isPurchase) {
         paymentMethodDesc = paymentMethod === "CARD" ? "Bank Wire" : "Cash";
       } else if (isSplitPayment) {
         const cVal = parseFloat(splitCash) || 0;
-        const cardVal = parseFloat(splitCard) || (totalAmount - cVal);
+        const cardVal = parseFloat(splitCard) || Math.max(0, totalAmount - cVal);
         paymentMethodDesc = `Split (${currency}${cVal.toFixed(2)} Cash + ${currency}${cardVal.toFixed(2)} Card)`;
       } else if (paymentMethod === "CARD") {
         paymentMethodDesc = "Card";
-      } else if (paymentMethod === "APPLE_PAY") {
-        paymentMethodDesc = "Apple Pay";
+      } else if (paymentMethod === "CUSTOM_1") {
+        paymentMethodDesc = settings.custom_payment_1_name || "Custom 1";
+      } else if (paymentMethod === "CUSTOM_2") {
+        paymentMethodDesc = settings.custom_payment_2_name || "Custom 2";
+      } else if (paymentMethod === "CREDIT") {
+        if (!selectedPartyId) {
+          setShowAddCustomerModal(true);
+          appleAlert({
+            title: "Customer Selection Required",
+            message: "Credit / Udhaar billing requires customer details (name and phone). Please select or register a customer.",
+            type: "warning",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (isHalfCredit) {
+          const partial = parseFloat(creditPaidAmount) || 0;
+          effectivePaid = Math.min(totalAmount, Math.max(0, Math.round(partial * 100) / 100));
+          const remCredit = Math.round((totalAmount - effectivePaid) * 100) / 100;
+          paymentMethodDesc = `Partial Credit (${currency}${effectivePaid.toFixed(2)} ${creditPaidMethod} + ${currency}${remCredit.toFixed(2)} Credit)`;
+        } else {
+          effectivePaid = 0;
+          paymentMethodDesc = "Credit (Udhaar)";
+        }
       }
 
       const payload: InvoicePayload = {
@@ -418,9 +449,9 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         discount_amount: Math.round(discountAmount * 100) / 100,
         tax_amount: isPurchase ? 0 : Math.round(taxAmount * 100) / 100,
         total_amount: Math.round(totalAmount * 100) / 100,
-        paid_amount: Math.round(totalAmount * 100) / 100,
+        paid_amount: effectivePaid,
         payment_method: paymentMethodDesc,
-        notes: notes || (isPurchase ? "Purchase Inward" : "Counter Sale"),
+        notes: notes || (paymentMethod === "CREDIT" ? "Customer Credit / Udhaar Bill" : (isPurchase ? "Purchase Inward" : "Counter Sale")),
         reference: referenceNumber.trim() || null,
         items: cart.map((ci) => {
           const lineTotal = ci.unit_price * ci.quantity * (1 - ci.discount_percent / 100);
@@ -945,33 +976,240 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           {/* Payment Methods */}
           {billMode === "SALE" && (
             <div className="space-y-2 pt-1">
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: "CASH", label: "Cash", icon: DollarSign },
-                  { id: "CARD", label: "Card", icon: CreditCard },
-                  { id: "APPLE_PAY", label: "Apple Pay", icon: Smartphone },
-                ].map((pm) => {
-                  const Icon = pm.icon;
-                  const isSelected = paymentMethod === pm.id && !isSplitPayment;
-                  return (
+              <div className="flex flex-wrap gap-1.5">
+                {/* Cash */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod("CASH");
+                    setIsSplitPayment(false);
+                  }}
+                  className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
+                    paymentMethod === "CASH" && !isSplitPayment
+                      ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
+                      : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
+                  }`}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span className="text-[11px] truncate">Cash</span>
+                </button>
+
+                {/* Card */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod("CARD");
+                    setIsSplitPayment(false);
+                  }}
+                  className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
+                    paymentMethod === "CARD" && !isSplitPayment
+                      ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
+                      : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
+                  }`}
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span className="text-[11px] truncate">Card</span>
+                </button>
+
+                {/* Custom Method 1 */}
+                {settings.custom_payment_1_enabled && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod("CUSTOM_1");
+                      setIsSplitPayment(false);
+                    }}
+                    className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
+                      paymentMethod === "CUSTOM_1" && !isSplitPayment
+                        ? "bg-[#0071E3] text-white border-[#0071E3] font-semibold shadow-xs"
+                        : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
+                    }`}
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span className="text-[11px] truncate">
+                      {settings.custom_payment_1_name || "Custom 1"}
+                    </span>
+                  </button>
+                )}
+
+                {/* Custom Method 2 */}
+                {settings.custom_payment_2_enabled && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod("CUSTOM_2");
+                      setIsSplitPayment(false);
+                    }}
+                    className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
+                      paymentMethod === "CUSTOM_2" && !isSplitPayment
+                        ? "bg-[#0071E3] text-white border-[#0071E3] font-semibold shadow-xs"
+                        : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
+                    }`}
+                  >
+                    <Building className="w-3.5 h-3.5" />
+                    <span className="text-[11px] truncate">
+                      {settings.custom_payment_2_name || "Custom 2"}
+                    </span>
+                  </button>
+                )}
+
+                {/* Credit / Udhaar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod("CREDIT");
+                    setIsSplitPayment(false);
+                    if (!selectedPartyId) {
+                      setIsCustomerMenuOpen(true);
+                    }
+                  }}
+                  className={`flex-1 min-w-[90px] py-2 px-2 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
+                    paymentMethod === "CREDIT" && !isSplitPayment
+                      ? "bg-[#FF9500] text-white border-[#FF9500] font-semibold shadow-xs"
+                      : "bg-[#FFF9F2] text-[#FF9500] border-[#FF9500]/30 hover:bg-[#FFF3E6]"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-bold truncate">Credit / Udhaar</span>
+                </button>
+              </div>
+
+              {/* CREDIT / UDHAAR BILLING PANEL */}
+              {paymentMethod === "CREDIT" && !isSplitPayment && (
+                <div className="p-3 rounded-2xl bg-[#FFF9F2] border border-[#FF9500]/25 space-y-2.5 animate-in fade-in duration-150">
+                  {/* Customer status */}
+                  {!selectedPartyId ? (
+                    <div className="p-2.5 rounded-xl bg-amber-100/60 border border-amber-300/50 flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 text-xs text-amber-900">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block">Customer Details Required</span>
+                          <span className="text-[11px] text-amber-800">
+                            Credit billing must be linked to a customer ledger.
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomerMenuOpen(true);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[#FF9500] hover:bg-[#E68600] text-white text-[10px] font-semibold transition shrink-0 cursor-pointer"
+                      >
+                        Select Customer
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-xs px-2 py-1 rounded-xl bg-white border border-[#FF9500]/20">
+                      <span className="text-[#86868B] text-[11px]">Ledger Account:</span>
+                      <span className="font-bold text-[#1D1D1F]">
+                        {parties.find((p) => p.id === selectedPartyId)?.name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Mode Selector: 100% Credit vs Half/Partial */}
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/[0.04] rounded-xl text-xs font-semibold">
                     <button
-                      key={pm.id}
+                      type="button"
                       onClick={() => {
-                        setPaymentMethod(pm.id as any);
-                        setIsSplitPayment(false);
+                        setIsHalfCredit(false);
+                        setCreditPaidAmount("0");
                       }}
-                      className={`py-2 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
-                        isSelected
-                          ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                          : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
+                      className={`py-1.5 px-2 rounded-lg transition ${
+                        !isHalfCredit
+                          ? "bg-white text-[#FF9500] shadow-2xs font-bold"
+                          : "text-[#86868B] hover:text-[#1D1D1F]"
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="text-[11px]">{pm.label}</span>
+                      100% Full Credit
                     </button>
-                  );
-                })}
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsHalfCredit(true);
+                        setCreditPaidAmount((totalAmount / 2).toFixed(2));
+                      }}
+                      className={`py-1.5 px-2 rounded-lg transition ${
+                        isHalfCredit
+                          ? "bg-white text-[#FF9500] shadow-2xs font-bold"
+                          : "text-[#86868B] hover:text-[#1D1D1F]"
+                      }`}
+                    >
+                      Half / Partial Paid
+                    </button>
+                  </div>
+
+                  {/* If Half / Partial is Active */}
+                  {isHalfCredit && (
+                    <div className="space-y-2 pt-1 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Paid today..."
+                          value={creditPaidAmount}
+                          onChange={(e) => setCreditPaidAmount(e.target.value)}
+                          className="flex-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white font-mono font-bold text-[#1D1D1F] focus:outline-none focus:border-[#FF9500]"
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setCreditPaidAmount((totalAmount / 2).toFixed(2))}
+                            className="px-2 py-1 rounded-lg bg-[#FF9500]/10 hover:bg-[#FF9500]/20 text-[10px] font-bold text-[#FF9500] transition cursor-pointer"
+                          >
+                            50% (Half)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCreditPaidAmount((totalAmount * 0.25).toFixed(2))}
+                            className="px-2 py-1 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-[10px] font-semibold text-[#1D1D1F] transition cursor-pointer"
+                          >
+                            25%
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Paid portion method selector */}
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-[#86868B]">Paid portion method:</span>
+                        <div className="flex gap-1">
+                          {["CASH", "CARD", ...(settings.custom_payment_1_enabled ? [settings.custom_payment_1_name || "Custom"] : [])].map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setCreditPaidMethod(m)}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition ${
+                                creditPaidMethod === m
+                                  ? "bg-[#1D1D1F] text-white"
+                                  : "bg-white text-[#6E6E73] border border-black/[0.08]"
+                              }`}
+                            >
+                              {m === "CASH" ? "Cash" : m === "CARD" ? "Card" : m}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Financial breakdown */}
+                      {(() => {
+                        const paidNum = Math.min(totalAmount, Math.max(0, parseFloat(creditPaidAmount) || 0));
+                        const remCredit = Math.max(0, totalAmount - paidNum);
+                        return (
+                          <div className="p-2 rounded-xl bg-white border border-[#FF9500]/20 text-[11px] flex justify-between items-center">
+                            <span>
+                              Paid: <strong className="font-mono text-emerald-600">{currency}{paidNum.toFixed(2)}</strong>
+                            </span>
+                            <span>
+                              To Credit: <strong className="font-mono text-[#FF9500]">{currency}{remCredit.toFixed(2)}</strong>
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Cash Quick Tenders */}
               {paymentMethod === "CASH" && !isSplitPayment && (
@@ -1020,8 +1258,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 </div>
               )}
 
-              {/* Reference Number for Card / Apple Pay */}
-              {(paymentMethod === "CARD" || paymentMethod === "APPLE_PAY") && !isSplitPayment && (
+              {/* Reference Number for Card / Custom Methods */}
+              {(paymentMethod === "CARD" || paymentMethod === "CUSTOM_1" || paymentMethod === "CUSTOM_2") && !isSplitPayment && (
                 <input
                   type="text"
                   placeholder="Card auth code or transaction ref (optional)..."

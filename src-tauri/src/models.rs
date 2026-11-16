@@ -6,6 +6,8 @@ fn default_opening_cash() -> f64 { 0.0 }
 fn default_opening_bank() -> f64 { 0.0 }
 fn default_opening_balance_mode() -> String { "CASH".into() }
 fn default_capital_mode() -> String { "CASH".into() }
+fn default_custom_payment_1_name() -> String { "UPI".into() }
+fn default_custom_payment_2_name() -> String { "Bank Transfer".into() }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -45,6 +47,14 @@ pub struct Settings {
     pub capital_bank: f64,
     #[serde(default = "default_capital_mode")]
     pub capital_mode: String,         // "CASH" | "BANK" | "SPLIT"
+    #[serde(default = "default_custom_payment_1_name")]
+    pub custom_payment_1_name: String,
+    #[serde(default)]
+    pub custom_payment_1_enabled: bool,
+    #[serde(default = "default_custom_payment_2_name")]
+    pub custom_payment_2_name: String,
+    #[serde(default)]
+    pub custom_payment_2_enabled: bool,
 }
 
 impl Default for Settings {
@@ -74,6 +84,10 @@ impl Default for Settings {
             capital_cash: 0.0,
             capital_bank: 0.0,
             capital_mode: "CASH".into(),
+            custom_payment_1_name: "UPI".into(),
+            custom_payment_1_enabled: false,
+            custom_payment_2_name: "Bank Transfer".into(),
+            custom_payment_2_enabled: false,
         }
     }
 }

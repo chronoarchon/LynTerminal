@@ -22,12 +22,14 @@ interface SidebarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   lowStockCount?: number;
+  showGst?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   lowStockCount = 0,
+  showGst = false,
 }) => {
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, key: "1" },
@@ -109,51 +111,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
 
-          {/* India GST & Tally Section */}
-          <div className="pt-3 pb-1 px-3 flex items-center justify-between border-t border-white/[0.08] mt-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868B]">
-              India GST & Tally
-            </span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FF9500]/20 text-[#FF9500]">
-              CGST/SGST
-            </span>
-          </div>
+          {/* India GST & Tally Section (Conditional: INR currency & GST Enabled) */}
+          {showGst && (
+            <>
+              <div className="pt-3 pb-1 px-3 flex items-center justify-between border-t border-white/[0.08] mt-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868B]">
+                  India GST & Tally
+                </span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FF9500]/20 text-[#FF9500]">
+                  CGST/SGST
+                </span>
+              </div>
 
-          {gstNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+              {gstNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
-                  isActive
-                    ? "bg-[#FF9500] text-white shadow-xs font-semibold"
-                    : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className={`w-4 h-4 transition-colors ${
-                      isActive ? "text-white stroke-[2.2]" : "text-[#FF9500]"
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onSelectTab(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
+                      isActive
+                        ? "bg-[#FF9500] text-white shadow-xs font-semibold"
+                        : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
                     }`}
-                  />
-                  <span>{item.label}</span>
-                </div>
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon
+                        className={`w-4 h-4 transition-colors ${
+                          isActive ? "text-white stroke-[2.2]" : "text-[#FF9500]"
+                        }`}
+                      />
+                      <span>{item.label}</span>
+                    </div>
 
-                <kbd
-                  className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-white/[0.06] text-[#86868B]"
-                  }`}
-                >
-                  {item.key}
-                </kbd>
-              </button>
-            );
-          })}
+                    <kbd
+                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-white/[0.06] text-[#86868B]"
+                      }`}
+                    >
+                      {item.key}
+                    </kbd>
+                  </button>
+                );
+              })}
+            </>
+          )}
         </nav>
       </div>
 

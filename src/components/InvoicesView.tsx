@@ -5,6 +5,7 @@ import {
   X,
   Plus,
   ArrowRight,
+  DollarSign,
 } from "lucide-react";
 import type {
   Invoice,
@@ -89,6 +90,54 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const [voidAction, setVoidAction] = useState<"RETURN" | "CANCEL">("RETURN");
   const [voidReason, setVoidReason] = useState("Customer Return / Exchange");
   const [isProcessingVoid, setIsProcessingVoid] = useState(false);
+
+  // Credit bill settlement modal state
+  const [creditPayTarget, setCreditPayTarget] = useState<Invoice | null>(null);
+  const [creditPayAmount, setCreditPayAmount] = useState<string>("");
+  const [creditPayMethod, setCreditPayMethod] = useState<string>("CASH");
+  const [creditPayNotes, setCreditPayNotes] = useState<string>("");
+  const [isSubmittingCreditPay, setIsSubmittingCreditPay] = useState<boolean>(false);
+
+  const handleOpenCreditPayModal = (inv: Invoice) => {
+    setCreditPayTarget(inv);
+    const due = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
+    setCreditPayAmount(due > 0 ? due.toFixed(2) : inv.total_amount.toFixed(2));
+    setCreditPayMethod("CASH");
+    setCreditPayNotes(`Payment for Credit Bill #${inv.invoice_number}`);
+  };
+
+  const handleExecuteCreditPay = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!creditPayTarget) return;
+
+    const amt = parseFloat(creditPayAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert("Please enter a valid payment amount.");
+      return;
+    }
+
+    try {
+      setIsSubmittingCreditPay(true);
+      await api.recordPayment({
+        id: "",
+        invoice_id: creditPayTarget.id,
+        party_id: creditPayTarget.party_id || "",
+        party_name: creditPayTarget.party_name || "Customer",
+        amount: amt,
+        payment_type: "IN",
+        payment_method: creditPayMethod,
+        payment_date: new Date().toISOString().split("T")[0],
+        reference: `Credit Settlement #${creditPayTarget.invoice_number}`,
+        notes: creditPayNotes || `Credit settlement for Invoice #${creditPayTarget.invoice_number}`,
+      });
+      setCreditPayTarget(null);
+      onRefresh();
+    } catch (err) {
+      alert("Payment settlement failed: " + err);
+    } finally {
+      setIsSubmittingCreditPay(false);
+    }
+  };
 
   const loadEstimates = async () => {
     try {
@@ -404,6 +453,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                 options={[
                   { value: "ALL", label: "All Status" },
                   { value: "PAID", label: "Paid" },
+                  { value: "CREDIT", label: "Credit" },
                   { value: "PARTIAL", label: "Partial" },
                   { value: "UNPAID", label: "Unpaid" },
                   { value: "RETURNED", label: "Returned" },
@@ -447,6 +497,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                 {filteredInvoices.map((inv) => {
                   const isPaid = inv.status === "PAID";
                   const isReturn = inv.status === "RETURNED";
+                  const remainingDue = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
 
                   return (
                     <tr key={inv.id} className="hover:bg-[#FBFBFC] transition-colors">
@@ -480,14 +531,30 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                               ? "bg-black/[0.06] text-[#86868B] line-through"
                               : isPaid
                               ? "bg-[#34C759]/10 text-[#34C759]"
+                              : inv.status === "CREDIT"
+                              ? "bg-[#FF3B30]/10 text-[#FF3B30] border border-[#FF3B30]/20 font-bold"
                               : "bg-[#FF9500]/10 text-[#FF9500]"
                           }`}
                         >
                           {inv.status}
                         </span>
+                        {remainingDue > 0.009 && !isReturn && (
+                          <div className="text-[10px] font-mono font-bold text-[#FF3B30] mt-0.5 whitespace-nowrap">
+                            Due: {formatCurrency(remainingDue)}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          {remainingDue > 0.009 && !isReturn && (
+                            <button
+                              onClick={() => handleOpenCreditPayModal(inv)}
+                              className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-white text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer inline-flex items-center gap-1"
+                              title="Collect Payment / Settle Credit Bill"
+                            >
+                              <span>Pay</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenGstInvoice(inv.id)}
                             className="px-2.5 py-1 rounded-lg bg-[#FF9500] hover:bg-[#E68600] text-white text-[11px] font-semibold transition apple-press cursor-pointer"
@@ -521,44 +588,64 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
           {/* Mobile Card List (< md) */}
           <div className="md:hidden space-y-2.5">
-            {filteredInvoices.map((inv) => (
-              <div
-                key={inv.id}
-                className="apple-card p-3.5 rounded-2xl flex flex-col gap-2 shadow-2xs"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-bold text-xs font-mono text-[#1D1D1F]">
-                      {inv.invoice_number}
-                    </div>
-                    <div className="text-[11px] font-medium text-[#6E6E73] mt-0.5">
-                      {inv.party_name}
-                    </div>
-                  </div>
-                  <span className="font-bold font-mono text-sm text-[#1D1D1F]">
-                    {formatCurrency(inv.total_amount)}
-                  </span>
-                </div>
+            {filteredInvoices.map((inv) => {
+              const remainingDue = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
+              const isReturn = inv.status === "RETURNED";
 
-                <div className="flex items-center justify-between pt-1 border-t border-black/[0.04] text-[11px] text-[#86868B]">
-                  <span>{inv.invoice_date} · {inv.payment_method}</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleOpenGstInvoice(inv.id)}
-                      className="px-2 py-1 rounded-lg bg-[#FF9500] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
-                    >
-                      GST
-                    </button>
-                    <button
-                      onClick={() => handleOpenInvoice(inv.id)}
-                      className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
-                    >
-                      Receipt
-                    </button>
+              return (
+                <div
+                  key={inv.id}
+                  className="apple-card p-3.5 rounded-2xl flex flex-col gap-2 shadow-2xs"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-xs font-mono text-[#1D1D1F]">
+                        {inv.invoice_number}
+                      </div>
+                      <div className="text-[11px] font-medium text-[#6E6E73] mt-0.5">
+                        {inv.party_name}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold font-mono text-sm text-[#1D1D1F] block">
+                        {formatCurrency(inv.total_amount)}
+                      </span>
+                      {remainingDue > 0.009 && !isReturn && (
+                        <span className="text-[10px] font-mono font-bold text-[#FF3B30]">
+                          Due: {formatCurrency(remainingDue)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-black/[0.04] text-[11px] text-[#86868B]">
+                    <span>{inv.invoice_date} · {inv.payment_method}</span>
+                    <div className="flex items-center gap-1.5">
+                      {remainingDue > 0.009 && !isReturn && (
+                        <button
+                          onClick={() => handleOpenCreditPayModal(inv)}
+                          className="px-2.5 py-1 rounded-lg bg-[#34C759] text-white text-[10px] font-bold transition apple-press cursor-pointer"
+                        >
+                          Pay
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleOpenGstInvoice(inv.id)}
+                        className="px-2 py-1 rounded-lg bg-[#FF9500] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
+                      >
+                        GST
+                      </button>
+                      <button
+                        onClick={() => handleOpenInvoice(inv.id)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
+                      >
+                        Receipt
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -1057,6 +1144,206 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
           gstSettings={gstSettings}
           onClose={() => setSelectedGstInvoice(null)}
         />
+      )}
+
+      {/* Credit Bill Settlement Modal */}
+      {creditPayTarget && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#34C759]/10 text-[#34C759] flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1D1D1F]">
+                    Settle Credit Bill
+                  </h3>
+                  <p className="text-[11px] text-[#86868B]">
+                    Record payment received from customer
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCreditPayTarget(null)}
+                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Bill Summary Card */}
+            <div className="p-5 space-y-4">
+              <div className="p-3.5 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#86868B]">Invoice Number:</span>
+                  <span className="font-mono font-bold text-[#1D1D1F]">
+                    #{creditPayTarget.invoice_number}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#86868B]">Customer Name:</span>
+                  <span className="font-semibold text-[#1D1D1F]">
+                    {creditPayTarget.party_name || "Walk-in Customer"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#86868B]">Total Bill Amount:</span>
+                  <span className="font-mono font-semibold text-[#1D1D1F]">
+                    {formatCurrency(creditPayTarget.total_amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#86868B]">Already Paid:</span>
+                  <span className="font-mono font-semibold text-[#34C759]">
+                    {formatCurrency(creditPayTarget.paid_amount || 0)}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-black/[0.06] flex justify-between items-center text-xs">
+                  <span className="font-bold text-[#FF3B30]">Remaining Balance Due:</span>
+                  <span className="font-mono font-bold text-sm text-[#FF3B30]">
+                    {formatCurrency(
+                      Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0))
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Custom Money Entry Input with 100% and 50% quick buttons */}
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  How much did they pay? *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#86868B]">
+                    {settings.currency_symbol || "$"}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={creditPayAmount}
+                    onChange={(e) => setCreditPayAmount(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-sm font-mono font-bold text-[#1D1D1F] focus:outline-none focus:border-[#0071E3]"
+                    placeholder="Enter amount..."
+                  />
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rem = Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0));
+                      setCreditPayAmount(rem.toFixed(2));
+                    }}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[#0071E3] text-xs font-bold transition apple-press cursor-pointer"
+                  >
+                    100% (Full Pay)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rem = Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0));
+                      setCreditPayAmount((rem / 2).toFixed(2));
+                    }}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-black/[0.05] hover:bg-black/[0.08] text-[#1D1D1F] text-xs font-semibold transition apple-press cursor-pointer"
+                  >
+                    50% (Half Pay)
+                  </button>
+                </div>
+              </div>
+
+              {/* Payment Method Selector: Cash, Card, Bank, Custom */}
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Paid In
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreditPayMethod("CASH")}
+                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                      creditPayMethod === "CASH"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
+                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                    }`}
+                  >
+                    Cash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreditPayMethod("CARD")}
+                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                      creditPayMethod === "CARD"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
+                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                    }`}
+                  >
+                    Card
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreditPayMethod("BANK")}
+                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                      creditPayMethod === "BANK"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
+                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                    }`}
+                  >
+                    Bank
+                  </button>
+                  {settings.custom_payment_1_enabled && (
+                    <button
+                      type="button"
+                      onClick={() => setCreditPayMethod(settings.custom_payment_1_name || "CUSTOM_1")}
+                      className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer truncate ${
+                        creditPayMethod === (settings.custom_payment_1_name || "CUSTOM_1")
+                          ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
+                          : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                      }`}
+                    >
+                      {settings.custom_payment_1_name || "Custom 1"}
+                    </button>
+                  )}
+                  {settings.custom_payment_2_enabled && (
+                    <button
+                      type="button"
+                      onClick={() => setCreditPayMethod(settings.custom_payment_2_name || "CUSTOM_2")}
+                      className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer truncate ${
+                        creditPayMethod === (settings.custom_payment_2_name || "CUSTOM_2")
+                          ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
+                          : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                      }`}
+                    >
+                      {settings.custom_payment_2_name || "Custom 2"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons: Cancel and OK */}
+              <div className="flex gap-2 pt-2 border-t border-black/[0.06]">
+                <button
+                  type="button"
+                  onClick={() => setCreditPayTarget(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingCreditPay}
+                  onClick={() => handleExecuteCreditPay()}
+                  className="flex-1 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#2DB34E] text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer"
+                >
+                  {isSubmittingCreditPay ? "Recording..." : "OK (Confirm Pay)"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

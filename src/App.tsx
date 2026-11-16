@@ -169,6 +169,14 @@ export function AppContent() {
     loadAllData();
   }, [loadAllData]);
 
+  const isGstActive = settings.currency_code === "INR" && (gstSettings?.is_enabled ?? true);
+
+  useEffect(() => {
+    if (!isGstActive && ["gst_hub", "gst_pos", "gst_credit", "gstr1", "gstr3b"].includes(activeTab)) {
+      setActiveTab("pos");
+    }
+  }, [isGstActive, activeTab]);
+
   // Global hotkeys (F1 for Tally Hub, F2 for POS, F4 Contra, F5 Payment, F6 Receipt/Credit, F8 GST POS, F9 Purchase, Ctrl+1..0 for tabs)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -177,13 +185,13 @@ export function AppContent() {
         setActiveTab("pos");
       } else if (e.key === "F8") {
         e.preventDefault();
-        setActiveTab("gst_pos");
+        setActiveTab(isGstActive ? "gst_pos" : "pos");
       } else if (e.key === "F6") {
         e.preventDefault();
-        setActiveTab("gst_credit");
+        setActiveTab(isGstActive ? "gst_credit" : "invoices");
       } else if (e.key === "F5") {
         e.preventDefault();
-        setActiveTab("gst_credit");
+        setActiveTab(isGstActive ? "gst_credit" : "expenses");
       } else if (e.key === "F4") {
         e.preventDefault();
         setActiveTab("expenses");
@@ -192,7 +200,7 @@ export function AppContent() {
         setActiveTab("invoices");
       } else if (e.key === "F1") {
         e.preventDefault();
-        setActiveTab("gst_hub");
+        setActiveTab(isGstActive ? "gst_hub" : "dashboard");
       } else if (e.ctrlKey || e.metaKey) {
         if (e.key === "1") {
           e.preventDefault();
@@ -278,6 +286,7 @@ export function AppContent() {
             summary={summary}
             settings={settings}
             parties={parties}
+            gstSettings={gstSettings}
             onNavigate={setActiveTab}
             onRefresh={loadAllData}
           />
@@ -350,6 +359,7 @@ export function AppContent() {
         return (
           <SettingsView
             settings={settings}
+            gstSettings={gstSettings}
             onSettingsUpdated={handleSettingsUpdated}
           />
         );
@@ -398,6 +408,7 @@ export function AppContent() {
             activeTab={activeTab}
             onSelectTab={setActiveTab}
             lowStockCount={summary?.low_stock_count ?? 0}
+            showGst={isGstActive}
           />
         </div>
 
@@ -405,7 +416,7 @@ export function AppContent() {
         <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden bg-[#F5F5F7] relative">
           <Header
             settings={settings}
-            onOpenQuickSale={() => setActiveTab(settings.tax_preset === "INDIA_GST" ? "gst_pos" : "pos")}
+            onOpenQuickSale={() => setActiveTab(isGstActive ? "gst_pos" : "pos")}
             onLockApp={authState?.has_account ? handleLockApp : undefined}
           />
 
@@ -425,6 +436,7 @@ export function AppContent() {
               activeTab={activeTab}
               onSelectTab={setActiveTab}
               lowStockCount={summary?.low_stock_count ?? 0}
+              showGst={isGstActive}
             />
           </div>
         </div>

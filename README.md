@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![LynTerminal Version](https://img.shields.io/badge/version-1.4.0v-0071E3?style=for-the-badge&logo=linux&logoColor=white)
+![LynTerminal Version](https://img.shields.io/badge/version-1.5.0v-0071E3?style=for-the-badge&logo=linux&logoColor=white)
 ![Architecture](https://img.shields.io/badge/arch-x86__64-34C759?style=for-the-badge)
 ![Security](https://img.shields.io/badge/security-100%25%20Offline%20%7C%20Zero%20Telemetry-1D1D1F?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-Commercial-86868B?style=for-the-badge)
@@ -17,14 +17,14 @@ Built with **Tauri v2**, **Rust**, **SQLite (WAL Mode)**, **React 19**, and **Ta
 
 ---
 
-## 📦 Official Release Downloads & Quick Installation (v1.4.0v)
+## 📦 Official Release Downloads & Quick Installation (v1.5.0v)
 
 | Platform / Distribution | Package Format | Direct Installation Command |
 | :--- | :--- | :--- |
 | **Universal Linux (Any Distro)** | **Standalone Binary Bundle** | `curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.sh \| bash` |
-| **Arch Linux / Manjaro / EndeavourOS** | [**`lynterminal-1.4.0v-1-x86_64.pkg.tar.zst`**](release/lynterminal-1.4.0v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.4.0v-1-x86_64.pkg.tar.zst` |
-| **Debian / Ubuntu / Linux Mint** | [**`lynterminal_1.4.0_amd64.deb`**](release/lynterminal_1.4.0_amd64.deb) | `sudo apt install ./release/lynterminal_1.4.0_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | [**`lynterminal-1.4.0-1.x86_64.rpm`**](release/lynterminal-1.4.0-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.4.0-1.x86_64.rpm` |
+| **Arch Linux / Manjaro / EndeavourOS** | [**`lynterminal-1.5.0v-1-x86_64.pkg.tar.zst`**](release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst` |
+| **Debian / Ubuntu / Linux Mint** | [**`lynterminal_1.5.0_amd64.deb`**](release/lynterminal_1.5.0_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.0_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | [**`lynterminal-1.5.0-1.x86_64.rpm`**](release/lynterminal-1.5.0-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.0-1.x86_64.rpm` |
 
 ---
 
@@ -41,15 +41,15 @@ Modern package managers (`apt`, `dnf`, `pacman`) automatically resolve, download
 
 - **Arch Linux / Manjaro / EndeavourOS**:
   ```bash
-  sudo pacman -U ./release/lynterminal-1.4.0v-1-x86_64.pkg.tar.zst
+  sudo pacman -U ./release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst
   ```
 - **Debian / Ubuntu / Linux Mint**:
   ```bash
-  sudo apt install ./release/lynterminal_1.4.0_amd64.deb
+  sudo apt install ./release/lynterminal_1.5.0_amd64.deb
   ```
 - **Fedora / RHEL / openSUSE**:
   ```bash
-  sudo dnf install ./release/lynterminal-1.4.0-1.x86_64.rpm
+  sudo dnf install ./release/lynterminal-1.5.0-1.x86_64.rpm
   ```
 
 ### 🗑️ Uninstall Anytime
@@ -79,6 +79,20 @@ curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/unins
 - **Zero Telemetry & 100% Offline**: No remote servers, cloud sync delays, or third-party analytics trackers. Every sales receipt, customer balance, and payroll voucher is stored locally on your SSD.
 - **Embedded SQLite in WAL Mode**: Concurrency-safe SQLite engine operating in Write-Ahead Logging mode for instant ACID transactions with zero database lock contention.
 - **Multi-Jurisdiction Ready**: Built-in tax presets (US State Sales Tax, EU/UK VAT, Japan JCT, India GST, or Custom Tax) and multi-currency selector with safe catalog preservation.
+
+---
+
+## ⚡ What's New in v1.5.0 (v1.5.0v)
+
+- **Custom Payment Methods**: Cash and Card are set as clean defaults, with up to 2 extra user-configurable payment methods in Settings (e.g., UPI, Google Pay, Alipay, PayPay, Bank Draft) appearing directly on POS checkout and settlement dialogs.
+- **POS Credit & Udhaar Billing**: Native support for **100% Full Credit** and **Half Paid / Half Credit** billing at the register. POS automatically prompts for and enforces customer ledger linking.
+- **1-Click Transaction Record Settlement**: Invoices view renders outstanding due balances and a dedicated **"Pay"** button directly beside **"Receipt"**. Settle bills in full or partial amounts with custom money entry, quick **100%** & **50%** buttons, and method selection (Cash, Card, Bank, Custom).
+- **Executive Dashboard Credit Reminders & Dual Rankings**:
+  - **Credit Reminder Alert**: Real-time counter of total debtor accounts and aggregate outstanding balance.
+  - **Ranked by Credit Amount**: Debtor accounts ranked chronologically from largest credit balance to smallest (#1 to endless).
+  - **Ranked by Age**: Unsettled invoices ordered from oldest to newest with age badges and instant in-place payment settlement.
+- **Conditional Indian GST Engine**: Statutory GST features activate exclusively when **INR** currency is selected, backed by one-click toggle switches on both Dashboard and Settings for seamless switching between standard commercial and tax compliance billing.
+- **Failsafe Step-by-Step Upgrades**: Beautifully formatted Markdown changelogs and millisecond-accurate SQLite safety backups preventing `VACUUM INTO` collisions with 4-step live progress feedback.
 
 ---
 

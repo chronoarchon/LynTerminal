@@ -31,6 +31,7 @@ import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
 
 interface SettingsViewProps {
   settings: Settings | null;
+  gstSettings?: GstSettings | null;
   onSettingsUpdated: (newSettings: Settings) => void;
 }
 
@@ -101,6 +102,7 @@ const TAX_PRESETS: {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
+  gstSettings,
   onSettingsUpdated,
 }) => {
   const [formData, setFormData] = useState<Settings>({
@@ -129,6 +131,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     capital_cash: 0,
     capital_bank: 0,
     capital_mode: "CASH",
+    custom_payment_1_name: "UPI",
+    custom_payment_1_enabled: false,
+    custom_payment_2_name: "Bank Transfer",
+    custom_payment_2_enabled: false,
   });
 
   const { currencySymbol } = useCurrency();
@@ -280,6 +286,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   useEffect(() => {
+    if (gstSettings) {
+      setGstForm(gstSettings);
+    }
+  }, [gstSettings]);
+
+  useEffect(() => {
     if (settings) {
       setFormData({
         ...settings,
@@ -289,6 +301,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         capital_cash: settings.capital_cash ?? 0,
         capital_bank: settings.capital_bank ?? 0,
         capital_mode: settings.capital_mode || "CASH",
+        custom_payment_1_name: settings.custom_payment_1_name || "UPI",
+        custom_payment_1_enabled: settings.custom_payment_1_enabled || false,
+        custom_payment_2_name: settings.custom_payment_2_name || "Bank Transfer",
+        custom_payment_2_enabled: settings.custom_payment_2_enabled || false,
       });
     }
   }, [settings]);
@@ -324,7 +340,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         default_tax_rate: Number(formData.default_tax_rate) || 0,
       };
       const updated = await api.saveSettings(payload);
-      if (formData.tax_preset === "INDIA_GST" || gstForm.is_enabled) {
+      if (formData.currency_code === "INR") {
         await gstApi.saveGstSettings(gstForm).catch(console.error);
       }
       setFormData(updated);
@@ -616,20 +632,62 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* INDIAN GST & TALLY STATUTORY PROFILE (Visible when India GST Preset is active or enabled) */}
-      {(formData.tax_preset === "INDIA_GST" || gstForm.is_enabled) && (
-        <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4 border-2 border-[#FF9500]/20 bg-gradient-to-b from-white to-[#FFF9F2]/30">
+      {/* INDIAN GST & TALLY STATUTORY PROFILE (Visible ONLY when active currency is INR) */}
+      {formData.currency_code === "INR" && (
+        <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4 border border-[#FF9500]/30 bg-gradient-to-b from-white to-[#FFF9F2]/20">
           <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#FF9500]" />
-              <h2 className="text-sm font-semibold text-[#1D1D1F]">
-                Indian GST & Tally Legal Profile
-              </h2>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#FF9500]/10 text-[#FF9500] flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-[#1D1D1F]">
+                    India GST &amp; Tally Statutory Accounting
+                  </h2>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF9500]/10 text-[#FF9500] uppercase tracking-wide">
+                    Rule 46 CGST
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#86868B] mt-0.5">
+                  Optional GST engine for INR currency: CGST, SGST, IGST tax breakdown, HSN/SAC codes &amp; Tally gateway
+                </p>
+              </div>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF9500]/10 text-[#FF9500] uppercase tracking-wide">
-              Rule 46 CGST Act Compliant
-            </span>
+
+            {/* Apple Styled Toggle Switch */}
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-semibold text-[#1D1D1F]">
+                {gstForm.is_enabled ? "Enabled" : "Disabled"}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={gstForm.is_enabled}
+                  onChange={async (e) => {
+                    const val = e.target.checked;
+                    const updatedGst = { ...gstForm, is_enabled: val };
+                    setGstForm(updatedGst);
+                    try {
+                      await gstApi.saveGstSettings(updatedGst);
+                      toast({
+                        message: val ? "Indian GST & Tally activated" : "Indian GST & Tally turned off",
+                        type: "info",
+                      });
+                      onSettingsUpdated({ ...formData, tax_preset: val ? "INDIA_GST" : "CUSTOM" });
+                    } catch (err) {
+                      console.error("Failed to update GST status:", err);
+                    }
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF9500]"></div>
+              </label>
+            </div>
           </div>
+
+          {gstForm.is_enabled && (
+            <div className="space-y-4 pt-1 animate-in fade-in duration-200">
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -799,6 +857,164 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       )}
+    </div>
+  )}
+
+      {/* SECTION: Payment Methods & Custom Gateways */}
+      <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
+        <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+              <Receipt className="w-4 h-4 stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-[#1D1D1F]">
+                Payment Methods &amp; Custom Checkout Gateways
+              </h2>
+              <p className="text-[11px] text-[#86868B]">
+                Configure standard Cash/Card and up to 2 customized payment methods for POS counter checkout
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
+            POS Gateways
+          </span>
+        </div>
+
+        {/* Default Methods */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-3.5 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                💵
+              </span>
+              <div>
+                <span className="text-xs font-bold text-[#1D1D1F] block">Cash</span>
+                <span className="text-[10px] text-[#86868B]">Physical register drawer float</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/40">
+              Default (Always On)
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-xs">
+                💳
+              </span>
+              <div>
+                <span className="text-xs font-bold text-[#1D1D1F] block">Card / Terminal</span>
+                <span className="text-[10px] text-[#86868B]">Swipe, chip &amp; contactless terminal</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/40">
+              Default (Always On)
+            </span>
+          </div>
+        </div>
+
+        {/* 2 Customizable Payment Methods */}
+        <div className="pt-2 border-t border-black/[0.05] space-y-3">
+          <h3 className="text-xs font-bold text-[#1D1D1F]">
+            Customizable Payment Methods
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Custom Payment 1 */}
+            <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-[#1D1D1F] block">
+                    Custom Method 1
+                  </span>
+                  <span className="text-[10px] text-[#86868B]">
+                    e.g. UPI, Google Pay, PayPay, Alipay
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.custom_payment_1_enabled || false}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        custom_payment_1_enabled: e.target.checked,
+                      })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0071E3]"></div>
+                </label>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Button Label
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. UPI, Google Pay, PayPay"
+                  value={formData.custom_payment_1_name || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      custom_payment_1_name: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                />
+              </div>
+            </div>
+
+            {/* Custom Payment 2 */}
+            <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-[#1D1D1F] block">
+                    Custom Method 2
+                  </span>
+                  <span className="text-[10px] text-[#86868B]">
+                    e.g. Bank Draft, Alipay, Cheque, Wire
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.custom_payment_2_enabled || false}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        custom_payment_2_enabled: e.target.checked,
+                      })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0071E3]"></div>
+                </label>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Button Label
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bank Draft, Wire Transfer"
+                  value={formData.custom_payment_2_name || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      custom_payment_2_name: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* SECTION 3: Receipt Formatting & Register Defaults */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
@@ -1323,14 +1539,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </h2>
           </div>
           <span className="text-[11px] font-mono font-semibold text-[#0071E3] bg-[#0071E3]/10 px-2.5 py-0.5 rounded-full border border-[#0071E3]/20">
-            v1.4.0v
+            v1.5.0v
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div>
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>Installed Version: LynTerminal v1.4.0v</span>
+              <span>Installed Version: LynTerminal v1.5.0v</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
                 Current
               </span>

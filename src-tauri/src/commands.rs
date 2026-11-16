@@ -22,7 +22,9 @@ pub fn get_settings_internal(conn: &rusqlite::Connection) -> Result<Settings, St
                 invoice_prefix, enable_godowns, terms_and_conditions,
                 tax_mode, tax_preset, preview_after_sale, auto_print,
                 opening_cash, opening_bank, opening_balance_mode,
-                capital_cash, capital_bank, capital_mode
+                capital_cash, capital_bank, capital_mode,
+                custom_payment_1_name, custom_payment_1_enabled,
+                custom_payment_2_name, custom_payment_2_enabled
          FROM settings WHERE id = 1",
         [],
         |row| {
@@ -51,6 +53,10 @@ pub fn get_settings_internal(conn: &rusqlite::Connection) -> Result<Settings, St
                 capital_cash: row.get::<_, Option<f64>>(21)?.unwrap_or(0.0),
                 capital_bank: row.get::<_, Option<f64>>(22)?.unwrap_or(0.0),
                 capital_mode: row.get::<_, Option<String>>(23)?.unwrap_or_else(|| "CASH".into()),
+                custom_payment_1_name: row.get::<_, Option<String>>(24)?.unwrap_or_else(|| "UPI".into()),
+                custom_payment_1_enabled: row.get::<_, Option<i32>>(25)?.unwrap_or(0) == 1,
+                custom_payment_2_name: row.get::<_, Option<String>>(26)?.unwrap_or_else(|| "Bank Transfer".into()),
+                custom_payment_2_enabled: row.get::<_, Option<i32>>(27)?.unwrap_or(0) == 1,
             })
         },
     )
@@ -96,7 +102,11 @@ pub fn save_settings(
             opening_balance_mode = ?20,
             capital_cash = ?21,
             capital_bank = ?22,
-            capital_mode = ?23
+            capital_mode = ?23,
+            custom_payment_1_name = ?24,
+            custom_payment_1_enabled = ?25,
+            custom_payment_2_name = ?26,
+            custom_payment_2_enabled = ?27
          WHERE id = 1",
         params![
             settings.business_name,
@@ -122,6 +132,10 @@ pub fn save_settings(
             settings.capital_cash,
             settings.capital_bank,
             settings.capital_mode,
+            settings.custom_payment_1_name,
+            if settings.custom_payment_1_enabled { 1 } else { 0 },
+            settings.custom_payment_2_name,
+            if settings.custom_payment_2_enabled { 1 } else { 0 },
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -677,10 +691,12 @@ pub fn create_invoice(
 
     let invoice_number = format!("{}{:05}", prefix, max_num + 1);
 
-    let status = if payload.paid_amount >= payload.total_amount {
+    let status = if payload.paid_amount >= payload.total_amount - 0.001 {
         "PAID"
     } else if payload.paid_amount > 0.0 {
         "PARTIAL"
+    } else if payload.payment_method.to_lowercase().contains("credit") || payload.notes.to_lowercase().contains("credit") {
+        "CREDIT"
     } else {
         "UNPAID"
     };
@@ -1633,6 +1649,24 @@ pub fn record_payment(
         payment.id = Uuid::new_v4().to_string();
     }
 
+    // Auto-resolve party_id and party_name from invoice if not provided
+    if payment.party_id.is_empty() {
+        if let Some(ref inv_id) = payment.invoice_id {
+            if let Ok((p_id, p_name)) = tx.query_row(
+                "SELECT party_id, party_name FROM invoices WHERE id = ?1",
+                params![inv_id],
+                |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, String>(1)?)),
+            ) {
+                if let Some(pid) = p_id {
+                    payment.party_id = pid;
+                }
+                if payment.party_name.is_empty() {
+                    payment.party_name = p_name;
+                }
+            }
+        }
+    }
+
     tx.execute(
         "INSERT INTO payments (id, invoice_id, party_id, party_name, amount,
                               payment_type, payment_method, payment_date, reference, notes)
@@ -1653,20 +1687,22 @@ pub fn record_payment(
     .map_err(|e| e.to_string())?;
 
     // Update party balance
-    if payment.payment_type == "IN" {
-        // Customer paid money, reduces what they owe us
-        tx.execute(
-            "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
-            params![payment.amount, payment.party_id],
-        )
-        .ok();
-    } else {
-        // We paid money to vendor, reduces what we owe them
-        tx.execute(
-            "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
-            params![payment.amount, payment.party_id],
-        )
-        .ok();
+    if !payment.party_id.is_empty() {
+        if payment.payment_type == "IN" {
+            // Customer paid money, reduces what they owe us
+            tx.execute(
+                "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+                params![payment.amount, payment.party_id],
+            )
+            .ok();
+        } else {
+            // We paid money to vendor, reduces what we owe them
+            tx.execute(
+                "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
+                params![payment.amount, payment.party_id],
+            )
+            .ok();
+        }
     }
 
     // If attached to an invoice, update paid_amount & status
@@ -1680,7 +1716,7 @@ pub fn record_payment(
             .unwrap_or((0.0, 0.0));
 
         let new_paid = paid + payment.amount;
-        let new_status = if new_paid >= total {
+        let new_status = if new_paid >= total - 0.001 {
             "PAID"
         } else if new_paid > 0.0 {
             "PARTIAL"
@@ -1693,6 +1729,24 @@ pub fn record_payment(
             params![new_paid, new_status, inv_id],
         )
         .ok();
+
+        if !payment.party_id.is_empty() {
+            let settlement_id = Uuid::new_v4().to_string();
+            let _ = tx.execute(
+                "INSERT INTO bill_settlements (
+                    id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    settlement_id,
+                    payment.id,
+                    inv_id,
+                    payment.party_id,
+                    payment.amount,
+                    payment.payment_date,
+                    payment.notes,
+                ],
+            );
+        }
     }
 
     DatabaseManager::log_audit(
@@ -2855,10 +2909,47 @@ pub fn create_database_backup_internal(conn: &Connection) -> Result<String, Stri
     std::fs::create_dir_all(&backup_dir).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&vault_dir).map_err(|e| e.to_string())?;
 
-    let now_str = Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let now_str = Local::now().format("%Y%m%d_%H%M%S_%3f").to_string();
     let filename = format!("lynterminal_backup_{}.db", now_str);
     let target_path = backup_dir.join(&filename);
     let vault_path = vault_dir.join(&filename);
+
+    if target_path.exists() {
+        let _ = std::fs::remove_file(&target_path);
+    }
+    if vault_path.exists() {
+        let _ = std::fs::remove_file(&vault_path);
+    }
+
+    let sql = format!("VACUUM INTO '{}'", target_path.to_string_lossy());
+    conn.execute_batch(&sql).map_err(|e| format!("VACUUM INTO error: {}", e))?;
+
+    let _ = std::fs::copy(&target_path, &vault_path);
+
+    rotate_backups(&backup_dir, 10);
+    rotate_backups(&vault_dir, 10);
+
+    Ok(target_path.to_string_lossy().to_string())
+}
+
+pub fn create_pre_update_backup_internal(conn: &Connection, version: &str) -> Result<String, String> {
+    let (backup_dir, vault_dir) = get_backups_storage_dir();
+
+    std::fs::create_dir_all(&backup_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&vault_dir).map_err(|e| e.to_string())?;
+
+    let v_clean = version.trim_start_matches('v').trim_end_matches('v');
+    let now_str = Local::now().format("%Y%m%d_%H%M%S_%3f").to_string();
+    let filename = format!("lynterminal_preupdate_v{}_{}.db", v_clean, now_str);
+    let target_path = backup_dir.join(&filename);
+    let vault_path = vault_dir.join(&filename);
+
+    if target_path.exists() {
+        let _ = std::fs::remove_file(&target_path);
+    }
+    if vault_path.exists() {
+        let _ = std::fs::remove_file(&vault_path);
+    }
 
     let sql = format!("VACUUM INTO '{}'", target_path.to_string_lossy());
     conn.execute_batch(&sql).map_err(|e| format!("VACUUM INTO error: {}", e))?;
@@ -5825,7 +5916,7 @@ pub fn create_pre_update_backup(
 ) -> Result<String, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-    let path = create_database_backup_internal(&conn)?;
+    let path = create_pre_update_backup_internal(&conn, &version)?;
     DatabaseManager::log_audit(
         &conn,
         "BACKUP",
@@ -5859,13 +5950,13 @@ fn compare_semver(remote: &str, current: &str) -> bool {
 
 #[tauri::command]
 pub fn check_app_update() -> Result<AppUpdateInfo, String> {
-    let current_version = "1.3.1v".to_string();
+    let current_version = "1.5.0v".to_string();
 
     let output = std::process::Command::new("curl")
         .args(&[
             "-s",
             "--max-time", "6",
-            "-H", "User-Agent: LynTerminal-App/1.3.1",
+            "-H", "User-Agent: LynTerminal-App/1.5.0",
             "https://api.github.com/repos/chronoarchon/LynTerminal/releases/latest",
         ])
         .output()
@@ -5967,7 +6058,7 @@ pub fn apply_app_update(
     {
         let app = state.lock().map_err(|e| e.to_string())?;
         let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-        let path = create_database_backup_internal(&conn)?;
+        let path = create_pre_update_backup_internal(&conn, &target_version)?;
         DatabaseManager::log_audit(
             &conn,
             "BACKUP",

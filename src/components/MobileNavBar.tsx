@@ -21,12 +21,14 @@ interface MobileNavBarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   lowStockCount?: number;
+  showGst?: boolean;
 }
 
 export const MobileNavBar: React.FC<MobileNavBarProps> = ({
   activeTab,
   onSelectTab,
   lowStockCount = 0,
+  showGst = false,
 }) => {
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
 
@@ -79,36 +81,40 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
       description: "Business profile, currencies, tax presets & printer",
       icon: SettingsIcon,
     },
-    {
-      id: "gst_hub",
-      label: "Tally Gateway Hub",
-      description: "F4-F9 accounting vouchers & GST duties ledger",
-      icon: Building2,
-    },
-    {
-      id: "gst_pos",
-      label: "GST POS Billing",
-      description: "Rule 46 CGST/SGST/IGST tax invoices",
-      icon: Zap,
-    },
-    {
-      id: "gst_credit",
-      label: "Debtors & Creditors",
-      description: "Sundry aging & bill-by-bill reconciliation",
-      icon: Users,
-    },
-    {
-      id: "gstr1",
-      label: "GSTR-1 Monthly Return",
-      description: "Outward supply return & GSTN portal JSON",
-      icon: FileSpreadsheet,
-    },
-    {
-      id: "gstr3b",
-      label: "GSTR-3B Self-Return",
-      description: "Monthly return with Input Tax Credit set-off",
-      icon: Scale,
-    },
+    ...(showGst
+      ? [
+          {
+            id: "gst_hub",
+            label: "Tally Gateway Hub",
+            description: "F4-F9 accounting vouchers & GST duties ledger",
+            icon: Building2,
+          },
+          {
+            id: "gst_pos",
+            label: "GST POS Billing",
+            description: "Rule 46 CGST/SGST/IGST tax invoices",
+            icon: Zap,
+          },
+          {
+            id: "gst_credit",
+            label: "Debtors & Creditors",
+            description: "Sundry aging & bill-by-bill reconciliation",
+            icon: Users,
+          },
+          {
+            id: "gstr1",
+            label: "GSTR-1 Monthly Return",
+            description: "Outward supply return & GSTN portal JSON",
+            icon: FileSpreadsheet,
+          },
+          {
+            id: "gstr3b",
+            label: "GSTR-3B Self-Return",
+            description: "Monthly return with Input Tax Credit set-off",
+            icon: Scale,
+          },
+        ]
+      : []),
   ];
 
   const isMoreActive = [
