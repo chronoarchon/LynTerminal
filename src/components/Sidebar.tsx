@@ -11,6 +11,10 @@ import {
   UserCheck,
   LayoutDashboard,
   HardDrive,
+  Building2,
+  FileSpreadsheet,
+  Scale,
+  ReceiptText,
 } from "lucide-react";
 import { Logo } from "./Logo";
 
@@ -44,6 +48,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "settings", label: "Settings", icon: SettingsIcon, key: "0" },
   ];
 
+  const gstNavItems = [
+    { id: "gst_hub", label: "Tally ERP Hub", icon: Building2, key: "F1" },
+    { id: "gst_pos", label: "GST POS Billing", icon: ReceiptText, key: "F8" },
+    { id: "gst_credit", label: "Debtors & Creditors", icon: Users, key: "F6" },
+    { id: "gstr1", label: "GSTR-1 Audit", icon: FileSpreadsheet, key: "G1" },
+    { id: "gstr3b", label: "GSTR-3B Return", icon: Scale, key: "G3" },
+  ];
+
   return (
     <aside className="hidden lg:flex w-64 bg-[#161618] border-r border-white/[0.08] flex-col justify-between shrink-0 select-none text-[#F5F5F7]">
       <div>
@@ -53,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation list */}
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-8.5rem)]">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -62,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
                   isActive
                     ? "bg-[#0071E3] text-white shadow-xs font-semibold"
                     : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
@@ -93,6 +105,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {item.key}
                   </kbd>
                 </div>
+              </button>
+            );
+          })}
+
+          {/* India GST & Tally Section */}
+          <div className="pt-3 pb-1 px-3 flex items-center justify-between border-t border-white/[0.08] mt-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868B]">
+              India GST & Tally
+            </span>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FF9500]/20 text-[#FF9500]">
+              CGST/SGST
+            </span>
+          </div>
+
+          {gstNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => onSelectTab(item.id)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
+                  isActive
+                    ? "bg-[#FF9500] text-white shadow-xs font-semibold"
+                    : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon
+                    className={`w-4 h-4 transition-colors ${
+                      isActive ? "text-white stroke-[2.2]" : "text-[#FF9500]"
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                </div>
+
+                <kbd
+                  className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-white/[0.06] text-[#86868B]"
+                  }`}
+                >
+                  {item.key}
+                </kbd>
               </button>
             );
           })}

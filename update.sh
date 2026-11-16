@@ -64,7 +64,7 @@ echo -e "${BLUE}==>${RESET} ${BOLD}Step 2: Checking latest release from GitHub (
 LATEST_TAG=$(curl -s --max-time 10 -H "User-Agent: LynTerminal-Updater" "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$LATEST_TAG" ]; then
-    LATEST_TAG="v1.3.1"
+    LATEST_TAG="v1.4.0"
 fi
 echo -e "${GREEN}==>${RESET} Target release: ${BOLD}${LATEST_TAG}${RESET}"
 

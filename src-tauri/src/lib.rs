@@ -1,6 +1,7 @@
 pub mod db;
 pub mod models;
 pub mod commands;
+pub mod gst;
 
 use db::DatabaseManager;
 use commands::AppState;
@@ -91,6 +92,22 @@ pub fn run() {
             commands::create_pre_update_backup,
             commands::check_app_update,
             commands::apply_app_update,
+            // Indian GST & Tally-Compliant Accounting commands
+            gst::get_gst_settings,
+            gst::save_gst_settings,
+            gst::get_party_gst_profile,
+            gst::save_party_gst_profile,
+            gst::get_item_gst_profile,
+            gst::save_item_gst_profile,
+            gst::create_gst_invoice,
+            gst::get_gst_invoice,
+            gst::list_gst_invoices,
+            gst::get_sundry_debtors_aging,
+            gst::get_sundry_creditors_aging,
+            gst::get_party_pending_bills,
+            gst::settle_bill_by_bill,
+            gst::get_gstr1_report,
+            gst::get_gstr3b_report,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LynTerminal application");

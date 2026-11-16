@@ -441,6 +441,106 @@ impl DatabaseManager {
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS gst_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                is_enabled INTEGER NOT NULL DEFAULT 1,
+                gstin TEXT NOT NULL DEFAULT '',
+                legal_name TEXT NOT NULL DEFAULT '',
+                trade_name TEXT NOT NULL DEFAULT '',
+                state_code TEXT NOT NULL DEFAULT '27',
+                state_name TEXT NOT NULL DEFAULT 'Maharashtra',
+                pan TEXT NOT NULL DEFAULT '',
+                gst_composition INTEGER NOT NULL DEFAULT 0,
+                einvoice_enabled INTEGER NOT NULL DEFAULT 0,
+                eway_bill_threshold REAL NOT NULL DEFAULT 50000.0,
+                lut_number TEXT NOT NULL DEFAULT '',
+                bank_name TEXT NOT NULL DEFAULT '',
+                bank_account_no TEXT NOT NULL DEFAULT '',
+                bank_ifsc TEXT NOT NULL DEFAULT '',
+                bank_branch TEXT NOT NULL DEFAULT '',
+                upi_id TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL DEFAULT ''
+            );
+
+            CREATE TABLE IF NOT EXISTS gst_parties (
+                party_id TEXT PRIMARY KEY,
+                gstin TEXT NOT NULL DEFAULT '',
+                state_code TEXT NOT NULL DEFAULT '27',
+                state_name TEXT NOT NULL DEFAULT 'Maharashtra',
+                pan TEXT NOT NULL DEFAULT '',
+                gst_type TEXT NOT NULL DEFAULT 'UNREGISTERED',
+                credit_limit REAL NOT NULL DEFAULT 0.0,
+                credit_period_days INTEGER NOT NULL DEFAULT 30,
+                tally_ledger_group TEXT NOT NULL DEFAULT 'Sundry Debtors',
+                FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS gst_items (
+                item_id TEXT PRIMARY KEY,
+                hsn_code TEXT NOT NULL DEFAULT '8471',
+                description TEXT NOT NULL DEFAULT '',
+                is_service INTEGER NOT NULL DEFAULT 0,
+                cess_rate REAL NOT NULL DEFAULT 0.0,
+                FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS gst_invoices (
+                invoice_id TEXT PRIMARY KEY,
+                place_of_supply TEXT NOT NULL DEFAULT '27-Maharashtra',
+                pos_state_code TEXT NOT NULL DEFAULT '27',
+                pos_state_name TEXT NOT NULL DEFAULT 'Maharashtra',
+                supplier_gstin TEXT NOT NULL DEFAULT '',
+                customer_gstin TEXT NOT NULL DEFAULT '',
+                is_interstate INTEGER NOT NULL DEFAULT 0,
+                is_reverse_charge INTEGER NOT NULL DEFAULT 0,
+                cgst_amount REAL NOT NULL DEFAULT 0.0,
+                sgst_amount REAL NOT NULL DEFAULT 0.0,
+                igst_amount REAL NOT NULL DEFAULT 0.0,
+                cess_amount REAL NOT NULL DEFAULT 0.0,
+                round_off REAL NOT NULL DEFAULT 0.0,
+                eway_bill_no TEXT DEFAULT '',
+                vehicle_no TEXT DEFAULT '',
+                transporter_name TEXT DEFAULT '',
+                bill_reference_type TEXT DEFAULT 'New Ref',
+                FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS gst_invoice_items (
+                id TEXT PRIMARY KEY,
+                invoice_id TEXT NOT NULL,
+                item_id TEXT,
+                hsn_code TEXT NOT NULL DEFAULT '',
+                quantity REAL NOT NULL DEFAULT 1.0,
+                unit TEXT NOT NULL DEFAULT 'PCS',
+                rate REAL NOT NULL DEFAULT 0.0,
+                discount_amount REAL NOT NULL DEFAULT 0.0,
+                taxable_amount REAL NOT NULL DEFAULT 0.0,
+                tax_rate REAL NOT NULL DEFAULT 18.0,
+                cgst_rate REAL NOT NULL DEFAULT 0.0,
+                cgst_amount REAL NOT NULL DEFAULT 0.0,
+                sgst_rate REAL NOT NULL DEFAULT 0.0,
+                sgst_amount REAL NOT NULL DEFAULT 0.0,
+                igst_rate REAL NOT NULL DEFAULT 0.0,
+                igst_amount REAL NOT NULL DEFAULT 0.0,
+                cess_rate REAL NOT NULL DEFAULT 0.0,
+                cess_amount REAL NOT NULL DEFAULT 0.0,
+                line_total REAL NOT NULL DEFAULT 0.0,
+                FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS bill_settlements (
+                id TEXT PRIMARY KEY,
+                payment_id TEXT NOT NULL,
+                invoice_id TEXT NOT NULL,
+                party_id TEXT NOT NULL,
+                settled_amount REAL NOT NULL,
+                settlement_date TEXT NOT NULL,
+                notes TEXT DEFAULT '',
+                FOREIGN KEY(payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+                FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+                FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE CASCADE
+            );
             "
         )?;
 
@@ -596,6 +696,29 @@ impl DatabaseManager {
                  VALUES (1, 'admin', '', '', '', 0, 0, '', '')",
                 [],
             )?;
+        }
+
+        let gst_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM gst_settings WHERE id = 1",
+            [],
+            |r| r.get(0),
+        ).unwrap_or(0);
+
+        if gst_count == 0 {
+            let now = chrono::Local::now().to_rfc3339();
+            let _ = conn.execute(
+                "INSERT INTO gst_settings (
+                    id, is_enabled, gstin, legal_name, trade_name, state_code, state_name,
+                    pan, gst_composition, einvoice_enabled, eway_bill_threshold,
+                    lut_number, bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id, updated_at
+                ) VALUES (
+                    1, 1, '27AABCU9603R1ZN', 'LynTerminal India Enterprises Pvt Ltd',
+                    'LynTerminal Store', '27', 'Maharashtra', 'AABCU9603R',
+                    0, 0, 50000.0, '', 'HDFC Bank', '50200012345678', 'HDFC0000123',
+                    'Fort, Mumbai', 'lynterminal@okhdfcbank', ?1
+                )",
+                params![now],
+            );
         }
 
         Ok(())

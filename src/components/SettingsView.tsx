@@ -25,6 +25,9 @@ import { AppleSelect } from "./common/AppleSelect";
 import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
 import { UpdateNotificationModal } from "./UpdateNotificationModal";
+import type { GstSettings } from "../modules/india_gst/gstTypes";
+import { gstApi } from "../modules/india_gst/gstApi";
+import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
 
 interface SettingsViewProps {
   settings: Settings | null;
@@ -133,6 +136,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Indian GST Profile Form
+  const [gstForm, setGstForm] = useState<GstSettings>({
+    is_enabled: true,
+    gstin: "27AABCU9603R1ZN",
+    legal_name: "LynTerminal Infotech Pvt Ltd",
+    trade_name: "LynStore India",
+    state_code: "27",
+    state_name: "Maharashtra",
+    pan: "AABCU9603R",
+    gst_composition: false,
+    einvoice_enabled: false,
+    eway_bill_threshold: 50000,
+    lut_number: "",
+    bank_name: "HDFC Bank",
+    bank_account_no: "50200012345678",
+    bank_ifsc: "HDFC0000128",
+    bank_branch: "Fort, Mumbai",
+    upi_id: "lynstore@okhdfcbank",
+  });
+
   // Auto-Update states
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
@@ -140,6 +163,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   useEffect(() => {
     api.getAuthState().then(setAuthState).catch(() => {});
+    gstApi
+      .getGstSettings()
+      .then((res) => {
+        if (res && res.gstin) {
+          setGstForm(res);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   // Currency Switch State
@@ -293,6 +324,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         default_tax_rate: Number(formData.default_tax_rate) || 0,
       };
       const updated = await api.saveSettings(payload);
+      if (formData.tax_preset === "INDIA_GST" || gstForm.is_enabled) {
+        await gstApi.saveGstSettings(gstForm).catch(console.error);
+      }
       setFormData(updated);
       onSettingsUpdated(updated);
       setSaveSuccess(true);
@@ -352,6 +386,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         tax_mode: preset.tax_mode,
         tax_name: preset.tax_name,
         default_tax_rate: preset.rate,
+        ...(preset.id === "INDIA_GST"
+          ? { currency_symbol: "₹", currency_code: "INR" }
+          : {}),
       }));
     }
   };
@@ -578,6 +615,190 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* INDIAN GST & TALLY STATUTORY PROFILE (Visible when India GST Preset is active or enabled) */}
+      {(formData.tax_preset === "INDIA_GST" || gstForm.is_enabled) && (
+        <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4 border-2 border-[#FF9500]/20 bg-gradient-to-b from-white to-[#FFF9F2]/30">
+          <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#FF9500]" />
+              <h2 className="text-sm font-semibold text-[#1D1D1F]">
+                Indian GST & Tally Legal Profile
+              </h2>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF9500]/10 text-[#FF9500] uppercase tracking-wide">
+              Rule 46 CGST Act Compliant
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                Supplier GSTIN (15 Digits)
+              </label>
+              <input
+                type="text"
+                maxLength={15}
+                value={gstForm.gstin}
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase();
+                  const stateCode = val.slice(0, 2);
+                  const pan = val.length >= 12 ? val.slice(2, 12) : gstForm.pan;
+                  const foundState = INDIAN_STATES.find((s) => s.code === stateCode);
+                  setGstForm((prev) => ({
+                    ...prev,
+                    gstin: val,
+                    state_code: stateCode || prev.state_code,
+                    state_name: foundState ? foundState.name : prev.state_name,
+                    pan: pan || prev.pan,
+                  }));
+                }}
+                placeholder="27AABCU9603R1ZN"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
+              />
+              <span className="text-[10px] text-neutral-400 mt-1 block">
+                Auto-syncs 2-digit State Code and PAN
+              </span>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                Legal Registered Name
+              </label>
+              <input
+                type="text"
+                value={gstForm.legal_name}
+                onChange={(e) => setGstForm({ ...gstForm, legal_name: e.target.value })}
+                placeholder="e.g. Acme Retail Pvt Ltd"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#FF9500]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                Trade Name
+              </label>
+              <input
+                type="text"
+                value={gstForm.trade_name}
+                onChange={(e) => setGstForm({ ...gstForm, trade_name: e.target.value })}
+                placeholder="e.g. Acme Supermarket"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#FF9500]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                Place of Supply State ({gstForm.state_code})
+              </label>
+              <AppleSelect
+                value={gstForm.state_code}
+                onChange={(code) => {
+                  const found = INDIAN_STATES.find((s) => s.code === code);
+                  if (found) {
+                    setGstForm({ ...gstForm, state_code: found.code, state_name: found.name });
+                  }
+                }}
+                options={INDIAN_STATES.map((s) => ({
+                  value: s.code,
+                  label: `${s.code} - ${s.name}`,
+                  sublabel: s.isUnionTerritory ? "Union Territory" : "State",
+                }))}
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                Permanent Account Number (PAN)
+              </label>
+              <input
+                type="text"
+                maxLength={10}
+                value={gstForm.pan}
+                onChange={(e) => setGstForm({ ...gstForm, pan: e.target.value.toUpperCase() })}
+                placeholder="AABCU9603R"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                E-Way Bill Threshold (₹)
+              </label>
+              <input
+                type="number"
+                value={gstForm.eway_bill_threshold}
+                onChange={(e) =>
+                  setGstForm({ ...gstForm, eway_bill_threshold: parseFloat(e.target.value) || 50000 })
+                }
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-black/[0.06] pt-3">
+            <h3 className="text-xs font-bold text-neutral-800 mb-2">
+              Bank Details for Tax Invoices & UPI QR
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  value={gstForm.bank_name}
+                  onChange={(e) => setGstForm({ ...gstForm, bank_name: e.target.value })}
+                  placeholder="e.g. HDFC Bank"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#FF9500]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Bank Account Number
+                </label>
+                <input
+                  type="text"
+                  value={gstForm.bank_account_no}
+                  onChange={(e) => setGstForm({ ...gstForm, bank_account_no: e.target.value })}
+                  placeholder="50200012345678"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Bank IFSC Code
+                </label>
+                <input
+                  type="text"
+                  maxLength={11}
+                  value={gstForm.bank_ifsc}
+                  onChange={(e) => setGstForm({ ...gstForm, bank_ifsc: e.target.value.toUpperCase() })}
+                  placeholder="HDFC0000128"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  Merchant UPI ID
+                </label>
+                <input
+                  type="text"
+                  value={gstForm.upi_id}
+                  onChange={(e) => setGstForm({ ...gstForm, upi_id: e.target.value })}
+                  placeholder="merchant@okhdfcbank"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-[#FF9500]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SECTION 3: Receipt Formatting & Register Defaults */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
@@ -1102,14 +1323,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </h2>
           </div>
           <span className="text-[11px] font-mono font-semibold text-[#0071E3] bg-[#0071E3]/10 px-2.5 py-0.5 rounded-full border border-[#0071E3]/20">
-            v1.3.1v
+            v1.4.0v
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div>
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>Installed Version: LynTerminal v1.3.1v</span>
+              <span>Installed Version: LynTerminal v1.4.0v</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
                 Current
               </span>

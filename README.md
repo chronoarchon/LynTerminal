@@ -1,30 +1,30 @@
-# LynTerminal — Modern Business Operating System
+# LynTerminal — Modern Business Operating System & Indian GST Accounting Terminal
 
 <div align="center">
 
-![LynTerminal Version](https://img.shields.io/badge/version-1.3.1v-0071E3?style=for-the-badge&logo=linux&logoColor=white)
+![LynTerminal Version](https://img.shields.io/badge/version-1.4.0v-0071E3?style=for-the-badge&logo=linux&logoColor=white)
 ![Architecture](https://img.shields.io/badge/arch-x86__64-34C759?style=for-the-badge)
 ![Security](https://img.shields.io/badge/security-100%25%20Offline%20%7C%20Zero%20Telemetry-1D1D1F?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-Commercial-86868B?style=for-the-badge)
 
 <p align="center">
-  <strong>Fast, Minimalist, 100% Offline-First, Zero-Telemetry Business OS for Retail Stores, Boutiques, Showrooms, Warehouses & Modern Enterprises.</strong>
+  <strong>Fast, Minimalist, 100% Offline-First, Zero-Telemetry Business OS & Indian GST Accounting Terminal for Retail Stores, Boutiques, Showrooms, Warehouses & Modern Enterprises.</strong>
 </p>
 
 </div>
 
-Built with **Tauri v2**, **Rust**, **SQLite (WAL Mode)**, **React 19**, and **Tailwind CSS v4** — inspired by Apple's Human Interface Guidelines.
+Built with **Tauri v2**, **Rust**, **SQLite (WAL Mode)**, **React 19**, and **Tailwind CSS v4** — inspired by Apple's Human Interface Guidelines and Tally Prime commercial accounting standards.
 
 ---
 
-## 📦 Official Release Downloads & Quick Installation (v1.3.1v)
+## 📦 Official Release Downloads & Quick Installation (v1.4.0v)
 
 | Platform / Distribution | Package Format | Direct Installation Command |
 | :--- | :--- | :--- |
 | **Universal Linux (Any Distro)** | **Standalone Binary Bundle** | `curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.sh \| bash` |
-| **Arch Linux / Manjaro / EndeavourOS** | [**`lynterminal-1.3.1v-1-x86_64.pkg.tar.zst`**](release/lynterminal-1.3.1v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.3.1v-1-x86_64.pkg.tar.zst` |
-| **Debian / Ubuntu / Linux Mint** | [**`lynterminal_1.3.1_amd64.deb`**](release/lynterminal_1.3.1_amd64.deb) | `sudo apt install ./release/lynterminal_1.3.1_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | [**`lynterminal-1.3.1-1.x86_64.rpm`**](release/lynterminal-1.3.1-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.3.1-1.x86_64.rpm` |
+| **Arch Linux / Manjaro / EndeavourOS** | [**`lynterminal-1.4.0v-1-x86_64.pkg.tar.zst`**](release/lynterminal-1.4.0v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.4.0v-1-x86_64.pkg.tar.zst` |
+| **Debian / Ubuntu / Linux Mint** | [**`lynterminal_1.4.0_amd64.deb`**](release/lynterminal_1.4.0_amd64.deb) | `sudo apt install ./release/lynterminal_1.4.0_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | [**`lynterminal-1.4.0-1.x86_64.rpm`**](release/lynterminal-1.4.0-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.4.0-1.x86_64.rpm` |
 
 ---
 
@@ -41,15 +41,15 @@ Modern package managers (`apt`, `dnf`, `pacman`) automatically resolve, download
 
 - **Arch Linux / Manjaro / EndeavourOS**:
   ```bash
-  sudo pacman -U ./release/lynterminal-1.3.1v-1-x86_64.pkg.tar.zst
+  sudo pacman -U ./release/lynterminal-1.4.0v-1-x86_64.pkg.tar.zst
   ```
 - **Debian / Ubuntu / Linux Mint**:
   ```bash
-  sudo apt install ./release/lynterminal_1.3.1_amd64.deb
+  sudo apt install ./release/lynterminal_1.4.0_amd64.deb
   ```
 - **Fedora / RHEL / openSUSE**:
   ```bash
-  sudo dnf install ./release/lynterminal-1.3.1-1.x86_64.rpm
+  sudo dnf install ./release/lynterminal-1.4.0-1.x86_64.rpm
   ```
 
 ### 🗑️ Uninstall Anytime
@@ -79,6 +79,33 @@ curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/unins
 - **Zero Telemetry & 100% Offline**: No remote servers, cloud sync delays, or third-party analytics trackers. Every sales receipt, customer balance, and payroll voucher is stored locally on your SSD.
 - **Embedded SQLite in WAL Mode**: Concurrency-safe SQLite engine operating in Write-Ahead Logging mode for instant ACID transactions with zero database lock contention.
 - **Multi-Jurisdiction Ready**: Built-in tax presets (US State Sales Tax, EU/UK VAT, Japan JCT, India GST, or Custom Tax) and multi-currency selector with safe catalog preservation.
+
+---
+
+## 🇮🇳 Indian Commercial & Full GST Edition (Tally ERP Compatible)
+
+LynTerminal v1.4.0v introduces a native statutory accounting engine designed for Indian retail, wholesale, and enterprise distribution:
+
+- **Rule 46 CGST Act Compliant Invoices**: Generates legally binding GST Tax Invoices featuring itemized HSN/SAC codes, state of supply, Place of Supply (POS), E-Way Bill numbers, Vehicle numbers, and Reverse Charge Mechanism (RCM) tracking.
+- **Automated Tax Splits**:
+  - **Intra-State Supplies**: Automatically splits tax into **CGST (50%) + SGST (50%)** when Place of Supply matches the store's state.
+  - **Inter-State Supplies**: Automatically applies **IGST (100%)** for interstate transactions.
+- **Statutory Mod-36 Luhn GSTIN Validation**: Validates all 15-character party and vendor GSTINs against the official mathematical Mod-36 Luhn checksum algorithm with automatic State Code and PAN extraction.
+- **Indian Numbering System Currency Words**: Automatically transcribes invoice totals into words following the Indian numbering system (*Rupees ... Lakhs ... Crores ... Paise Only*).
+- **Tally ERP Gateway & Voucher Hotkeys**: Instant navigation using standard industry hotkeys:
+  - **F1**: Gateway of LynTerminal Hub
+  - **F2 / F8**: Standard POS & GST POS Invoicing
+  - **F4**: Contra Voucher
+  - **F5**: Payment Voucher
+  - **F6**: Receipt / Customer Credit Settlement
+  - **F9**: Purchase Voucher
+- **Customer & Supplier Credit Management (Sundry Debtors & Creditors)**:
+  - Bill-by-bill FIFO allocation and partial settlements.
+  - Overdue aging analysis: **0–30 Days**, **31–60 Days**, **61–90 Days**, and **90+ Days**.
+  - Dynamic credit limit verification warning prior to billing.
+- **Statutory Return Filing & Audits**:
+  - **GSTR-1**: Complete outward supplies preparation including **Table 4 (B2B)** grouped by recipient CTIN, **Table 5 (B2CL)** large interstate sales, **Table 7 (B2CS)** retail consumer sales, and **HSN Summary**. 1-click export to official **GSTN Portal JSON** and **CA Audit CSV**.
+  - **GSTR-3B**: Monthly summary return showing outward taxable supplies, integrated tax, central tax, state tax, and eligible Input Tax Credit (ITC).
 
 ---
 

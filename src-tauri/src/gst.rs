@@ -1,0 +1,2274 @@
+use chrono::{Local, NaiveDate};
+use rusqlite::{params, Connection};
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+use tauri::State;
+use uuid::Uuid;
+
+use crate::commands::AppState;
+use crate::db::DatabaseManager;
+use crate::models::{Invoice, InvoiceItem};
+
+// ----------------------------------------------------------------------------
+// GST DATA STRUCTURES
+// ----------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GstSettings {
+    pub is_enabled: bool,
+    pub gstin: String,
+    pub legal_name: String,
+    pub trade_name: String,
+    pub state_code: String,
+    pub state_name: String,
+    pub pan: String,
+    pub gst_composition: bool,
+    pub einvoice_enabled: bool,
+    pub eway_bill_threshold: f64,
+    pub lut_number: String,
+    pub bank_name: String,
+    pub bank_account_no: String,
+    pub bank_ifsc: String,
+    pub bank_branch: String,
+    pub upi_id: String,
+}
+
+impl Default for GstSettings {
+    fn default() -> Self {
+        Self {
+            is_enabled: true,
+            gstin: "27AABCU9603R1ZN".into(),
+            legal_name: "LynTerminal India Enterprises Pvt Ltd".into(),
+            trade_name: "LynTerminal Store".into(),
+            state_code: "27".into(),
+            state_name: "Maharashtra".into(),
+            pan: "AABCU9603R".into(),
+            gst_composition: false,
+            einvoice_enabled: false,
+            eway_bill_threshold: 50000.0,
+            lut_number: "".into(),
+            bank_name: "HDFC Bank".into(),
+            bank_account_no: "50200012345678".into(),
+            bank_ifsc: "HDFC0000123".into(),
+            bank_branch: "Fort, Mumbai".into(),
+            upi_id: "lynterminal@okhdfcbank".into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GstPartyProfile {
+    pub party_id: String,
+    pub gstin: String,
+    pub state_code: String,
+    pub state_name: String,
+    pub pan: String,
+    pub gst_type: String, // REGULAR, COMPOSITION, UNREGISTERED, CONSUMER, OVERSEAS
+    pub credit_limit: f64,
+    pub credit_period_days: i32,
+    pub tally_ledger_group: String, // "Sundry Debtors" | "Sundry Creditors"
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GstItemProfile {
+    pub item_id: String,
+    pub hsn_code: String,
+    pub description: String,
+    pub is_service: bool,
+    pub cess_rate: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GstInvoiceRecord {
+    pub invoice_id: String,
+    pub place_of_supply: String,
+    pub pos_state_code: String,
+    pub pos_state_name: String,
+    pub supplier_gstin: String,
+    pub customer_gstin: String,
+    pub is_interstate: bool,
+    pub is_reverse_charge: bool,
+    pub cgst_amount: f64,
+    pub sgst_amount: f64,
+    pub igst_amount: f64,
+    pub cess_amount: f64,
+    pub round_off: f64,
+    pub eway_bill_no: Option<String>,
+    pub vehicle_no: Option<String>,
+    pub transporter_name: Option<String>,
+    pub bill_reference_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GstInvoiceItemRecord {
+    pub id: String,
+    pub invoice_id: String,
+    pub item_id: Option<String>,
+    pub hsn_code: String,
+    pub quantity: f64,
+    pub unit: String,
+    pub rate: f64,
+    pub discount_amount: f64,
+    pub taxable_amount: f64,
+    pub tax_rate: f64,
+    pub cgst_rate: f64,
+    pub cgst_amount: f64,
+    pub sgst_rate: f64,
+    pub sgst_amount: f64,
+    pub igst_rate: f64,
+    pub igst_amount: f64,
+    pub cess_rate: f64,
+    pub cess_amount: f64,
+    pub line_total: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompleteGstInvoice {
+    pub invoice: Invoice,
+    pub items: Vec<InvoiceItem>,
+    pub gst_info: GstInvoiceRecord,
+    pub gst_items: Vec<GstInvoiceItemRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateGstItemPayload {
+    pub item_id: Option<String>,
+    pub item_name: String,
+    pub hsn_code: String,
+    pub quantity: f64,
+    pub unit: String,
+    pub rate: f64,
+    pub discount_amount: f64,
+    pub taxable_amount: f64,
+    pub tax_rate: f64,
+    pub cgst_rate: f64,
+    pub cgst_amount: f64,
+    pub sgst_rate: f64,
+    pub sgst_amount: f64,
+    pub igst_rate: f64,
+    pub igst_amount: f64,
+    pub cess_rate: f64,
+    pub cess_amount: f64,
+    pub line_total: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateGstInvoicePayload {
+    pub invoice_type: String, // "SALE" | "PURCHASE" | "RETURN"
+    pub party_id: Option<String>,
+    pub party_name: String,
+    pub invoice_date: String,
+    pub due_date: String,
+    pub subtotal: f64,
+    pub discount_amount: f64,
+    pub total_tax: f64,
+    pub cgst_amount: f64,
+    pub sgst_amount: f64,
+    pub igst_amount: f64,
+    pub cess_amount: f64,
+    pub round_off: f64,
+    pub total_amount: f64,
+    pub paid_amount: f64,
+    pub payment_method: String,
+    pub notes: String,
+    pub reference: Option<String>,
+    // GST metadata
+    pub place_of_supply: String,
+    pub pos_state_code: String,
+    pub pos_state_name: String,
+    pub customer_gstin: String,
+    pub is_interstate: bool,
+    pub is_reverse_charge: bool,
+    pub eway_bill_no: Option<String>,
+    pub vehicle_no: Option<String>,
+    pub transporter_name: Option<String>,
+    pub bill_reference_type: String, // "New Ref", "Agst Ref", "Advance", "On Account"
+    pub items: Vec<CreateGstItemPayload>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingBill {
+    pub invoice_id: String,
+    pub invoice_number: String,
+    pub invoice_type: String,
+    pub party_id: String,
+    pub party_name: String,
+    pub invoice_date: String,
+    pub due_date: String,
+    pub total_amount: f64,
+    pub paid_amount: f64,
+    pub balance_due: f64,
+    pub overdue_days: i64,
+    pub status: String,
+    pub bill_ref: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PartyCreditAging {
+    pub party_id: String,
+    pub party_name: String,
+    pub party_type: String, // "CUSTOMER" or "VENDOR"
+    pub tally_ledger_group: String, // "Sundry Debtors" or "Sundry Creditors"
+    pub phone: String,
+    pub email: String,
+    pub gstin: String,
+    pub state_name: String,
+    pub total_outstanding: f64,
+    pub credit_limit: f64,
+    pub credit_period_days: i32,
+    pub is_over_limit: bool,
+    pub current_30: f64,
+    pub days_60: f64,
+    pub days_90: f64,
+    pub over_90: f64,
+    pub overdue_count: usize,
+    pub pending_bills_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BillAllocationPayload {
+    pub invoice_id: String,
+    pub amount: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BillSettlementPayload {
+    pub party_id: String,
+    pub party_name: String,
+    pub total_amount: f64,
+    pub payment_type: String, // "IN" (Receipt from Customer) | "OUT" (Payment to Vendor)
+    pub payment_method: String,
+    pub payment_date: String,
+    pub reference: String,
+    pub notes: String,
+    pub allocations: Vec<BillAllocationPayload>,
+}
+
+// ----------------------------------------------------------------------------
+// GSTR-1 AUDIT STRUCTS
+// ----------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr1B2bInvoice {
+    pub customer_gstin: String,
+    pub customer_name: String,
+    pub invoice_number: String,
+    pub invoice_date: String,
+    pub invoice_value: f64,
+    pub place_of_supply: String,
+    pub reverse_charge: String,
+    pub invoice_type: String,
+    pub taxable_value: f64,
+    pub igst_amount: f64,
+    pub cgst_amount: f64,
+    pub sgst_amount: f64,
+    pub cess_amount: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr1B2csSummary {
+    pub place_of_supply: String,
+    pub tax_rate: f64,
+    pub taxable_value: f64,
+    pub igst_amount: f64,
+    pub cgst_amount: f64,
+    pub sgst_amount: f64,
+    pub cess_amount: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr1HsnSummary {
+    pub hsn_code: String,
+    pub description: String,
+    pub uqc: String,
+    pub total_quantity: f64,
+    pub total_value: f64,
+    pub taxable_value: f64,
+    pub igst_amount: f64,
+    pub cgst_amount: f64,
+    pub sgst_amount: f64,
+    pub cess_amount: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr1DocSummary {
+    pub doc_type: String,
+    pub from_serial: String,
+    pub to_serial: String,
+    pub total_count: usize,
+    pub cancelled_count: usize,
+    pub net_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr1ReportData {
+    pub gstin: String,
+    pub legal_name: String,
+    pub fp: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub total_turnover: f64,
+    pub total_taxable: f64,
+    pub total_igst: f64,
+    pub total_cgst: f64,
+    pub total_sgst: f64,
+    pub total_cess: f64,
+    pub b2b: Vec<Gstr1B2bInvoice>,
+    pub b2cl: Vec<Gstr1B2bInvoice>,
+    pub b2cs: Vec<Gstr1B2csSummary>,
+    pub hsn_summary: Vec<Gstr1HsnSummary>,
+    pub doc_summary: Vec<Gstr1DocSummary>,
+}
+
+// ----------------------------------------------------------------------------
+// GSTR-3B AUDIT STRUCTS
+// ----------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr3bTable31 {
+    pub outward_taxable_value: f64,
+    pub outward_igst: f64,
+    pub outward_cgst: f64,
+    pub outward_sgst: f64,
+    pub outward_cess: f64,
+    pub zero_rated_taxable: f64,
+    pub nil_exempt_taxable: f64,
+    pub reverse_charge_taxable: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr3bTable4Itc {
+    pub itc_igst: f64,
+    pub itc_cgst: f64,
+    pub itc_sgst: f64,
+    pub itc_cess: f64,
+    pub itc_ineligible: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gstr3bReportData {
+    pub gstin: String,
+    pub legal_name: String,
+    pub fp: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub table31: Gstr3bTable31,
+    pub table4_itc: Gstr3bTable4Itc,
+    pub net_igst_payable: f64,
+    pub net_cgst_payable: f64,
+    pub net_sgst_payable: f64,
+    pub total_tax_payable: f64,
+    pub total_itc_available: f64,
+    pub net_cash_payable: f64,
+}
+
+// ----------------------------------------------------------------------------
+// INTERNAL CORE ENGINES
+// ----------------------------------------------------------------------------
+
+pub fn get_gst_settings_internal(conn: &Connection) -> Result<GstSettings, String> {
+    let res = conn.query_row(
+        "SELECT is_enabled, gstin, legal_name, trade_name, state_code, state_name,
+                pan, gst_composition, einvoice_enabled, eway_bill_threshold,
+                lut_number, bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id
+         FROM gst_settings WHERE id = 1",
+        [],
+        |row| {
+            Ok(GstSettings {
+                is_enabled: row.get::<_, i32>(0)? == 1,
+                gstin: row.get(1)?,
+                legal_name: row.get(2)?,
+                trade_name: row.get(3)?,
+                state_code: row.get(4)?,
+                state_name: row.get(5)?,
+                pan: row.get(6)?,
+                gst_composition: row.get::<_, i32>(7)? == 1,
+                einvoice_enabled: row.get::<_, i32>(8)? == 1,
+                eway_bill_threshold: row.get(9)?,
+                lut_number: row.get(10)?,
+                bank_name: row.get(11)?,
+                bank_account_no: row.get(12)?,
+                bank_ifsc: row.get(13)?,
+                bank_branch: row.get(14)?,
+                upi_id: row.get(15)?,
+            })
+        },
+    );
+
+    Ok(res.unwrap_or_else(|_| GstSettings::default()))
+}
+
+pub fn save_gst_settings_internal(conn: &Connection, settings: GstSettings) -> Result<GstSettings, String> {
+    let now = Local::now().to_rfc3339();
+
+    conn.execute(
+        "INSERT INTO gst_settings (
+            id, is_enabled, gstin, legal_name, trade_name, state_code, state_name,
+            pan, gst_composition, einvoice_enabled, eway_bill_threshold,
+            lut_number, bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id, updated_at
+        ) VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+        ON CONFLICT(id) DO UPDATE SET
+            is_enabled = excluded.is_enabled,
+            gstin = excluded.gstin,
+            legal_name = excluded.legal_name,
+            trade_name = excluded.trade_name,
+            state_code = excluded.state_code,
+            state_name = excluded.state_name,
+            pan = excluded.pan,
+            gst_composition = excluded.gst_composition,
+            einvoice_enabled = excluded.einvoice_enabled,
+            eway_bill_threshold = excluded.eway_bill_threshold,
+            lut_number = excluded.lut_number,
+            bank_name = excluded.bank_name,
+            bank_account_no = excluded.bank_account_no,
+            bank_ifsc = excluded.bank_ifsc,
+            bank_branch = excluded.bank_branch,
+            upi_id = excluded.upi_id,
+            updated_at = excluded.updated_at",
+        params![
+            if settings.is_enabled { 1 } else { 0 },
+            settings.gstin,
+            settings.legal_name,
+            settings.trade_name,
+            settings.state_code,
+            settings.state_name,
+            settings.pan,
+            if settings.gst_composition { 1 } else { 0 },
+            if settings.einvoice_enabled { 1 } else { 0 },
+            settings.eway_bill_threshold,
+            settings.lut_number,
+            settings.bank_name,
+            settings.bank_account_no,
+            settings.bank_ifsc,
+            settings.bank_branch,
+            settings.upi_id,
+            now,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    if settings.is_enabled {
+        let _ = conn.execute(
+            "UPDATE settings SET
+                tax_preset = 'INDIA_GST',
+                tax_name = 'GST',
+                currency_symbol = '₹',
+                currency_code = 'INR',
+                tax_id = ?1
+             WHERE id = 1",
+            params![settings.gstin],
+        );
+    }
+
+    Ok(settings)
+}
+
+pub fn get_party_gst_profile_internal(conn: &Connection, party_id: &str) -> Result<Option<GstPartyProfile>, String> {
+    let res = conn.query_row(
+        "SELECT party_id, gstin, state_code, state_name, pan, gst_type,
+                credit_limit, credit_period_days, tally_ledger_group
+         FROM gst_parties WHERE party_id = ?1",
+        params![party_id],
+        |row| {
+            Ok(GstPartyProfile {
+                party_id: row.get(0)?,
+                gstin: row.get(1)?,
+                state_code: row.get(2)?,
+                state_name: row.get(3)?,
+                pan: row.get(4)?,
+                gst_type: row.get(5)?,
+                credit_limit: row.get(6)?,
+                credit_period_days: row.get(7)?,
+                tally_ledger_group: row.get(8)?,
+            })
+        },
+    );
+
+    match res {
+        Ok(prof) => Ok(Some(prof)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+pub fn save_party_gst_profile_internal(conn: &Connection, profile: GstPartyProfile) -> Result<GstPartyProfile, String> {
+    conn.execute(
+        "INSERT INTO gst_parties (
+            party_id, gstin, state_code, state_name, pan, gst_type,
+            credit_limit, credit_period_days, tally_ledger_group
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+        ON CONFLICT(party_id) DO UPDATE SET
+            gstin = excluded.gstin,
+            state_code = excluded.state_code,
+            state_name = excluded.state_name,
+            pan = excluded.pan,
+            gst_type = excluded.gst_type,
+            credit_limit = excluded.credit_limit,
+            credit_period_days = excluded.credit_period_days,
+            tally_ledger_group = excluded.tally_ledger_group",
+        params![
+            profile.party_id,
+            profile.gstin,
+            profile.state_code,
+            profile.state_name,
+            profile.pan,
+            profile.gst_type,
+            profile.credit_limit,
+            profile.credit_period_days,
+            profile.tally_ledger_group,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    if !profile.gstin.is_empty() {
+        let _ = conn.execute(
+            "UPDATE parties SET tax_number = ?1 WHERE id = ?2",
+            params![profile.gstin, profile.party_id],
+        );
+    }
+
+    Ok(profile)
+}
+
+pub fn get_item_gst_profile_internal(conn: &Connection, item_id: &str) -> Result<Option<GstItemProfile>, String> {
+    let res = conn.query_row(
+        "SELECT item_id, hsn_code, description, is_service, cess_rate
+         FROM gst_items WHERE item_id = ?1",
+        params![item_id],
+        |row| {
+            Ok(GstItemProfile {
+                item_id: row.get(0)?,
+                hsn_code: row.get(1)?,
+                description: row.get(2)?,
+                is_service: row.get::<_, i32>(3)? == 1,
+                cess_rate: row.get(4)?,
+            })
+        },
+    );
+
+    match res {
+        Ok(prof) => Ok(Some(prof)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+pub fn save_item_gst_profile_internal(conn: &Connection, profile: GstItemProfile) -> Result<GstItemProfile, String> {
+    conn.execute(
+        "INSERT INTO gst_items (item_id, hsn_code, description, is_service, cess_rate)
+         VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT(item_id) DO UPDATE SET
+            hsn_code = excluded.hsn_code,
+            description = excluded.description,
+            is_service = excluded.is_service,
+            cess_rate = excluded.cess_rate",
+        params![
+            profile.item_id,
+            profile.hsn_code,
+            profile.description,
+            if profile.is_service { 1 } else { 0 },
+            profile.cess_rate,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(profile)
+}
+
+pub fn create_gst_invoice_internal(
+    conn: &mut Connection,
+    payload: CreateGstInvoicePayload,
+) -> Result<CompleteGstInvoice, String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    let invoice_id = Uuid::new_v4().to_string();
+    let now = Local::now().to_rfc3339();
+
+    let prefix: String = tx
+        .query_row(
+            "SELECT invoice_prefix FROM settings WHERE id = 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|_| "INV-".into());
+
+    let max_num: i64 = tx
+        .query_row(
+            "SELECT COALESCE(MAX(CAST(SUBSTR(invoice_number, LENGTH(?1) + 1) AS INTEGER)), 0)
+             FROM invoices WHERE invoice_number LIKE ?1 || '%'",
+            params![prefix],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+
+    let invoice_number = format!("{}{:05}", prefix, max_num + 1);
+
+    let supplier_gstin: String = tx
+        .query_row(
+            "SELECT gstin FROM gst_settings WHERE id = 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|_| "27AABCU9603R1ZN".into());
+
+    let status = if payload.paid_amount >= payload.total_amount {
+        "PAID"
+    } else if payload.paid_amount > 0.0 {
+        "PARTIAL"
+    } else {
+        "UNPAID"
+    };
+
+    let valid_party_id: Option<String> = match payload.party_id.as_deref().map(str::trim) {
+        Some(pid) if !pid.is_empty() => {
+            let exists: bool = tx
+                .query_row("SELECT 1 FROM parties WHERE id = ?1", params![pid], |_| Ok(true))
+                .unwrap_or(false);
+            if exists {
+                Some(pid.to_string())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+
+    tx.execute(
+        "INSERT INTO invoices (
+            id, invoice_number, invoice_type, party_id, party_name,
+            invoice_date, due_date, subtotal, discount_amount, tax_amount,
+            total_amount, paid_amount, status, payment_method, notes,
+            created_at, reference
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+        params![
+            invoice_id,
+            invoice_number,
+            payload.invoice_type,
+            valid_party_id,
+            payload.party_name,
+            payload.invoice_date,
+            payload.due_date,
+            payload.subtotal,
+            payload.discount_amount,
+            payload.total_tax,
+            payload.total_amount,
+            payload.paid_amount,
+            status,
+            payload.payment_method,
+            payload.notes,
+            now,
+            payload.reference.as_deref().unwrap_or(""),
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.execute(
+        "INSERT INTO gst_invoices (
+            invoice_id, place_of_supply, pos_state_code, pos_state_name,
+            supplier_gstin, customer_gstin, is_interstate, is_reverse_charge,
+            cgst_amount, sgst_amount, igst_amount, cess_amount, round_off,
+            eway_bill_no, vehicle_no, transporter_name, bill_reference_type
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+        params![
+            invoice_id,
+            payload.place_of_supply,
+            payload.pos_state_code,
+            payload.pos_state_name,
+            supplier_gstin,
+            payload.customer_gstin,
+            if payload.is_interstate { 1 } else { 0 },
+            if payload.is_reverse_charge { 1 } else { 0 },
+            payload.cgst_amount,
+            payload.sgst_amount,
+            payload.igst_amount,
+            payload.cess_amount,
+            payload.round_off,
+            payload.eway_bill_no.as_deref().unwrap_or(""),
+            payload.vehicle_no.as_deref().unwrap_or(""),
+            payload.transporter_name.as_deref().unwrap_or(""),
+            payload.bill_reference_type,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let mut created_core_items = Vec::new();
+    let mut created_gst_items = Vec::new();
+
+    for item_payload in payload.items {
+        let line_id = Uuid::new_v4().to_string();
+
+        let valid_item_id: Option<String> = match item_payload.item_id.as_deref().map(str::trim) {
+            Some(it_id) if !it_id.is_empty() => {
+                let exists: bool = tx
+                    .query_row("SELECT 1 FROM items WHERE id = ?1", params![it_id], |_| Ok(true))
+                    .unwrap_or(false);
+                if exists {
+                    Some(it_id.to_string())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+
+        tx.execute(
+            "INSERT INTO invoice_items (
+                id, invoice_id, item_id, item_name, quantity, unit,
+                unit_price, discount_percent, tax_rate, line_total
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                line_id,
+                invoice_id,
+                valid_item_id,
+                item_payload.item_name,
+                item_payload.quantity,
+                item_payload.unit,
+                item_payload.rate,
+                if item_payload.taxable_amount > 0.0 && item_payload.discount_amount > 0.0 {
+                    (item_payload.discount_amount / (item_payload.rate * item_payload.quantity)) * 100.0
+                } else {
+                    0.0
+                },
+                item_payload.tax_rate,
+                item_payload.line_total,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO gst_invoice_items (
+                id, invoice_id, item_id, hsn_code, quantity, unit, rate,
+                discount_amount, taxable_amount, tax_rate,
+                cgst_rate, cgst_amount, sgst_rate, sgst_amount,
+                igst_rate, igst_amount, cess_rate, cess_amount, line_total
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+            params![
+                line_id,
+                invoice_id,
+                valid_item_id,
+                item_payload.hsn_code,
+                item_payload.quantity,
+                item_payload.unit,
+                item_payload.rate,
+                item_payload.discount_amount,
+                item_payload.taxable_amount,
+                item_payload.tax_rate,
+                item_payload.cgst_rate,
+                item_payload.cgst_amount,
+                item_payload.sgst_rate,
+                item_payload.sgst_amount,
+                item_payload.igst_rate,
+                item_payload.igst_amount,
+                item_payload.cess_rate,
+                item_payload.cess_amount,
+                item_payload.line_total,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+
+        if let Some(ref it_id) = valid_item_id {
+            if payload.invoice_type == "SALE" {
+                tx.execute(
+                    "UPDATE items SET stock_quantity = stock_quantity - ?1 WHERE id = ?2",
+                    params![item_payload.quantity, it_id],
+                )
+                .ok();
+
+                let current: f64 = tx
+                    .query_row(
+                        "SELECT stock_quantity FROM items WHERE id = ?1",
+                        params![it_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0.0);
+
+                tx.execute(
+                    "INSERT INTO stock_movements (
+                        id, item_id, item_name, change_quantity, quantity_after,
+                        movement_type, reference_id, timestamp, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        Uuid::new_v4().to_string(),
+                        it_id,
+                        item_payload.item_name,
+                        -item_payload.quantity,
+                        current,
+                        "SALE",
+                        invoice_number,
+                        now,
+                        format!("GST Tax Invoice #{}", invoice_number),
+                    ],
+                )
+                .ok();
+            } else if payload.invoice_type == "PURCHASE" {
+                tx.execute(
+                    "UPDATE items SET stock_quantity = stock_quantity + ?1 WHERE id = ?2",
+                    params![item_payload.quantity, it_id],
+                )
+                .ok();
+
+                let current: f64 = tx
+                    .query_row(
+                        "SELECT stock_quantity FROM items WHERE id = ?1",
+                        params![it_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0.0);
+
+                tx.execute(
+                    "INSERT INTO stock_movements (
+                        id, item_id, item_name, change_quantity, quantity_after,
+                        movement_type, reference_id, timestamp, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        Uuid::new_v4().to_string(),
+                        it_id,
+                        item_payload.item_name,
+                        item_payload.quantity,
+                        current,
+                        "PURCHASE",
+                        invoice_number,
+                        now,
+                        format!("GST Inward Bill #{}", invoice_number),
+                    ],
+                )
+                .ok();
+            }
+        }
+
+        created_core_items.push(InvoiceItem {
+            id: line_id.clone(),
+            invoice_id: invoice_id.clone(),
+            item_id: valid_item_id.clone(),
+            item_name: item_payload.item_name.clone(),
+            quantity: item_payload.quantity,
+            unit: item_payload.unit.clone(),
+            unit_price: item_payload.rate,
+            discount_percent: 0.0,
+            tax_rate: item_payload.tax_rate,
+            line_total: item_payload.line_total,
+        });
+
+        created_gst_items.push(GstInvoiceItemRecord {
+            id: line_id,
+            invoice_id: invoice_id.clone(),
+            item_id: valid_item_id,
+            hsn_code: item_payload.hsn_code,
+            quantity: item_payload.quantity,
+            unit: item_payload.unit,
+            rate: item_payload.rate,
+            discount_amount: item_payload.discount_amount,
+            taxable_amount: item_payload.taxable_amount,
+            tax_rate: item_payload.tax_rate,
+            cgst_rate: item_payload.cgst_rate,
+            cgst_amount: item_payload.cgst_amount,
+            sgst_rate: item_payload.sgst_rate,
+            sgst_amount: item_payload.sgst_amount,
+            igst_rate: item_payload.igst_rate,
+            igst_amount: item_payload.igst_amount,
+            cess_rate: item_payload.cess_rate,
+            cess_amount: item_payload.cess_amount,
+            line_total: item_payload.line_total,
+        });
+    }
+
+    if let Some(ref p_id) = valid_party_id {
+        let unpaid = payload.total_amount - payload.paid_amount;
+        if payload.invoice_type == "SALE" {
+            tx.execute(
+                "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
+                params![unpaid, p_id],
+            )
+            .ok();
+
+            if payload.paid_amount > 0.0 {
+                let payment_id = Uuid::new_v4().to_string();
+                tx.execute(
+                    "INSERT INTO payments (
+                        id, invoice_id, party_id, party_name, amount,
+                        payment_type, payment_method, payment_date, reference, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![
+                        payment_id,
+                        invoice_id,
+                        p_id,
+                        payload.party_name,
+                        payload.paid_amount,
+                        "IN",
+                        payload.payment_method,
+                        payload.invoice_date,
+                        invoice_number,
+                        format!("Payment for GST Tax Invoice #{}", invoice_number),
+                    ],
+                )
+                .ok();
+
+                tx.execute(
+                    "INSERT INTO bill_settlements (
+                        id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        Uuid::new_v4().to_string(),
+                        payment_id,
+                        invoice_id,
+                        p_id,
+                        payload.paid_amount,
+                        payload.invoice_date,
+                        "Settled at bill generation",
+                    ],
+                )
+                .ok();
+            }
+        } else if payload.invoice_type == "PURCHASE" {
+            tx.execute(
+                "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+                params![unpaid, p_id],
+            )
+            .ok();
+
+            if payload.paid_amount > 0.0 {
+                let payment_id = Uuid::new_v4().to_string();
+                tx.execute(
+                    "INSERT INTO payments (
+                        id, invoice_id, party_id, party_name, amount,
+                        payment_type, payment_method, payment_date, reference, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![
+                        payment_id,
+                        invoice_id,
+                        p_id,
+                        payload.party_name,
+                        payload.paid_amount,
+                        "OUT",
+                        payload.payment_method,
+                        payload.invoice_date,
+                        invoice_number,
+                        format!("Payment for Purchase Bill #{}", invoice_number),
+                    ],
+                )
+                .ok();
+
+                tx.execute(
+                    "INSERT INTO bill_settlements (
+                        id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        Uuid::new_v4().to_string(),
+                        payment_id,
+                        invoice_id,
+                        p_id,
+                        payload.paid_amount,
+                        payload.invoice_date,
+                        "Settled at bill entry",
+                    ],
+                )
+                .ok();
+            }
+        }
+    }
+
+    DatabaseManager::log_audit(
+        &tx,
+        "CREATE",
+        "GST_INVOICE",
+        &invoice_id,
+        &format!(
+            "Generated GST Tax Invoice {} for {} (₹{:.2})",
+            invoice_number, payload.party_name, payload.total_amount
+        ),
+    )
+    .ok();
+
+    tx.commit().map_err(|e| e.to_string())?;
+
+    let gst_info = GstInvoiceRecord {
+        invoice_id: invoice_id.clone(),
+        place_of_supply: payload.place_of_supply,
+        pos_state_code: payload.pos_state_code,
+        pos_state_name: payload.pos_state_name,
+        supplier_gstin,
+        customer_gstin: payload.customer_gstin,
+        is_interstate: payload.is_interstate,
+        is_reverse_charge: payload.is_reverse_charge,
+        cgst_amount: payload.cgst_amount,
+        sgst_amount: payload.sgst_amount,
+        igst_amount: payload.igst_amount,
+        cess_amount: payload.cess_amount,
+        round_off: payload.round_off,
+        eway_bill_no: payload.eway_bill_no,
+        vehicle_no: payload.vehicle_no,
+        transporter_name: payload.transporter_name,
+        bill_reference_type: payload.bill_reference_type,
+    };
+
+    let core_invoice = Invoice {
+        id: invoice_id,
+        invoice_number,
+        invoice_type: payload.invoice_type,
+        party_id: valid_party_id,
+        party_name: payload.party_name,
+        invoice_date: payload.invoice_date,
+        due_date: payload.due_date,
+        subtotal: payload.subtotal,
+        discount_amount: payload.discount_amount,
+        tax_amount: payload.total_tax,
+        total_amount: payload.total_amount,
+        paid_amount: payload.paid_amount,
+        status: status.to_string(),
+        payment_method: payload.payment_method,
+        notes: payload.notes,
+        created_at: now,
+        reference: payload.reference,
+    };
+
+    Ok(CompleteGstInvoice {
+        invoice: core_invoice,
+        items: created_core_items,
+        gst_info,
+        gst_items: created_gst_items,
+    })
+}
+
+pub fn get_gst_invoice_internal(conn: &Connection, invoice_id: &str) -> Result<CompleteGstInvoice, String> {
+    let core_invoice = conn.query_row(
+        "SELECT id, invoice_number, invoice_type, party_id, party_name,
+                invoice_date, due_date, subtotal, discount_amount,
+                tax_amount, total_amount, paid_amount, status,
+                payment_method, notes, created_at, reference
+         FROM invoices WHERE id = ?1",
+        params![invoice_id],
+        |row| {
+            Ok(Invoice {
+                id: row.get(0)?,
+                invoice_number: row.get(1)?,
+                invoice_type: row.get(2)?,
+                party_id: row.get(3)?,
+                party_name: row.get(4)?,
+                invoice_date: row.get(5)?,
+                due_date: row.get(6)?,
+                subtotal: row.get(7)?,
+                discount_amount: row.get(8)?,
+                tax_amount: row.get(9)?,
+                total_amount: row.get(10)?,
+                paid_amount: row.get(11)?,
+                status: row.get(12)?,
+                payment_method: row.get(13)?,
+                notes: row.get(14)?,
+                created_at: row.get(15)?,
+                reference: row.get(16)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, invoice_id, item_id, item_name, quantity, unit,
+                    unit_price, discount_percent, tax_rate, line_total
+             FROM invoice_items WHERE invoice_id = ?1",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let core_items = stmt
+        .query_map(params![invoice_id], |row| {
+            Ok(InvoiceItem {
+                id: row.get(0)?,
+                invoice_id: row.get(1)?,
+                item_id: row.get(2)?,
+                item_name: row.get(3)?,
+                quantity: row.get(4)?,
+                unit: row.get(5)?,
+                unit_price: row.get(6)?,
+                discount_percent: row.get(7)?,
+                tax_rate: row.get(8)?,
+                line_total: row.get(9)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>();
+
+    let gst_info = conn.query_row(
+        "SELECT invoice_id, place_of_supply, pos_state_code, pos_state_name,
+                supplier_gstin, customer_gstin, is_interstate, is_reverse_charge,
+                cgst_amount, sgst_amount, igst_amount, cess_amount, round_off,
+                eway_bill_no, vehicle_no, transporter_name, bill_reference_type
+         FROM gst_invoices WHERE invoice_id = ?1",
+        params![invoice_id],
+        |row| {
+            Ok(GstInvoiceRecord {
+                invoice_id: row.get(0)?,
+                place_of_supply: row.get(1)?,
+                pos_state_code: row.get(2)?,
+                pos_state_name: row.get(3)?,
+                supplier_gstin: row.get(4)?,
+                customer_gstin: row.get(5)?,
+                is_interstate: row.get::<_, i32>(6)? == 1,
+                is_reverse_charge: row.get::<_, i32>(7)? == 1,
+                cgst_amount: row.get(8)?,
+                sgst_amount: row.get(9)?,
+                igst_amount: row.get(10)?,
+                cess_amount: row.get(11)?,
+                round_off: row.get(12)?,
+                eway_bill_no: row.get(13)?,
+                vehicle_no: row.get(14)?,
+                transporter_name: row.get(15)?,
+                bill_reference_type: row.get(16)?,
+            })
+        },
+    ).unwrap_or_else(|_| {
+        let (supp_gstin, supp_sc, supp_sn) = conn
+            .query_row(
+                "SELECT gstin, state_code, state_name FROM gst_settings WHERE id = 1",
+                [],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)),
+            )
+            .unwrap_or(("27AABCU9603R1ZN".into(), "27".into(), "Maharashtra".into()));
+
+        GstInvoiceRecord {
+            invoice_id: invoice_id.to_string(),
+            place_of_supply: format!("{}-{}", supp_sc, supp_sn),
+            pos_state_code: supp_sc,
+            pos_state_name: supp_sn,
+            supplier_gstin: supp_gstin,
+            customer_gstin: "".into(),
+            is_interstate: false,
+            is_reverse_charge: false,
+            cgst_amount: core_invoice.tax_amount / 2.0,
+            sgst_amount: core_invoice.tax_amount / 2.0,
+            igst_amount: 0.0,
+            cess_amount: 0.0,
+            round_off: 0.0,
+            eway_bill_no: None,
+            vehicle_no: None,
+            transporter_name: None,
+            bill_reference_type: "New Ref".into(),
+        }
+    });
+
+    let mut gst_item_stmt = conn
+        .prepare(
+            "SELECT id, invoice_id, item_id, hsn_code, quantity, unit, rate,
+                    discount_amount, taxable_amount, tax_rate,
+                    cgst_rate, cgst_amount, sgst_rate, sgst_amount,
+                    igst_rate, igst_amount, cess_rate, cess_amount, line_total
+             FROM gst_invoice_items WHERE invoice_id = ?1",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let mut gst_items: Vec<GstInvoiceItemRecord> = gst_item_stmt
+        .query_map(params![invoice_id], |row| {
+            Ok(GstInvoiceItemRecord {
+                id: row.get(0)?,
+                invoice_id: row.get(1)?,
+                item_id: row.get(2)?,
+                hsn_code: row.get(3)?,
+                quantity: row.get(4)?,
+                unit: row.get(5)?,
+                rate: row.get(6)?,
+                discount_amount: row.get(7)?,
+                taxable_amount: row.get(8)?,
+                tax_rate: row.get(9)?,
+                cgst_rate: row.get(10)?,
+                cgst_amount: row.get(11)?,
+                sgst_rate: row.get(12)?,
+                sgst_amount: row.get(13)?,
+                igst_rate: row.get(14)?,
+                igst_amount: row.get(15)?,
+                cess_rate: row.get(16)?,
+                cess_amount: row.get(17)?,
+                line_total: row.get(18)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+
+    // If invoice was created via standard POS, synthesize GST items from core items so bill rendering is 100% complete
+    if gst_items.is_empty() && !core_items.is_empty() {
+        let is_inter = gst_info.is_interstate;
+        for ci in &core_items {
+            let hsn = if let Some(ref it_id) = ci.item_id {
+                conn.query_row(
+                    "SELECT hsn_code FROM gst_items WHERE item_id = ?1",
+                    params![it_id],
+                    |r| r.get(0),
+                )
+                .unwrap_or_else(|_| "8471".to_string())
+            } else {
+                "8471".to_string()
+            };
+
+            let tax_rate = ci.tax_rate;
+            let line_total = ci.line_total;
+            let taxable_amount = if tax_rate > 0.0 {
+                line_total / (1.0 + tax_rate / 100.0)
+            } else {
+                line_total
+            };
+            let total_tax = (line_total - taxable_amount).max(0.0);
+
+            let (cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount) = if is_inter {
+                (0.0, 0.0, 0.0, 0.0, tax_rate, total_tax)
+            } else {
+                (tax_rate / 2.0, total_tax / 2.0, tax_rate / 2.0, total_tax / 2.0, 0.0, 0.0)
+            };
+
+            gst_items.push(GstInvoiceItemRecord {
+                id: ci.id.clone(),
+                invoice_id: invoice_id.to_string(),
+                item_id: ci.item_id.clone(),
+                hsn_code: hsn,
+                quantity: ci.quantity,
+                unit: ci.unit.clone(),
+                rate: ci.unit_price,
+                discount_amount: 0.0,
+                taxable_amount,
+                tax_rate,
+                cgst_rate,
+                cgst_amount,
+                sgst_rate,
+                sgst_amount,
+                igst_rate,
+                igst_amount,
+                cess_rate: 0.0,
+                cess_amount: 0.0,
+                line_total,
+            });
+        }
+    }
+
+    Ok(CompleteGstInvoice {
+        invoice: core_invoice,
+        items: core_items,
+        gst_info,
+        gst_items,
+    })
+}
+
+pub fn list_gst_invoices_internal(
+    conn: &Connection,
+    invoice_type: Option<String>,
+    status: Option<String>,
+    search: Option<String>,
+) -> Result<Vec<CompleteGstInvoice>, String> {
+    let mut query = "SELECT id FROM invoices WHERE 1=1".to_string();
+    let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+
+    if let Some(t) = invoice_type {
+        if !t.is_empty() && t != "ALL" {
+            query.push_str(" AND invoice_type = ?");
+            params_vec.push(Box::new(t));
+        }
+    }
+
+    if let Some(st) = status {
+        if !st.is_empty() && st != "ALL" {
+            query.push_str(" AND status = ?");
+            params_vec.push(Box::new(st));
+        }
+    }
+
+    if let Some(s) = search {
+        if !s.trim().is_empty() {
+            query.push_str(" AND (invoice_number LIKE ? OR party_name LIKE ?)");
+            let pattern = format!("%{}%", s.trim());
+            params_vec.push(Box::new(pattern.clone()));
+            params_vec.push(Box::new(pattern));
+        }
+    }
+
+    query.push_str(" ORDER BY invoice_date DESC, created_at DESC LIMIT 100");
+
+    let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+    let slice: Vec<&dyn rusqlite::ToSql> = params_vec.iter().map(|b| b.as_ref()).collect();
+
+    let invoice_ids: Vec<String> = stmt
+        .query_map(slice.as_slice(), |r| r.get(0))
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+
+    drop(stmt);
+
+    let mut results = Vec::new();
+    for id in invoice_ids {
+        if let Ok(item) = get_gst_invoice_internal(conn, &id) {
+            results.push(item);
+        }
+    }
+
+    Ok(results)
+}
+
+pub fn get_sundry_debtors_aging_internal(conn: &Connection) -> Result<Vec<PartyCreditAging>, String> {
+    let today = Local::now().date_naive();
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT p.id, p.name, p.phone, p.email, p.current_balance,
+                    COALESCE(g.gstin, p.tax_number, ''),
+                    COALESCE(g.state_name, 'Maharashtra'),
+                    COALESCE(g.credit_limit, 0.0),
+                    COALESCE(g.credit_period_days, 30),
+                    COALESCE(g.tally_ledger_group, 'Sundry Debtors')
+             FROM parties p
+             LEFT JOIN gst_parties g ON p.id = g.party_id
+             WHERE p.party_type = 'CUSTOMER'
+             ORDER BY p.current_balance DESC, p.name ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, f64>(4)?,
+                r.get::<_, String>(5)?,
+                r.get::<_, String>(6)?,
+                r.get::<_, f64>(7)?,
+                r.get::<_, i32>(8)?,
+                r.get::<_, String>(9)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut list = Vec::new();
+
+    for row in rows.filter_map(Result::ok) {
+        let (party_id, party_name, phone, email, current_balance, gstin, state_name, credit_limit, credit_period_days, tally_ledger_group) = row;
+
+        let mut inv_stmt = conn
+            .prepare(
+                "SELECT invoice_date, total_amount, paid_amount
+                 FROM invoices
+                 WHERE party_id = ?1 AND invoice_type = 'SALE' AND status != 'PAID'
+                 ORDER BY invoice_date ASC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let unpaid = inv_stmt
+            .query_map(params![party_id], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, f64>(1)?,
+                    r.get::<_, f64>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut current_30 = 0.0;
+        let mut days_60 = 0.0;
+        let mut days_90 = 0.0;
+        let mut over_90 = 0.0;
+        let mut overdue_count = 0;
+        let mut pending_bills_count = 0;
+
+        for inv in unpaid.filter_map(Result::ok) {
+            let (date_str, total, paid) = inv;
+            let due_val = total - paid;
+            if due_val <= 0.001 {
+                continue;
+            }
+
+            pending_bills_count += 1;
+            let days_old = if let Ok(parsed) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+                (today - parsed).num_days()
+            } else {
+                0
+            };
+
+            if days_old <= 30 {
+                current_30 += due_val;
+            } else if days_old <= 60 {
+                days_60 += due_val;
+                overdue_count += 1;
+            } else if days_old <= 90 {
+                days_90 += due_val;
+                overdue_count += 1;
+            } else {
+                over_90 += due_val;
+                overdue_count += 1;
+            }
+        }
+
+        if pending_bills_count == 0 && current_balance > 0.0 {
+            current_30 = current_balance;
+        }
+
+        let is_over_limit = credit_limit > 0.0 && current_balance > credit_limit;
+
+        list.push(PartyCreditAging {
+            party_id,
+            party_name,
+            party_type: "CUSTOMER".into(),
+            tally_ledger_group,
+            phone,
+            email,
+            gstin,
+            state_name,
+            total_outstanding: current_balance,
+            credit_limit,
+            credit_period_days,
+            is_over_limit,
+            current_30,
+            days_60,
+            days_90,
+            over_90,
+            overdue_count,
+            pending_bills_count,
+        });
+    }
+
+    Ok(list)
+}
+
+pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<PartyCreditAging>, String> {
+    let today = Local::now().date_naive();
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT p.id, p.name, p.phone, p.email, p.current_balance,
+                    COALESCE(g.gstin, p.tax_number, ''),
+                    COALESCE(g.state_name, 'Maharashtra'),
+                    COALESCE(g.credit_limit, 0.0),
+                    COALESCE(g.credit_period_days, 30),
+                    COALESCE(g.tally_ledger_group, 'Sundry Creditors')
+             FROM parties p
+             LEFT JOIN gst_parties g ON p.id = g.party_id
+             WHERE p.party_type = 'VENDOR'
+             ORDER BY p.current_balance ASC, p.name ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, f64>(4)?,
+                r.get::<_, String>(5)?,
+                r.get::<_, String>(6)?,
+                r.get::<_, f64>(7)?,
+                r.get::<_, i32>(8)?,
+                r.get::<_, String>(9)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut list = Vec::new();
+
+    for row in rows.filter_map(Result::ok) {
+        let (party_id, party_name, phone, email, current_balance, gstin, state_name, credit_limit, credit_period_days, tally_ledger_group) = row;
+
+        let total_payable = current_balance.abs();
+
+        let mut inv_stmt = conn
+            .prepare(
+                "SELECT invoice_date, total_amount, paid_amount
+                 FROM invoices
+                 WHERE party_id = ?1 AND invoice_type = 'PURCHASE' AND status != 'PAID'
+                 ORDER BY invoice_date ASC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let unpaid = inv_stmt
+            .query_map(params![party_id], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, f64>(1)?,
+                    r.get::<_, f64>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut current_30 = 0.0;
+        let mut days_60 = 0.0;
+        let mut days_90 = 0.0;
+        let mut over_90 = 0.0;
+        let mut overdue_count = 0;
+        let mut pending_bills_count = 0;
+
+        for inv in unpaid.filter_map(Result::ok) {
+            let (date_str, total, paid) = inv;
+            let due_val = total - paid;
+            if due_val <= 0.001 {
+                continue;
+            }
+
+            pending_bills_count += 1;
+            let days_old = if let Ok(parsed) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+                (today - parsed).num_days()
+            } else {
+                0
+            };
+
+            if days_old <= 30 {
+                current_30 += due_val;
+            } else if days_old <= 60 {
+                days_60 += due_val;
+                overdue_count += 1;
+            } else if days_old <= 90 {
+                days_90 += due_val;
+                overdue_count += 1;
+            } else {
+                over_90 += due_val;
+                overdue_count += 1;
+            }
+        }
+
+        if pending_bills_count == 0 && total_payable > 0.0 {
+            current_30 = total_payable;
+        }
+
+        list.push(PartyCreditAging {
+            party_id,
+            party_name,
+            party_type: "VENDOR".into(),
+            tally_ledger_group,
+            phone,
+            email,
+            gstin,
+            state_name,
+            total_outstanding: total_payable,
+            credit_limit,
+            credit_period_days,
+            is_over_limit: false,
+            current_30,
+            days_60,
+            days_90,
+            over_90,
+            overdue_count,
+            pending_bills_count,
+        });
+    }
+
+    Ok(list)
+}
+
+pub fn get_party_pending_bills_internal(conn: &Connection, party_id: &str) -> Result<Vec<PendingBill>, String> {
+    let today = Local::now().date_naive();
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT i.id, i.invoice_number, i.invoice_type, i.party_id, i.party_name,
+                    i.invoice_date, i.due_date, i.total_amount, i.paid_amount, i.status,
+                    COALESCE(g.bill_reference_type, 'New Ref')
+             FROM invoices i
+             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+             WHERE i.party_id = ?1 AND i.status != 'PAID'
+             ORDER BY i.invoice_date ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let bills = stmt
+        .query_map(params![party_id], |r| {
+            let inv_id: String = r.get(0)?;
+            let inv_num: String = r.get(1)?;
+            let inv_type: String = r.get(2)?;
+            let p_id: String = r.get(3)?;
+            let p_name: String = r.get(4)?;
+            let inv_date: String = r.get(5)?;
+            let due_date: String = r.get(6)?;
+            let total: f64 = r.get(7)?;
+            let paid: f64 = r.get(8)?;
+            let status: String = r.get(9)?;
+            let bill_ref: String = r.get(10)?;
+
+            let balance_due = total - paid;
+            let due_parsed = NaiveDate::parse_from_str(&due_date, "%Y-%m-%d")
+                .or_else(|_| NaiveDate::parse_from_str(&inv_date, "%Y-%m-%d"))
+                .unwrap_or(today);
+
+            let overdue_days = (today - due_parsed).num_days();
+
+            Ok(PendingBill {
+                invoice_id: inv_id,
+                invoice_number: inv_num,
+                invoice_type: inv_type,
+                party_id: p_id,
+                party_name: p_name,
+                invoice_date: inv_date,
+                due_date,
+                total_amount: total,
+                paid_amount: paid,
+                balance_due,
+                overdue_days,
+                status,
+                bill_ref,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+
+    Ok(bills)
+}
+
+pub fn settle_bill_by_bill_internal(
+    conn: &mut Connection,
+    payload: BillSettlementPayload,
+) -> Result<bool, String> {
+    if payload.total_amount <= 0.0 {
+        return Err("Settlement total amount must be strictly greater than 0".into());
+    }
+
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    // Verify party exists
+    let party_exists: bool = tx
+        .query_row(
+            "SELECT 1 FROM parties WHERE id = ?1",
+            params![payload.party_id],
+            |_| Ok(true),
+        )
+        .unwrap_or(false);
+    if !party_exists {
+        return Err(format!("Party with ID {} does not exist", payload.party_id));
+    }
+
+    // Verify allocations sum does not exceed total settlement amount
+    let alloc_sum: f64 = payload
+        .allocations
+        .iter()
+        .filter(|a| a.amount > 0.0)
+        .map(|a| a.amount)
+        .sum();
+    if alloc_sum > payload.total_amount + 0.01 {
+        return Err(format!(
+            "Total allocated amount (₹{:.2}) cannot exceed settlement payment amount (₹{:.2})",
+            alloc_sum, payload.total_amount
+        ));
+    }
+
+    let payment_id = Uuid::new_v4().to_string();
+
+    tx.execute(
+        "INSERT INTO payments (
+            id, invoice_id, party_id, party_name, amount, payment_type,
+            payment_method, payment_date, reference, notes
+        ) VALUES (?1, NULL, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![
+            payment_id,
+            payload.party_id,
+            payload.party_name,
+            payload.total_amount,
+            payload.payment_type,
+            payload.payment_method,
+            payload.payment_date,
+            payload.reference,
+            payload.notes,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    for alloc in payload.allocations {
+        if alloc.amount <= 0.0 {
+            continue;
+        }
+
+        // Verify invoice exists and belongs to the party
+        let (inv_party_id, total, current_paid): (Option<String>, f64, f64) = tx
+            .query_row(
+                "SELECT party_id, total_amount, paid_amount FROM invoices WHERE id = ?1",
+                params![alloc.invoice_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .map_err(|_| format!("Invoice {} not found", alloc.invoice_id))?;
+
+        if inv_party_id.as_deref() != Some(&payload.party_id) {
+            return Err(format!(
+                "Invoice {} does not belong to party {}",
+                alloc.invoice_id, payload.party_id
+            ));
+        }
+
+        // Cap allocation at remaining balance due to prevent overpayment of an individual invoice
+        let remaining_due = (total - current_paid).max(0.0);
+        let effective_settled = alloc.amount.min(remaining_due);
+        if effective_settled <= 0.0 {
+            continue;
+        }
+
+        tx.execute(
+            "INSERT INTO bill_settlements (
+                id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                Uuid::new_v4().to_string(),
+                payment_id,
+                alloc.invoice_id,
+                payload.party_id,
+                effective_settled,
+                payload.payment_date,
+                format!("Settled against {}", payload.reference),
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+
+        let new_paid = (current_paid + effective_settled).min(total);
+        let new_status = if new_paid >= total - 0.01 {
+            "PAID"
+        } else if new_paid > 0.0 {
+            "PARTIAL"
+        } else {
+            "UNPAID"
+        };
+
+        tx.execute(
+            "UPDATE invoices SET paid_amount = ?1, status = ?2 WHERE id = ?3",
+            params![new_paid, new_status, alloc.invoice_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    if payload.payment_type == "IN" {
+        tx.execute(
+            "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+            params![payload.total_amount, payload.party_id],
+        )
+        .map_err(|e| e.to_string())?;
+    } else {
+        tx.execute(
+            "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
+            params![payload.total_amount, payload.party_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    DatabaseManager::log_audit(
+        &tx,
+        "SETTLE_BILLS",
+        "PARTY",
+        &payload.party_id,
+        &format!(
+            "Settled bills for {} with amount ₹{:.2} ({})",
+            payload.party_name, payload.total_amount, payload.payment_type
+        ),
+    )
+    .ok();
+
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+pub fn get_gstr1_report_internal(
+    conn: &Connection,
+    start_date: &str,
+    end_date: &str,
+) -> Result<Gstr1ReportData, String> {
+    let (my_gstin, legal_name, _state_code): (String, String, String) = conn
+        .query_row(
+            "SELECT gstin, legal_name, state_code FROM gst_settings WHERE id = 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into(), "27".into()));
+
+    let fp = if let Ok(parsed) = NaiveDate::parse_from_str(start_date, "%Y-%m-%d") {
+        parsed.format("%m%Y").to_string()
+    } else {
+        "042026".to_string()
+    };
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT i.id, i.invoice_number, i.invoice_date, i.total_amount,
+                    i.subtotal, i.discount_amount, i.party_name,
+                    COALESCE(g.customer_gstin, ''),
+                    COALESCE(g.place_of_supply, '27-Maharashtra'),
+                    COALESCE(g.is_interstate, 0),
+                    COALESCE(g.is_reverse_charge, 0),
+                    COALESCE(g.cgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END),
+                    COALESCE(g.sgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END),
+                    COALESCE(g.igst_amount, 0.0),
+                    COALESCE(g.cess_amount, 0.0)
+             FROM invoices i
+             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+             WHERE i.invoice_type = 'SALE' AND i.invoice_date BETWEEN ?1 AND ?2
+             ORDER BY i.invoice_date ASC, i.invoice_number ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![start_date, end_date], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, f64>(3)?,
+                r.get::<_, f64>(4)?,
+                r.get::<_, f64>(5)?,
+                r.get::<_, String>(6)?,
+                r.get::<_, String>(7)?,
+                r.get::<_, String>(8)?,
+                r.get::<_, i32>(9)? == 1,
+                r.get::<_, i32>(10)? == 1,
+                r.get::<_, f64>(11)?,
+                r.get::<_, f64>(12)?,
+                r.get::<_, f64>(13)?,
+                r.get::<_, f64>(14)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut b2b = Vec::new();
+    let mut b2cl = Vec::new();
+    let mut b2cs_map: std::collections::HashMap<(String, u64), (f64, f64, f64, f64, f64)> = std::collections::HashMap::new();
+
+    let mut total_turnover = 0.0;
+    let mut total_taxable = 0.0;
+    let mut total_igst = 0.0;
+    let mut total_cgst = 0.0;
+    let mut total_sgst = 0.0;
+    let mut total_cess = 0.0;
+
+    let mut min_inv = String::new();
+    let mut max_inv = String::new();
+    let mut doc_count = 0;
+
+    for row in rows.filter_map(Result::ok) {
+        let (
+            _id,
+            inv_number,
+            inv_date,
+            total_amt,
+            subtotal,
+            discount,
+            party_name,
+            cust_gstin,
+            place_of_supply,
+            is_interstate,
+            is_reverse_charge,
+            cgst,
+            sgst,
+            igst,
+            cess,
+        ) = row;
+
+        doc_count += 1;
+        if min_inv.is_empty() {
+            min_inv = inv_number.clone();
+        }
+        max_inv = inv_number.clone();
+
+        let taxable = (subtotal - discount).max(0.0);
+        total_turnover += total_amt;
+        total_taxable += taxable;
+        total_igst += igst;
+        total_cgst += cgst;
+        total_sgst += sgst;
+        total_cess += cess;
+
+        let has_valid_gstin = cust_gstin.trim().len() == 15;
+
+        if has_valid_gstin {
+            b2b.push(Gstr1B2bInvoice {
+                customer_gstin: cust_gstin.trim().to_string(),
+                customer_name: party_name,
+                invoice_number: inv_number,
+                invoice_date: inv_date,
+                invoice_value: total_amt,
+                place_of_supply,
+                reverse_charge: if is_reverse_charge { "Y".into() } else { "N".into() },
+                invoice_type: "Regular".into(),
+                taxable_value: taxable,
+                igst_amount: igst,
+                cgst_amount: cgst,
+                sgst_amount: sgst,
+                cess_amount: cess,
+            });
+        } else if is_interstate && total_amt > 250000.0 {
+            b2cl.push(Gstr1B2bInvoice {
+                customer_gstin: "".into(),
+                customer_name: party_name,
+                invoice_number: inv_number,
+                invoice_date: inv_date,
+                invoice_value: total_amt,
+                place_of_supply,
+                reverse_charge: "N".into(),
+                invoice_type: "Regular".into(),
+                taxable_value: taxable,
+                igst_amount: igst,
+                cgst_amount: cgst,
+                sgst_amount: sgst,
+                cess_amount: cess,
+            });
+        } else {
+            let tax_rate = if taxable > 0.0 {
+                ((igst + cgst + sgst) / taxable) * 100.0
+            } else {
+                0.0
+            };
+            let rate_key = (tax_rate.round() as u64).max(0);
+
+            let entry = b2cs_map.entry((place_of_supply, rate_key)).or_insert((0.0, 0.0, 0.0, 0.0, 0.0));
+            entry.0 += taxable;
+            entry.1 += igst;
+            entry.2 += cgst;
+            entry.3 += sgst;
+            entry.4 += cess;
+        }
+    }
+
+    let b2cs = b2cs_map
+        .into_iter()
+        .map(|((pos, rate_k), (taxable, igst, cgst, sgst, cess))| Gstr1B2csSummary {
+            place_of_supply: pos,
+            tax_rate: rate_k as f64,
+            taxable_value: taxable,
+            igst_amount: igst,
+            cgst_amount: cgst,
+            sgst_amount: sgst,
+            cess_amount: cess,
+        })
+        .collect();
+
+    let mut hsn_stmt = conn
+        .prepare(
+            "SELECT hsn_code, description, unit,
+                    SUM(quantity) as total_qty,
+                    SUM(line_total) as total_val,
+                    SUM(taxable_amount) as taxable_val,
+                    SUM(igst_amount) as igst_amt,
+                    SUM(cgst_amount) as cgst_amt,
+                    SUM(sgst_amount) as sgst_amt,
+                    SUM(cess_amount) as cess_amt
+             FROM (
+                 SELECT gi.hsn_code as hsn_code,
+                        COALESCE(MAX(ii.item_name), 'Goods / Services') as description,
+                        COALESCE(MAX(gi.unit), 'PCS') as unit,
+                        SUM(gi.quantity) as quantity,
+                        SUM(gi.line_total) as line_total,
+                        SUM(gi.taxable_amount) as taxable_amount,
+                        SUM(gi.igst_amount) as igst_amount,
+                        SUM(gi.cgst_amount) as cgst_amount,
+                        SUM(gi.sgst_amount) as sgst_amount,
+                        SUM(gi.cess_amount) as cess_amount
+                 FROM gst_invoice_items gi
+                 JOIN invoices i ON gi.invoice_id = i.id
+                 LEFT JOIN invoice_items ii ON gi.id = ii.id
+                 WHERE i.invoice_type = 'SALE' AND i.invoice_date BETWEEN ?1 AND ?2
+                 GROUP BY gi.hsn_code
+
+                 UNION ALL
+
+                 SELECT COALESCE(git.hsn_code, '8471') as hsn_code,
+                        ii.item_name as description,
+                        ii.unit as unit,
+                        ii.quantity as quantity,
+                        ii.line_total as line_total,
+                        CASE WHEN ii.tax_rate > 0 THEN ii.line_total / (1.0 + ii.tax_rate / 100.0) ELSE ii.line_total END as taxable_amount,
+                        0.0 as igst_amount,
+                        CASE WHEN ii.tax_rate > 0 THEN (ii.line_total - (ii.line_total / (1.0 + ii.tax_rate / 100.0))) / 2.0 ELSE 0.0 END as cgst_amount,
+                        CASE WHEN ii.tax_rate > 0 THEN (ii.line_total - (ii.line_total / (1.0 + ii.tax_rate / 100.0))) / 2.0 ELSE 0.0 END as sgst_amount,
+                        0.0 as cess_amount
+                 FROM invoice_items ii
+                 JOIN invoices i ON ii.invoice_id = i.id
+                 LEFT JOIN gst_items git ON ii.item_id = git.item_id
+                 WHERE i.invoice_type = 'SALE'
+                   AND i.invoice_date BETWEEN ?1 AND ?2
+                   AND i.id NOT IN (SELECT invoice_id FROM gst_invoice_items)
+             )
+             GROUP BY hsn_code
+             ORDER BY hsn_code ASC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let hsn_summary = hsn_stmt
+        .query_map(params![start_date, end_date], |r| {
+            Ok(Gstr1HsnSummary {
+                hsn_code: r.get(0)?,
+                description: r.get(1)?,
+                uqc: r.get(2)?,
+                total_quantity: r.get(3)?,
+                total_value: r.get(4)?,
+                taxable_value: r.get(5)?,
+                igst_amount: r.get(6)?,
+                cgst_amount: r.get(7)?,
+                sgst_amount: r.get(8)?,
+                cess_amount: r.get(9)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+
+    let doc_summary = vec![Gstr1DocSummary {
+        doc_type: "Invoices for Outward Supply".into(),
+        from_serial: if min_inv.is_empty() { "N/A".into() } else { min_inv },
+        to_serial: if max_inv.is_empty() { "N/A".into() } else { max_inv },
+        total_count: doc_count,
+        cancelled_count: 0,
+        net_count: doc_count,
+    }];
+
+    Ok(Gstr1ReportData {
+        gstin: my_gstin,
+        legal_name,
+        fp,
+        start_date: start_date.to_string(),
+        end_date: end_date.to_string(),
+        total_turnover,
+        total_taxable,
+        total_igst,
+        total_cgst,
+        total_sgst,
+        total_cess,
+        b2b,
+        b2cl,
+        b2cs,
+        hsn_summary,
+        doc_summary,
+    })
+}
+
+pub fn get_gstr3b_report_internal(
+    conn: &Connection,
+    start_date: &str,
+    end_date: &str,
+) -> Result<Gstr3bReportData, String> {
+    let (my_gstin, legal_name): (String, String) = conn
+        .query_row(
+            "SELECT gstin, legal_name FROM gst_settings WHERE id = 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into()));
+
+    let fp = if let Ok(parsed) = NaiveDate::parse_from_str(start_date, "%Y-%m-%d") {
+        parsed.format("%m%Y").to_string()
+    } else {
+        "042026".to_string()
+    };
+
+    let (outward_taxable, outward_igst, outward_cgst, outward_sgst, outward_cess): (f64, f64, f64, f64, f64) = conn
+        .query_row(
+            "SELECT COALESCE(SUM(i.subtotal - i.discount_amount), 0.0),
+                    COALESCE(SUM(g.igst_amount), 0.0),
+                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
+                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
+                    COALESCE(SUM(g.cess_amount), 0.0)
+             FROM invoices i
+             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+             WHERE i.invoice_type = 'SALE' AND i.invoice_date BETWEEN ?1 AND ?2",
+            params![start_date, end_date],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        )
+        .unwrap_or((0.0, 0.0, 0.0, 0.0, 0.0));
+
+    let (itc_igst, itc_cgst, itc_sgst, itc_cess): (f64, f64, f64, f64) = conn
+        .query_row(
+            "SELECT COALESCE(SUM(g.igst_amount), 0.0),
+                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
+                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
+                    COALESCE(SUM(g.cess_amount), 0.0)
+             FROM invoices i
+             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+             WHERE i.invoice_type = 'PURCHASE' AND i.invoice_date BETWEEN ?1 AND ?2",
+            params![start_date, end_date],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        )
+        .unwrap_or((0.0, 0.0, 0.0, 0.0));
+
+    let table31 = Gstr3bTable31 {
+        outward_taxable_value: outward_taxable,
+        outward_igst,
+        outward_cgst,
+        outward_sgst,
+        outward_cess,
+        zero_rated_taxable: 0.0,
+        nil_exempt_taxable: 0.0,
+        reverse_charge_taxable: 0.0,
+    };
+
+    let table4_itc = Gstr3bTable4Itc {
+        itc_igst,
+        itc_cgst,
+        itc_sgst,
+        itc_cess,
+        itc_ineligible: 0.0,
+    };
+
+    let net_igst_payable = (outward_igst - itc_igst).max(0.0);
+    let net_cgst_payable = (outward_cgst - itc_cgst).max(0.0);
+    let net_sgst_payable = (outward_sgst - itc_sgst).max(0.0);
+
+    let total_tax_payable = outward_igst + outward_cgst + outward_sgst + outward_cess;
+    let total_itc_available = itc_igst + itc_cgst + itc_sgst + itc_cess;
+    let net_cash_payable = (total_tax_payable - total_itc_available).max(0.0);
+
+    Ok(Gstr3bReportData {
+        gstin: my_gstin,
+        legal_name,
+        fp,
+        start_date: start_date.to_string(),
+        end_date: end_date.to_string(),
+        table31,
+        table4_itc,
+        net_igst_payable,
+        net_cgst_payable,
+        net_sgst_payable,
+        total_tax_payable,
+        total_itc_available,
+        net_cash_payable,
+    })
+}
+
+// ----------------------------------------------------------------------------
+// TAURI COMMAND HANDLERS
+// ----------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn get_gst_settings(state: State<'_, Mutex<AppState>>) -> Result<GstSettings, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_gst_settings_internal(&conn)
+}
+
+#[tauri::command]
+pub fn save_gst_settings(
+    settings: GstSettings,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<GstSettings, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    save_gst_settings_internal(&conn, settings)
+}
+
+#[tauri::command]
+pub fn get_party_gst_profile(
+    party_id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Option<GstPartyProfile>, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_party_gst_profile_internal(&conn, &party_id)
+}
+
+#[tauri::command]
+pub fn save_party_gst_profile(
+    profile: GstPartyProfile,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<GstPartyProfile, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    save_party_gst_profile_internal(&conn, profile)
+}
+
+#[tauri::command]
+pub fn get_item_gst_profile(
+    item_id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Option<GstItemProfile>, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_item_gst_profile_internal(&conn, &item_id)
+}
+
+#[tauri::command]
+pub fn save_item_gst_profile(
+    profile: GstItemProfile,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<GstItemProfile, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    save_item_gst_profile_internal(&conn, profile)
+}
+
+#[tauri::command]
+pub fn create_gst_invoice(
+    payload: CreateGstInvoicePayload,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<CompleteGstInvoice, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    create_gst_invoice_internal(&mut conn, payload)
+}
+
+#[tauri::command]
+pub fn get_gst_invoice(
+    invoice_id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<CompleteGstInvoice, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_gst_invoice_internal(&conn, &invoice_id)
+}
+
+#[tauri::command]
+pub fn list_gst_invoices(
+    invoice_type: Option<String>,
+    status: Option<String>,
+    search: Option<String>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<CompleteGstInvoice>, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    list_gst_invoices_internal(&conn, invoice_type, status, search)
+}
+
+#[tauri::command]
+pub fn get_sundry_debtors_aging(
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<PartyCreditAging>, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_sundry_debtors_aging_internal(&conn)
+}
+
+#[tauri::command]
+pub fn get_sundry_creditors_aging(
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<PartyCreditAging>, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_sundry_creditors_aging_internal(&conn)
+}
+
+#[tauri::command]
+pub fn get_party_pending_bills(
+    party_id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<PendingBill>, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_party_pending_bills_internal(&conn, &party_id)
+}
+
+#[tauri::command]
+pub fn settle_bill_by_bill(
+    payload: BillSettlementPayload,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<bool, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    settle_bill_by_bill_internal(&mut conn, payload)
+}
+
+#[tauri::command]
+pub fn get_gstr1_report(
+    start_date: String,
+    end_date: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Gstr1ReportData, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_gstr1_report_internal(&conn, &start_date, &end_date)
+}
+
+#[tauri::command]
+pub fn get_gstr3b_report(
+    start_date: String,
+    end_date: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Gstr3bReportData, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    get_gstr3b_report_internal(&conn, &start_date, &end_date)
+}

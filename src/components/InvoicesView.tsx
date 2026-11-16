@@ -20,6 +20,9 @@ import { api } from "../services/api";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
+import type { CompleteGstInvoice, GstSettings } from "../modules/india_gst/gstTypes";
+import { gstApi } from "../modules/india_gst/gstApi";
+import { GSTTaxInvoiceModal } from "../modules/india_gst/GSTTaxInvoiceModal";
 
 interface InvoicesViewProps {
   invoices: Invoice[];
@@ -42,6 +45,21 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState<InvoiceDetail | null>(null);
+  const [selectedGstInvoice, setSelectedGstInvoice] = useState<CompleteGstInvoice | null>(null);
+  const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
+
+  const handleOpenGstInvoice = async (id: string) => {
+    try {
+      const [completeInv, gSettings] = await Promise.all([
+        gstApi.getGstInvoice(id),
+        gstSettings ? Promise.resolve(gstSettings) : gstApi.getGstSettings(),
+      ]);
+      setGstSettings(gSettings);
+      setSelectedGstInvoice(completeInv);
+    } catch (err) {
+      alert("Failed to load GST invoice: " + err);
+    }
+  };
 
   // Estimates state
   const [estimates, setEstimates] = useState<Estimate[]>([]);
@@ -471,8 +489,15 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
                           <button
+                            onClick={() => handleOpenGstInvoice(inv.id)}
+                            className="px-2.5 py-1 rounded-lg bg-[#FF9500] hover:bg-[#E68600] text-white text-[11px] font-semibold transition apple-press cursor-pointer"
+                            title="Rule 46 CGST Tax Invoice"
+                          >
+                            GST Bill
+                          </button>
+                          <button
                             onClick={() => handleOpenInvoice(inv.id)}
-                            className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] hover:bg-black text-white text-[11px] font-medium transition apple-press"
+                            className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] hover:bg-black text-white text-[11px] font-medium transition apple-press cursor-pointer"
                           >
                             Receipt
                           </button>
@@ -517,12 +542,20 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
                 <div className="flex items-center justify-between pt-1 border-t border-black/[0.04] text-[11px] text-[#86868B]">
                   <span>{inv.invoice_date} · {inv.payment_method}</span>
-                  <button
-                    onClick={() => handleOpenInvoice(inv.id)}
-                    className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[10px] font-semibold"
-                  >
-                    View Bill
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleOpenGstInvoice(inv.id)}
+                      className="px-2 py-1 rounded-lg bg-[#FF9500] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
+                    >
+                      GST
+                    </button>
+                    <button
+                      onClick={() => handleOpenInvoice(inv.id)}
+                      className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
+                    >
+                      Receipt
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1013,6 +1046,16 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
           invoiceDetail={selectedInvoiceDetail}
           settings={settings}
           onClose={() => setSelectedInvoiceDetail(null)}
+        />
+      )}
+
+      {/* Indian GST Rule 46 Tax Invoice Modal */}
+      {selectedGstInvoice && gstSettings && (
+        <GSTTaxInvoiceModal
+          completeInvoice={selectedGstInvoice}
+          settings={settings}
+          gstSettings={gstSettings}
+          onClose={() => setSelectedGstInvoice(null)}
         />
       )}
     </div>

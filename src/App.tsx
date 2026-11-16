@@ -17,6 +17,13 @@ import { AppLockScreen } from "./components/AppLockScreen";
 import { UpdateNotificationModal } from "./components/UpdateNotificationModal";
 import { AppleDialogProvider } from "./components/common/AppleDialog";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { TallyAccountingHub } from "./modules/india_gst/TallyAccountingHub";
+import { GSTPOSBilling } from "./modules/india_gst/GSTPOSBilling";
+import { CreditManagementView } from "./modules/india_gst/CreditManagementView";
+import { GSTR1ReportView } from "./modules/india_gst/GSTR1ReportView";
+import { GSTR3BReportView } from "./modules/india_gst/GSTR3BReportView";
+import { gstApi } from "./modules/india_gst/gstApi";
+import type { GstSettings } from "./modules/india_gst/gstTypes";
 import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, AppUpdateInfo } from "./types";
 import { api } from "./services/api";
 
@@ -55,6 +62,7 @@ export function AppContent() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
 
   // Check for updates on startup and periodically (every 4 hours)
   useEffect(() => {
@@ -96,39 +104,51 @@ export function AppContent() {
   // Central data loader
   const loadAllData = useCallback(async () => {
     try {
-      const [fetchedSettings, fetchedItems, fetchedParties, fetchedInvoices, fetchedSummary, fetchedAuth] =
-        await Promise.all([
-          api.getSettings().catch((e) => {
-            console.error("Error fetching settings:", e);
-            return defaultSettings;
-          }),
-          api.listItems().catch((e) => {
-            console.error("Error fetching items:", e);
-            return [] as Item[];
-          }),
-          api.listParties().catch((e) => {
-            console.error("Error fetching parties:", e);
-            return [] as Party[];
-          }),
-          api.listInvoices().catch((e) => {
-            console.error("Error fetching invoices:", e);
-            return [] as Invoice[];
-          }),
-          api.getDashboardSummary().catch((e) => {
-            console.error("Error fetching summary:", e);
-            return null;
-          }),
-          api.getAuthState().catch((e) => {
-            console.error("Error fetching auth state:", e);
-            return null;
-          }),
-        ]);
+      const [
+        fetchedSettings,
+        fetchedItems,
+        fetchedParties,
+        fetchedInvoices,
+        fetchedSummary,
+        fetchedAuth,
+        fetchedGstSettings,
+      ] = await Promise.all([
+        api.getSettings().catch((e) => {
+          console.error("Error fetching settings:", e);
+          return defaultSettings;
+        }),
+        api.listItems().catch((e) => {
+          console.error("Error fetching items:", e);
+          return [] as Item[];
+        }),
+        api.listParties().catch((e) => {
+          console.error("Error fetching parties:", e);
+          return [] as Party[];
+        }),
+        api.listInvoices().catch((e) => {
+          console.error("Error fetching invoices:", e);
+          return [] as Invoice[];
+        }),
+        api.getDashboardSummary().catch((e) => {
+          console.error("Error fetching summary:", e);
+          return null;
+        }),
+        api.getAuthState().catch((e) => {
+          console.error("Error fetching auth state:", e);
+          return null;
+        }),
+        gstApi.getGstSettings().catch((e) => {
+          console.error("Error fetching GST settings:", e);
+          return null;
+        }),
+      ]);
 
       if (fetchedSettings) setSettings(fetchedSettings);
       setItems(fetchedItems);
       setParties(fetchedParties);
       setInvoices(fetchedInvoices);
       setSummary(fetchedSummary);
+      if (fetchedGstSettings) setGstSettings(fetchedGstSettings);
 
       if (fetchedAuth) {
         setAuthState(fetchedAuth);
@@ -149,12 +169,30 @@ export function AppContent() {
     loadAllData();
   }, [loadAllData]);
 
-  // Global hotkeys (F2 for POS Register, Ctrl+1..0 for tabs)
+  // Global hotkeys (F1 for Tally Hub, F2 for POS, F4 Contra, F5 Payment, F6 Receipt/Credit, F8 GST POS, F9 Purchase, Ctrl+1..0 for tabs)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
         e.preventDefault();
         setActiveTab("pos");
+      } else if (e.key === "F8") {
+        e.preventDefault();
+        setActiveTab("gst_pos");
+      } else if (e.key === "F6") {
+        e.preventDefault();
+        setActiveTab("gst_credit");
+      } else if (e.key === "F5") {
+        e.preventDefault();
+        setActiveTab("gst_credit");
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        setActiveTab("expenses");
+      } else if (e.key === "F9") {
+        e.preventDefault();
+        setActiveTab("invoices");
+      } else if (e.key === "F1") {
+        e.preventDefault();
+        setActiveTab("gst_hub");
       } else if (e.ctrlKey || e.metaKey) {
         if (e.key === "1") {
           e.preventDefault();
@@ -315,6 +353,37 @@ export function AppContent() {
             onSettingsUpdated={handleSettingsUpdated}
           />
         );
+      case "gst_hub":
+        return (
+          <TallyAccountingHub
+            settings={settings}
+            gstSettings={gstSettings || ({} as any)}
+            onNavigateTab={setActiveTab}
+          />
+        );
+      case "gst_pos":
+        return (
+          <GSTPOSBilling
+            settings={settings}
+            gstSettings={gstSettings || ({} as any)}
+            items={items}
+            parties={parties}
+            onInvoiceCreated={loadAllData}
+            onRefreshData={loadAllData}
+          />
+        );
+      case "gst_credit":
+        return (
+          <CreditManagementView
+            settings={settings}
+            parties={parties}
+            onRefresh={loadAllData}
+          />
+        );
+      case "gstr1":
+        return <GSTR1ReportView />;
+      case "gstr3b":
+        return <GSTR3BReportView />;
       default:
         return null;
     }
@@ -336,13 +405,13 @@ export function AppContent() {
         <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden bg-[#F5F5F7] relative">
           <Header
             settings={settings}
-            onOpenQuickSale={() => setActiveTab("pos")}
+            onOpenQuickSale={() => setActiveTab(settings.tax_preset === "INDIA_GST" ? "gst_pos" : "pos")}
             onLockApp={authState?.has_account ? handleLockApp : undefined}
           />
 
           <main
             className={`flex-1 min-w-0 ${
-              activeTab === "pos"
+              activeTab === "pos" || activeTab === "gst_pos"
                 ? "h-[calc(100vh-3.5rem)] overflow-hidden p-0"
                 : "overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"
             }`}
