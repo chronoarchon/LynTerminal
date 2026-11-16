@@ -1,0 +1,5 @@
+src/
+pkg/
+lynterminal
+lyndesk
+*.pkg.tar.zst
