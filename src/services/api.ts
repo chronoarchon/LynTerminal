@@ -215,4 +215,10 @@ export const api = {
   restartApp: () => invoke<void>("restart_app"),
   createPreUpdateBackup: (version: string) =>
     invoke<string>("create_pre_update_backup", { version }),
+  downloadUpdateBinary: (downloadUrl: string, targetVersion: string) =>
+    invoke<string>("download_update_binary", { downloadUrl, targetVersion }),
+  verifyUpdateBinary: (targetVersion: string) =>
+    invoke<boolean>("verify_update_binary", { targetVersion }),
+  applyUpdateAndRestart: (targetVersion: string) =>
+    invoke<void>("apply_update_and_restart", { targetVersion }),
 };

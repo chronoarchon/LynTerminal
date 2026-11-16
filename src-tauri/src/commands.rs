@@ -659,13 +659,10 @@ pub fn delete_party(id: String, state: State<'_, Mutex<AppState>>) -> Result<boo
 // INVOICES & BILLING COMMANDS
 // ----------------------------------------------------------------------------
 
-#[tauri::command]
-pub fn create_invoice(
+pub fn create_invoice_internal(
+    conn: &mut rusqlite::Connection,
     payload: InvoicePayload,
-    state: State<'_, Mutex<AppState>>,
 ) -> Result<InvoiceDetail, String> {
-    let app = state.lock().map_err(|e| e.to_string())?;
-    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
     let invoice_id = Uuid::new_v4().to_string();
@@ -997,6 +994,16 @@ pub fn create_invoice(
     let _ = create_database_backup_internal(&conn);
 
     Ok(invoice_detail)
+}
+
+#[tauri::command]
+pub fn create_invoice(
+    payload: InvoicePayload,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<InvoiceDetail, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    create_invoice_internal(&mut conn, payload)
 }
 
 #[tauri::command]
@@ -1636,13 +1643,10 @@ pub fn open_invoice_pdf(invoice_number: String) -> Result<bool, String> {
 // PAYMENTS COMMANDS
 // ----------------------------------------------------------------------------
 
-#[tauri::command]
-pub fn record_payment(
+pub fn record_payment_internal(
+    conn: &mut rusqlite::Connection,
     mut payment: Payment,
-    state: State<'_, Mutex<AppState>>,
 ) -> Result<Payment, String> {
-    let app = state.lock().map_err(|e| e.to_string())?;
-    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
     if payment.id.is_empty() {
@@ -1760,6 +1764,16 @@ pub fn record_payment(
 
     tx.commit().map_err(|e| e.to_string())?;
     Ok(payment)
+}
+
+#[tauri::command]
+pub fn record_payment(
+    payment: Payment,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Payment, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    record_payment_internal(&mut conn, payment)
 }
 
 #[tauri::command]
@@ -1939,8 +1953,8 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
 
     let upper = trimmed.to_uppercase();
 
-    // Check for Split payment string e.g. "Split ($20.00 Cash + $30.00 Card)"
-    if upper.starts_with("SPLIT") {
+    // Check for Split or Partial payment string e.g. "Split ($20.00 Cash + $30.00 Card)" or "Partial Credit ($50.00 Cash + $50.00 Credit)"
+    if upper.starts_with("SPLIT") || upper.starts_with("PARTIAL") {
         let mut cash_part = 0.0;
         let mut bank_part = 0.0;
         let parts: Vec<&str> = upper.split('+').collect();
@@ -1949,7 +1963,14 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
             if let Ok(val) = num_str.parse::<f64>() {
                 if part.contains("CASH") {
                     cash_part = val;
-                } else if part.contains("CARD") || part.contains("BANK") || part.contains("TRANSFER") || part.contains("UPI") {
+                } else if part.contains("CARD")
+                    || part.contains("BANK")
+                    || part.contains("TRANSFER")
+                    || part.contains("UPI")
+                    || part.contains("PAY")
+                    || part.contains("ALIPAY")
+                    || part.contains("DRAFT")
+                {
                     bank_part = val;
                 }
             }
@@ -1973,6 +1994,13 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
         || upper.contains("APPLE")
         || upper.contains("CHEQUE")
         || upper.contains("CHECK")
+        || upper.contains("PAY")
+        || upper.contains("ALIPAY")
+        || upper.contains("DRAFT")
+        || upper.contains("DIGITAL")
+        || upper.contains("WALLET")
+        || upper.contains("ZELLE")
+        || upper.contains("VENMO")
     {
         (0.0, amount)
     } else {
@@ -6048,27 +6076,10 @@ pub fn check_app_update() -> Result<AppUpdateInfo, String> {
 }
 
 #[tauri::command]
-pub fn apply_app_update(
+pub fn download_update_binary(
     download_url: String,
     target_version: String,
-    app_handle: tauri::AppHandle,
-    state: State<'_, Mutex<AppState>>,
-) -> Result<(), String> {
-    // 1. Automatic Pre-Update Safety Backup (Zero Data Loss Guarantee)
-    {
-        let app = state.lock().map_err(|e| e.to_string())?;
-        let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-        let path = create_pre_update_backup_internal(&conn, &target_version)?;
-        DatabaseManager::log_audit(
-            &conn,
-            "BACKUP",
-            "PRE_UPDATE",
-            &target_version,
-            &format!("Pre-update safety backup successfully preserved at: {}", path),
-        ).ok();
-    }
-
-    // 2. Resolve download URL (always ensuring a compressed binary is fetched)
+) -> Result<String, String> {
     let effective_url = if download_url.ends_with(".gz") || download_url.contains("/bin/") {
         download_url
     } else {
@@ -6077,7 +6088,10 @@ pub fn apply_app_update(
 
     let temp_dir = std::env::temp_dir();
     let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
-    let target_bin = temp_dir.join(format!("lynterminal-{}", target_version));
+
+    if target_gz.exists() {
+        let _ = std::fs::remove_file(&target_gz);
+    }
 
     let dl = std::process::Command::new("curl")
         .args(&["-fSL", "--max-time", "90", &effective_url, "-o", &target_gz.to_string_lossy()])
@@ -6086,6 +6100,30 @@ pub fn apply_app_update(
 
     if !dl.status.success() {
         return Err("Failed to download update binary from GitHub".into());
+    }
+
+    let meta = std::fs::metadata(&target_gz).map_err(|e| format!("Corrupted bundle: {}", e))?;
+    if meta.len() < 50 * 1024 {
+        return Err("Downloaded update bundle is incomplete or corrupted".into());
+    }
+
+    Ok(target_gz.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn verify_update_binary(
+    target_version: String,
+) -> Result<bool, String> {
+    let temp_dir = std::env::temp_dir();
+    let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
+    let target_bin = temp_dir.join(format!("lynterminal-{}", target_version));
+
+    if !target_gz.exists() {
+        return Err("Downloaded update bundle not found".into());
+    }
+
+    if target_bin.exists() {
+        let _ = std::fs::remove_file(&target_bin);
     }
 
     let dec = std::process::Command::new("gzip")
@@ -6101,10 +6139,34 @@ pub fn apply_app_update(
 
     #[cfg(unix)]
     {
+        use std::io::Read;
+        if let Ok(mut file) = std::fs::File::open(&target_bin) {
+            let mut magic = [0u8; 4];
+            if file.read_exact(&mut magic).is_ok() && &magic != b"\x7fELF" {
+                return Err("Executable verification failed: invalid ELF header".into());
+            }
+        }
+
         use std::os::unix::fs::PermissionsExt;
         let mut perms = std::fs::metadata(&target_bin).map_err(|e| e.to_string())?.permissions();
         perms.set_mode(0o755);
         std::fs::set_permissions(&target_bin, perms).map_err(|e| e.to_string())?;
+    }
+
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn apply_update_and_restart(
+    target_version: String,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let temp_dir = std::env::temp_dir();
+    let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
+    let target_bin = temp_dir.join(format!("lynterminal-{}", target_version));
+
+    if !target_bin.exists() {
+        return Err("Verified binary not found. Please restart update process.".into());
     }
 
     // Deploy to ~/.local/bin/lynterminal; unlinking target first to avoid ETXTBSY on running binary
@@ -6133,7 +6195,38 @@ pub fn apply_app_update(
     let _ = std::fs::remove_file(&target_gz);
     let _ = std::fs::remove_file(&target_bin);
 
-    // 3. Restart application
+    // Restart application
     app_handle.restart();
+}
+
+#[tauri::command]
+pub fn apply_app_update(
+    download_url: String,
+    target_version: String,
+    app_handle: tauri::AppHandle,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<(), String> {
+    // 1. Automatic Pre-Update Safety Backup (Zero Data Loss Guarantee)
+    {
+        let app = state.lock().map_err(|e| e.to_string())?;
+        let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+        let path = create_pre_update_backup_internal(&conn, &target_version)?;
+        DatabaseManager::log_audit(
+            &conn,
+            "BACKUP",
+            "PRE_UPDATE",
+            &target_version,
+            &format!("Pre-update safety backup successfully preserved at: {}", path),
+        ).ok();
+    }
+
+    // 2. Download
+    download_update_binary(download_url, target_version.clone())?;
+
+    // 3. Verify
+    verify_update_binary(target_version.clone())?;
+
+    // 4. Apply & Restart
+    apply_update_and_restart(target_version, app_handle)
 }
 

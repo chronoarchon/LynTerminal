@@ -325,6 +325,7 @@ export function AppContent() {
             parties={parties}
             settings={settings}
             onRefresh={loadAllData}
+            showGst={isGstActive}
           />
         );
       case "expenses":

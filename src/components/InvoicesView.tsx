@@ -24,6 +24,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import type { CompleteGstInvoice, GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { GSTTaxInvoiceModal } from "../modules/india_gst/GSTTaxInvoiceModal";
+import { useAppleDialog } from "./common/AppleDialog";
 
 interface InvoicesViewProps {
   invoices: Invoice[];
@@ -31,6 +32,7 @@ interface InvoicesViewProps {
   parties?: Party[];
   settings: Settings;
   onRefresh: () => void;
+  showGst?: boolean;
 }
 
 export const InvoicesView: React.FC<InvoicesViewProps> = ({
@@ -39,8 +41,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   parties = [],
   settings,
   onRefresh,
+  showGst = false,
 }) => {
   const { formatCurrency } = useCurrency();
+  const { alert: appleAlert, toast } = useAppleDialog();
   const [activeTab, setActiveTab] = useState<"invoices" | "estimates" | "returns">("invoices");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
@@ -112,7 +116,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
     const amt = parseFloat(creditPayAmount);
     if (isNaN(amt) || amt <= 0) {
-      alert("Please enter a valid payment amount.");
+      appleAlert({
+        title: "Validation Error",
+        message: "Please enter a valid payment amount.",
+        type: "warning",
+      });
       return;
     }
 
@@ -131,9 +139,17 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
         notes: creditPayNotes || `Credit settlement for Invoice #${creditPayTarget.invoice_number}`,
       });
       setCreditPayTarget(null);
+      toast({
+        message: `Successfully recorded payment of ${formatCurrency(amt)} for #${creditPayTarget.invoice_number}`,
+        type: "success",
+      });
       onRefresh();
     } catch (err) {
-      alert("Payment settlement failed: " + err);
+      appleAlert({
+        title: "Payment Settlement Error",
+        message: String(err),
+        type: "error",
+      });
     } finally {
       setIsSubmittingCreditPay(false);
     }
@@ -546,6 +562,21 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          {showGst && (
+                            <button
+                              onClick={() => handleOpenGstInvoice(inv.id)}
+                              className="px-2.5 py-1 rounded-lg bg-[#FF9500] hover:bg-[#E68600] text-white text-[11px] font-semibold transition apple-press cursor-pointer"
+                              title="Rule 46 CGST Tax Invoice"
+                            >
+                              GST Bill
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleOpenInvoice(inv.id)}
+                            className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] hover:bg-black text-white text-[11px] font-medium transition apple-press cursor-pointer"
+                          >
+                            Receipt
+                          </button>
                           {remainingDue > 0.009 && !isReturn && (
                             <button
                               onClick={() => handleOpenCreditPayModal(inv)}
@@ -555,19 +586,6 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                               <span>Pay</span>
                             </button>
                           )}
-                          <button
-                            onClick={() => handleOpenGstInvoice(inv.id)}
-                            className="px-2.5 py-1 rounded-lg bg-[#FF9500] hover:bg-[#E68600] text-white text-[11px] font-semibold transition apple-press cursor-pointer"
-                            title="Rule 46 CGST Tax Invoice"
-                          >
-                            GST Bill
-                          </button>
-                          <button
-                            onClick={() => handleOpenInvoice(inv.id)}
-                            className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] hover:bg-black text-white text-[11px] font-medium transition apple-press cursor-pointer"
-                          >
-                            Receipt
-                          </button>
                           {!isReturn && (
                             <button
                               onClick={() => handleOpenVoidModal(inv)}
@@ -621,6 +639,20 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   <div className="flex items-center justify-between pt-1 border-t border-black/[0.04] text-[11px] text-[#86868B]">
                     <span>{inv.invoice_date} · {inv.payment_method}</span>
                     <div className="flex items-center gap-1.5">
+                      {showGst && (
+                        <button
+                          onClick={() => handleOpenGstInvoice(inv.id)}
+                          className="px-2 py-1 rounded-lg bg-[#FF9500] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
+                        >
+                          GST
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleOpenInvoice(inv.id)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
+                      >
+                        Receipt
+                      </button>
                       {remainingDue > 0.009 && !isReturn && (
                         <button
                           onClick={() => handleOpenCreditPayModal(inv)}
@@ -629,18 +661,6 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                           Pay
                         </button>
                       )}
-                      <button
-                        onClick={() => handleOpenGstInvoice(inv.id)}
-                        className="px-2 py-1 rounded-lg bg-[#FF9500] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
-                      >
-                        GST
-                      </button>
-                      <button
-                        onClick={() => handleOpenInvoice(inv.id)}
-                        className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[10px] font-semibold transition apple-press cursor-pointer"
-                      >
-                        Receipt
-                      </button>
                     </div>
                   </div>
                 </div>

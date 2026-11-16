@@ -1060,7 +1060,10 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     setPaymentMethod("CREDIT");
                     setIsSplitPayment(false);
                     if (!selectedPartyId) {
-                      setIsCustomerMenuOpen(true);
+                      const customers = parties.filter((p) => p.party_type === "CUSTOMER");
+                      if (customers.length === 0) {
+                        setShowAddCustomerModal(true);
+                      }
                     }
                   }}
                   className={`flex-1 min-w-[90px] py-2 px-2 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
@@ -1079,32 +1082,74 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 <div className="p-3 rounded-2xl bg-[#FFF9F2] border border-[#FF9500]/25 space-y-2.5 animate-in fade-in duration-150">
                   {/* Customer status */}
                   {!selectedPartyId ? (
-                    <div className="p-2.5 rounded-xl bg-amber-100/60 border border-amber-300/50 flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2 text-xs text-amber-900">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold block">Customer Details Required</span>
-                          <span className="text-[11px] text-amber-800">
-                            Credit billing must be linked to a customer ledger.
-                          </span>
+                    <div className="p-2.5 rounded-xl bg-amber-100/60 border border-amber-300/50 space-y-2">
+                      <div className="flex items-start justify-between gap-2 text-xs text-amber-900">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold block">Customer Details Required</span>
+                            <span className="text-[11px] text-amber-800">
+                              Select an existing debtor or register a new customer with name & phone.
+                            </span>
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddCustomerModal(true)}
+                          className="px-2.5 py-1 rounded-lg bg-[#0071E3] hover:bg-[#0077ED] text-white text-[10px] font-semibold transition shrink-0 cursor-pointer"
+                        >
+                          + New Customer
+                        </button>
+                      </div>
+
+                      {/* Quick picker from existing customers */}
+                      {parties.filter((p) => p.party_type === "CUSTOMER").length > 0 && (
+                        <div className="pt-1">
+                          <label className="text-[10px] font-semibold text-amber-900 block mb-1">
+                            Choose debtor account:
+                          </label>
+                          <select
+                            value={selectedPartyId}
+                            onChange={(e) => {
+                              setSelectedPartyId(e.target.value);
+                              const found = parties.find((p) => p.id === e.target.value);
+                              if (found) setCustomCustomerName(found.name);
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-[#1D1D1F] focus:outline-none focus:border-[#FF9500]"
+                          >
+                            <option value="">-- Select Customer for Credit Bill --</option>
+                            {parties
+                              .filter((p) => p.party_type === "CUSTOMER")
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} {p.phone ? `(${p.phone})` : ""} · Balance: {formatCurrency(p.current_balance)}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-white border border-[#FF9500]/20">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-[#FF9500]" />
+                        <span className="text-[#86868B] text-[11px]">Ledger Account:</span>
+                        <span className="font-bold text-[#1D1D1F]">
+                          {parties.find((p) => p.id === selectedPartyId)?.name}
+                        </span>
+                        {parties.find((p) => p.id === selectedPartyId)?.phone && (
+                          <span className="text-[10px] text-[#86868B]">
+                            ({parties.find((p) => p.id === selectedPartyId)?.phone})
+                          </span>
+                        )}
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsCustomerMenuOpen(true);
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-[#FF9500] hover:bg-[#E68600] text-white text-[10px] font-semibold transition shrink-0 cursor-pointer"
+                        onClick={() => setSelectedPartyId("")}
+                        className="text-[10px] text-[#0071E3] hover:underline cursor-pointer"
                       >
-                        Select Customer
+                        Change
                       </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-xs px-2 py-1 rounded-xl bg-white border border-[#FF9500]/20">
-                      <span className="text-[#86868B] text-[11px]">Ledger Account:</span>
-                      <span className="font-bold text-[#1D1D1F]">
-                        {parties.find((p) => p.id === selectedPartyId)?.name}
-                      </span>
                     </div>
                   )}
 
@@ -1173,8 +1218,13 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       {/* Paid portion method selector */}
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-[#86868B]">Paid portion method:</span>
-                        <div className="flex gap-1">
-                          {["CASH", "CARD", ...(settings.custom_payment_1_enabled ? [settings.custom_payment_1_name || "Custom"] : [])].map((m) => (
+                        <div className="flex gap-1 flex-wrap">
+                          {[
+                            "CASH",
+                            "CARD",
+                            ...(settings.custom_payment_1_enabled ? [settings.custom_payment_1_name || "Custom 1"] : []),
+                            ...(settings.custom_payment_2_enabled ? [settings.custom_payment_2_name || "Custom 2"] : []),
+                          ].map((m) => (
                             <button
                               key={m}
                               type="button"

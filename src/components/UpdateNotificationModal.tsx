@@ -20,7 +20,7 @@ interface UpdateNotificationModalProps {
 
 const renderFormattedText = (text: string) => {
   const parts: React.ReactNode[] = [];
-  const regex = /(\*\*.*?\*\*|`.*?`)/g;
+  const regex = /(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))/g;
   let lastIdx = 0;
   let match;
   while ((match = regex.exec(text)) !== null) {
@@ -43,6 +43,22 @@ const renderFormattedText = (text: string) => {
           {token.slice(1, -1)}
         </code>
       );
+    } else if (token.startsWith("[") && token.includes("](") && token.endsWith(")")) {
+      const linkMatch = token.match(/\[(.*?)\]\((.*?)\)/);
+      if (linkMatch) {
+        parts.push(
+          <a
+            key={match.index}
+            href={linkMatch[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0071E3] hover:underline inline-flex items-center gap-0.5 font-medium"
+          >
+            <span>{linkMatch[1]}</span>
+            <ExternalLink className="w-2.5 h-2.5 inline" />
+          </a>
+        );
+      }
     }
     lastIdx = regex.lastIndex;
   }
@@ -86,7 +102,16 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
 
     if (!trimmed) return;
 
-    if (trimmed.startsWith("### ")) {
+    if (trimmed.startsWith("#### ")) {
+      elements.push(
+        <h5
+          key={i}
+          className="text-xs font-semibold text-[#1D1D1F] mt-2 mb-1"
+        >
+          {trimmed.replace(/^####\s+/, "")}
+        </h5>
+      );
+    } else if (trimmed.startsWith("### ")) {
       elements.push(
         <h4
           key={i}
@@ -111,12 +136,39 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
           {trimmed.replace(/^#\s+/, "")}
         </h2>
       );
-    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      const itemText = trimmed.replace(/^[-*]\s+/, "");
+    } else if (trimmed.startsWith("> ")) {
       elements.push(
         <div
           key={i}
-          className="flex items-start gap-2 text-xs text-[#515154] leading-relaxed my-1 pl-1"
+          className="pl-3 py-1.5 my-1.5 border-l-2 border-[#0071E3] bg-[#0071E3]/5 rounded-r-xl text-xs text-[#515154] italic"
+        >
+          {renderFormattedText(trimmed.replace(/^>\s*/, ""))}
+        </div>
+      );
+    } else if (/^\d+\.\s+/.test(trimmed)) {
+      const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+      if (numMatch) {
+        elements.push(
+          <div
+            key={i}
+            className="flex items-start gap-2 text-xs text-[#515154] leading-relaxed my-1 pl-1"
+          >
+            <span className="font-mono font-bold text-[#0071E3] text-xs shrink-0 w-4">
+              {numMatch[1]}.
+            </span>
+            <div className="flex-1">{renderFormattedText(numMatch[2])}</div>
+          </div>
+        );
+      }
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("+ ")) {
+      const itemText = trimmed.replace(/^[-*+]\s+/, "");
+      const isIndented = line.search(/\S/) > 0;
+      elements.push(
+        <div
+          key={i}
+          className={`flex items-start gap-2 text-xs text-[#515154] leading-relaxed my-1 ${
+            isIndented ? "pl-5" : "pl-1"
+          }`}
         >
           <span className="text-[#0071E3] font-bold text-sm leading-none mt-0.5">•</span>
           <div className="flex-1">{renderFormattedText(itemText)}</div>
@@ -157,25 +209,24 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
       setStatusMessage("Step 1/4: Backing up database...");
       setProgress(25);
       await api.createPreUpdateBackup(updateInfo.latest_version);
-      await new Promise((r) => setTimeout(r, 400));
 
       // Step 2: Download release binary
       setCurrentStep(2);
       setStatusMessage("Step 2/4: Downloading release binary...");
       setProgress(50);
-      await new Promise((r) => setTimeout(r, 400));
+      await api.downloadUpdateBinary(updateInfo.download_url, updateInfo.latest_version);
 
       // Step 3: Verify binary integrity
       setCurrentStep(3);
       setStatusMessage("Step 3/4: Verifying binary...");
       setProgress(75);
-      await new Promise((r) => setTimeout(r, 400));
+      await api.verifyUpdateBinary(updateInfo.latest_version);
 
       // Step 4: Apply update and relaunch
       setCurrentStep(4);
       setStatusMessage("Step 4/4: Applying update and relaunching...");
       setProgress(100);
-      await api.applyAppUpdate(updateInfo.download_url, updateInfo.latest_version);
+      await api.applyUpdateAndRestart(updateInfo.latest_version);
     } catch (err) {
       console.error("Update failed:", err);
       setErrorMessage(String(err));

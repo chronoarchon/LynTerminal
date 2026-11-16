@@ -129,7 +129,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           remaining > 0.009
         );
       })
-      .sort((a, b) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime());
+      .sort((a, b) => {
+        const diff = new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime();
+        if (diff !== 0) return diff;
+        const createdDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        if (createdDiff !== 0) return createdDiff;
+        return a.invoice_number.localeCompare(b.invoice_number);
+      });
   }, [invoices]);
 
   const totalOutstandingCustomerCredit = debtorCustomers.reduce(
@@ -142,6 +148,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const due = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
     setDashboardPayAmount(due > 0 ? due.toFixed(2) : inv.total_amount.toFixed(2));
     setDashboardPayMethod("CASH");
+  };
+
+  const handleOpenCustomerCreditPay = (cust: Party) => {
+    const syntheticInv: Invoice = {
+      id: "",
+      invoice_number: "ACCOUNT-BAL",
+      invoice_type: "SALE",
+      party_id: cust.id,
+      party_name: cust.name,
+      invoice_date: new Date().toISOString().split("T")[0],
+      due_date: new Date().toISOString().split("T")[0],
+      subtotal: cust.current_balance,
+      discount_amount: 0,
+      tax_amount: 0,
+      total_amount: cust.current_balance,
+      paid_amount: 0,
+      status: "CREDIT",
+      payment_method: "Credit",
+      notes: `Balance on account for ${cust.name}`,
+      created_at: new Date().toISOString(),
+    };
+    handleOpenDashboardCreditPay(syntheticInv);
   };
 
   const handleExecuteDashboardCreditPay = async (e?: React.FormEvent) => {
@@ -158,15 +186,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       setIsSubmittingDashboardPay(true);
       await api.recordPayment({
         id: "",
-        invoice_id: dashboardPayTarget.id,
+        invoice_id: dashboardPayTarget.id ? dashboardPayTarget.id : null,
         party_id: dashboardPayTarget.party_id || "",
         party_name: dashboardPayTarget.party_name || "Customer",
         amount: amt,
         payment_type: "IN",
         payment_method: dashboardPayMethod,
         payment_date: new Date().toISOString().split("T")[0],
-        reference: `Credit Settlement #${dashboardPayTarget.invoice_number}`,
-        notes: `Credit settlement for Invoice #${dashboardPayTarget.invoice_number}`,
+        reference: dashboardPayTarget.id ? `Credit Settlement #${dashboardPayTarget.invoice_number}` : `Account Settlement - ${dashboardPayTarget.party_name}`,
+        notes: dashboardPayTarget.id ? `Credit settlement for Invoice #${dashboardPayTarget.invoice_number}` : `Customer account settlement`,
       });
       setDashboardPayTarget(null);
       toast({ message: `Successfully settled payment of ${formatCurrency(amt)}`, type: "success" });
@@ -957,9 +985,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </span>
                         </div>
 
-                        {openInvs.length > 0 && (
+                        {openInvs.length > 0 ? (
                           <button
                             onClick={() => handleOpenDashboardCreditPay(openInvs[0])}
+                            className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-white text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
+                          >
+                            Pay
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenCustomerCreditPay(cust)}
                             className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-white text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
                           >
                             Pay

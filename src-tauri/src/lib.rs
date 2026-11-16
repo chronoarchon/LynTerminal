@@ -90,6 +90,9 @@ pub fn run() {
             commands::get_recovery_code,
             commands::restart_app,
             commands::create_pre_update_backup,
+            commands::download_update_binary,
+            commands::verify_update_binary,
+            commands::apply_update_and_restart,
             commands::check_app_update,
             commands::apply_app_update,
             // Indian GST & Tally-Compliant Accounting commands
