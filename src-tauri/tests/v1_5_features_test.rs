@@ -198,3 +198,63 @@ fn test_pre_update_backup_safe_vacuum_repeated_calls() {
     let _ = std::fs::remove_file(backup1);
     let _ = std::fs::remove_file(backup2);
 }
+
+#[test]
+fn test_liquidity_routing_cash_bank_credit_and_partial() {
+    // 1. Pure Cash goes strictly to cash drawer
+    assert_eq!(parse_payment_liquidity("Cash", 1500.0), (1500.0, 0.0));
+    assert_eq!(parse_payment_liquidity("CASH", 500.0), (500.0, 0.0));
+    assert_eq!(parse_payment_liquidity("cash drawer", 250.0), (250.0, 0.0));
+
+    // 2. Pure Bank / Electronic tenders go strictly to bank
+    assert_eq!(parse_payment_liquidity("UPI", 1000.0), (0.0, 1000.0));
+    assert_eq!(parse_payment_liquidity("Card", 2000.0), (0.0, 2000.0));
+    assert_eq!(parse_payment_liquidity("Credit Card", 3000.0), (0.0, 3000.0));
+    assert_eq!(parse_payment_liquidity("Debit Card", 1200.0), (0.0, 1200.0));
+    assert_eq!(parse_payment_liquidity("Bank Transfer", 4500.0), (0.0, 4500.0));
+    assert_eq!(parse_payment_liquidity("NEFT", 8000.0), (0.0, 8000.0));
+    assert_eq!(parse_payment_liquidity("RTGS", 250000.0), (0.0, 250000.0));
+    assert_eq!(parse_payment_liquidity("IMPS", 5000.0), (0.0, 5000.0));
+    assert_eq!(parse_payment_liquidity("QR Code", 750.0), (0.0, 750.0));
+    assert_eq!(parse_payment_liquidity("NetBanking", 6200.0), (0.0, 6200.0));
+    assert_eq!(parse_payment_liquidity("Digital Wallet", 350.0), (0.0, 350.0));
+    assert_eq!(parse_payment_liquidity("Google Pay", 900.0), (0.0, 900.0));
+    assert_eq!(parse_payment_liquidity("PhonePe", 1100.0), (0.0, 1100.0));
+    assert_eq!(parse_payment_liquidity("Paytm", 450.0), (0.0, 450.0));
+
+    // 3. Pure Credit / Udhaar provides strictly 0 cash and 0 bank
+    assert_eq!(parse_payment_liquidity("Credit", 5000.0), (0.0, 0.0));
+    assert_eq!(parse_payment_liquidity("CREDIT", 5000.0), (0.0, 0.0));
+    assert_eq!(parse_payment_liquidity("Credit (Udhaar)", 5000.0), (0.0, 0.0));
+    assert_eq!(parse_payment_liquidity("Credit (30 Days)", 5000.0), (0.0, 0.0));
+    assert_eq!(parse_payment_liquidity("Credit (15 Days)", 2500.0), (0.0, 0.0));
+    assert_eq!(parse_payment_liquidity("Udhaar", 1200.0), (0.0, 0.0));
+    assert_eq!(parse_payment_liquidity("Customer Credit", 3400.0), (0.0, 0.0));
+
+    // 4. Partial Credit (Paid tender enters cash/bank, credit portion contributes 0)
+    // UPI + Credit partial tender with Rupee symbol
+    assert_eq!(
+        parse_payment_liquidity("Partial Credit (₹4307.00 UPI + ₹4307.00 Credit)", 4307.0),
+        (0.0, 4307.0)
+    );
+    // Cash + Credit partial tender with Rupee symbol
+    assert_eq!(
+        parse_payment_liquidity("Partial Credit (₹4307.00 Cash + ₹4307.00 Credit)", 4307.0),
+        (4307.0, 0.0)
+    );
+    // Dollar partial credit
+    assert_eq!(
+        parse_payment_liquidity("Partial Credit ($250.00 Cash + $250.00 Credit)", 250.0),
+        (250.0, 0.0)
+    );
+    assert_eq!(
+        parse_payment_liquidity("Partial Credit ($100.00 Card + $400.00 Credit)", 100.0),
+        (0.0, 100.0)
+    );
+
+    // 5. Standard split between cash and bank
+    assert_eq!(
+        parse_payment_liquidity("Split ($25.00 Cash + $75.00 Card)", 100.0),
+        (25.0, 75.0)
+    );
+}

@@ -10,7 +10,7 @@ import {
   Building2,
   ShieldCheck,
 } from "lucide-react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import type { CompleteGstInvoice, GstSettings } from "./gstTypes";
 import type { Settings } from "../../types";

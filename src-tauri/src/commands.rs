@@ -1945,6 +1945,35 @@ pub fn delete_expense(id: String, state: State<'_, Mutex<AppState>>) -> Result<b
 // REPORTS & DASHBOARD
 // ----------------------------------------------------------------------------
 
+fn is_bank_tender(tender_str: &str) -> bool {
+    tender_str.contains("BANK")
+        || tender_str.contains("CARD")
+        || tender_str.contains("TRANSFER")
+        || tender_str.contains("WIRE")
+        || tender_str.contains("ONLINE")
+        || tender_str.contains("UPI")
+        || tender_str.contains("NEFT")
+        || tender_str.contains("RTGS")
+        || tender_str.contains("IMPS")
+        || tender_str.contains("QR")
+        || tender_str.contains("NETBANKING")
+        || tender_str.contains("NET BANKING")
+        || tender_str.contains("NET-BANKING")
+        || tender_str.contains("APPLE")
+        || tender_str.contains("CHEQUE")
+        || tender_str.contains("CHECK")
+        || tender_str.contains("PAY")
+        || tender_str.contains("PHONEPE")
+        || tender_str.contains("GPAY")
+        || tender_str.contains("BHIM")
+        || tender_str.contains("ALIPAY")
+        || tender_str.contains("DRAFT")
+        || tender_str.contains("DIGITAL")
+        || tender_str.contains("WALLET")
+        || tender_str.contains("ZELLE")
+        || tender_str.contains("VENMO")
+}
+
 pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
     let trimmed = method.trim();
     if trimmed.is_empty() {
@@ -1953,55 +1982,64 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
 
     let upper = trimmed.to_uppercase();
 
-    // Check for Split or Partial payment string e.g. "Split ($20.00 Cash + $30.00 Card)" or "Partial Credit ($50.00 Cash + $50.00 Credit)"
-    if upper.starts_with("SPLIT") || upper.starts_with("PARTIAL") {
+    // Check for Split or Partial payment string e.g.
+    // "Split ($20.00 Cash + $30.00 Card)" or "Partial Credit ($50.00 Cash + $50.00 Credit)"
+    // or "Partial Credit (₹4307.00 UPI + ₹4307.00 Credit)"
+    if upper.starts_with("SPLIT") || upper.starts_with("PARTIAL") || upper.contains('+') {
         let mut cash_part = 0.0;
         let mut bank_part = 0.0;
+        let mut has_credit_part = false;
+
         let parts: Vec<&str> = upper.split('+').collect();
-        for part in parts {
+        for part in &parts {
+            let has_cash = part.contains("CASH");
+            let has_bank = is_bank_tender(part);
+            let has_credit = (part.contains("CREDIT") && !part.contains("CREDIT CARD"))
+                || part.contains("UDHAAR")
+                || part.contains("UDHAR");
+
+            if has_credit && !has_cash && !has_bank {
+                has_credit_part = true;
+                // Unpaid credit portion contributes strictly 0 liquidity to cash/bank
+                continue;
+            }
+
             let num_str: String = part.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
             if let Ok(val) = num_str.parse::<f64>() {
-                if part.contains("CASH") {
-                    cash_part = val;
-                } else if part.contains("CARD")
-                    || part.contains("BANK")
-                    || part.contains("TRANSFER")
-                    || part.contains("UPI")
-                    || part.contains("PAY")
-                    || part.contains("ALIPAY")
-                    || part.contains("DRAFT")
-                {
-                    bank_part = val;
+                if has_cash {
+                    cash_part += val;
+                } else if has_bank {
+                    bank_part += val;
                 }
             }
         }
+
         if cash_part > 0.0 || bank_part > 0.0 {
-            if cash_part > 0.0 && bank_part == 0.0 {
-                bank_part = (amount - cash_part).max(0.0);
-            } else if bank_part > 0.0 && cash_part == 0.0 {
-                cash_part = (amount - bank_part).max(0.0);
+            // Only backfill unallocated amounts if this is NOT a partial credit sale
+            if !has_credit_part {
+                if cash_part > 0.0 && bank_part == 0.0 {
+                    bank_part = (amount - cash_part).max(0.0);
+                } else if bank_part > 0.0 && cash_part == 0.0 {
+                    cash_part = (amount - bank_part).max(0.0);
+                }
             }
             return (cash_part, bank_part);
         }
+
+        if has_credit_part {
+            return (0.0, 0.0);
+        }
     }
 
-    if upper.contains("BANK")
-        || upper.contains("CARD")
-        || upper.contains("TRANSFER")
-        || upper.contains("WIRE")
-        || upper.contains("ONLINE")
-        || upper.contains("UPI")
-        || upper.contains("APPLE")
-        || upper.contains("CHEQUE")
-        || upper.contains("CHECK")
-        || upper.contains("PAY")
-        || upper.contains("ALIPAY")
-        || upper.contains("DRAFT")
-        || upper.contains("DIGITAL")
-        || upper.contains("WALLET")
-        || upper.contains("ZELLE")
-        || upper.contains("VENMO")
-    {
+    // Pure Credit sales provide strictly 0 cash and 0 bank liquidity
+    let is_pure_credit = (upper.contains("CREDIT") && !upper.contains("CREDIT CARD"))
+        || upper.contains("UDHAAR")
+        || upper.contains("UDHAR");
+    if is_pure_credit {
+        return (0.0, 0.0);
+    }
+
+    if is_bank_tender(&upper) {
         (0.0, amount)
     } else {
         // "CASH", "Cash", "REFUND", counter retail default
@@ -5978,13 +6016,13 @@ fn compare_semver(remote: &str, current: &str) -> bool {
 
 #[tauri::command]
 pub fn check_app_update() -> Result<AppUpdateInfo, String> {
-    let current_version = "1.5.0v".to_string();
+    let current_version = "1.5.1v".to_string();
 
     let output = std::process::Command::new("curl")
         .args(&[
             "-s",
             "--max-time", "6",
-            "-H", "User-Agent: LynTerminal-App/1.5.0",
+            "-H", "User-Agent: LynTerminal-App/1.5.1",
             "https://api.github.com/repos/chronoarchon/LynTerminal/releases/latest",
         ])
         .output()

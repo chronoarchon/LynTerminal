@@ -1,8 +1,8 @@
 # Maintainer: chronoarchon <chronoarchon@users.noreply.github.com>
 pkgname=lynterminal
-pkgver=1.5.0v
+pkgver=1.5.1v
 pkgrel=1
-pkgdesc="LynTerminal v1.5.0v — Modern Offline-First Business Management OS & Indian GST Accounting Terminal"
+pkgdesc="LynTerminal v1.5.1v — Modern Offline-First Business Management OS & Indian GST Accounting Terminal"
 arch=('x86_64')
 url="https://github.com/chronoarchon/LynTerminal"
 license=('Proprietary')

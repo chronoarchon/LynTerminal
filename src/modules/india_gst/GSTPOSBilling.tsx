@@ -425,10 +425,10 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
       </div>
 
       {/* RIGHT COLUMN: GST Tax Invoice Register & Credit Checkout */}
-      <div className="w-full lg:w-[440px] flex flex-col bg-white rounded-2xl border border-black/[0.08] shadow-md overflow-hidden shrink-0">
+      <div className="w-full lg:w-[440px] flex flex-col h-full bg-white rounded-2xl border border-black/[0.08] shadow-md overflow-hidden shrink-0">
         
         {/* Register Header */}
-        <div className="p-3.5 bg-[#FAFAFA] border-b border-black/[0.06] space-y-2">
+        <div className="p-3.5 bg-[#FAFAFA] border-b border-black/[0.06] space-y-2 shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-1.5 font-bold text-xs text-black">
               <Receipt className="w-4 h-4 text-[#0071E3]" />
@@ -497,7 +497,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         </div>
 
         {/* Cart Itemized Rows */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[300px]">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
           {cart.length === 0 ? (
             <div className="py-12 text-center text-xs text-neutral-400">
               No items in cart. Click on products to add to bill.
@@ -583,9 +583,9 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         </div>
 
         {/* Register Footer: Payment Mode & Checkouts */}
-        <div className="p-3.5 bg-[#FAFAFA] border-t border-black/[0.08] space-y-3">
-          
-          {/* Payment Method Selector */}
+        <div className="border-t border-black/[0.08] bg-[#FAFAFA] flex flex-col shrink-0 min-h-0">
+          <div className="p-3.5 space-y-2.5 overflow-y-auto max-h-[46vh]">
+            {/* Payment Method Selector */}
           <div className="space-y-1">
             <label className="block text-[10px] font-bold uppercase text-neutral-500">
               Payment Settlement Mode
@@ -767,20 +767,23 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               {amountToIndianWords(roundedGrandTotal)}
             </div>
           </div>
+          </div>
 
-          {/* Checkout Button */}
-          <button
-            onClick={handleCheckout}
-            disabled={isSubmitting || cart.length === 0}
-            className="w-full py-3 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>
-              {isSubmitting
-                ? "Generating GST Tax Invoice..."
-                : `Generate GST Bill (₹${roundedGrandTotal.toFixed(2)})`}
-            </span>
-          </button>
+          {/* Pinned Checkout Button */}
+          <div className="p-3 pt-2 bg-white border-t border-black/[0.05] shrink-0">
+            <button
+              onClick={handleCheckout}
+              disabled={isSubmitting || cart.length === 0}
+              className="w-full py-3 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>
+                {isSubmitting
+                  ? "Generating GST Tax Invoice..."
+                  : `Generate GST Bill (₹${roundedGrandTotal.toFixed(2)})`}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

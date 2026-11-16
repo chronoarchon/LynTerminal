@@ -68,9 +68,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'LynTerminal v__VERSION__ (v1.5.0v)'
+          releaseName: 'LynTerminal v__VERSION__ (v1.5.1v)'
           releaseBody: |
-            ## LynTerminal v__VERSION__ (v1.5.0v) — Modern Business OS & Indian GST Terminal
+            ## LynTerminal v__VERSION__ (v1.5.1v) — Modern Business OS & Indian GST Terminal
 
             Fast, Minimalist, 100% Offline-First, Zero-Telemetry Business OS and Full Indian GST Accounting Terminal for Retail Stores, Boutiques, Showrooms, Warehouses & Modern Enterprises.
 
@@ -80,16 +80,17 @@ jobs:
             ```
 
             ### 📦 Direct Native Linux Packages (Free Download):
-            - **Arch Linux / Manjaro / EndeavourOS**: `lynterminal-1.5.0v-1-x86_64.pkg.tar.zst`
-            - **Debian / Ubuntu / Linux Mint**: `lynterminal_1.5.0_amd64.deb`
-            - **Fedora / RHEL / openSUSE**: `lynterminal-1.5.0-1.x86_64.rpm`
+            - **Arch Linux / Manjaro / EndeavourOS**: `lynterminal-1.5.1v-1-x86_64.pkg.tar.zst`
+            - **Debian / Ubuntu / Linux Mint**: `lynterminal_1.5.1_amd64.deb`
+            - **Fedora / RHEL / openSUSE**: `lynterminal-1.5.1-1.x86_64.rpm`
             - **Universal Standalone**: `lynterminal.gz`
 
-            ### ✨ Key Highlights in v1.5.0:
-            - **Customizable Payment Gateways**: Configurable custom payment methods (UPI, Google Pay, Alipay, Bank Draft, etc.) alongside Cash and Card.
-            - **Full & Partial Customer Credit (Udhaar)**: Integrated customer ledger tracking with 1-click credit settlement directly from transaction records.
-            - **Conditional Indian GST**: GST module and Tally gateway only activated when INR is selected, with one-switch toggles on Dashboard and Settings.
-            - **Reliable Step-by-Step Upgrades**: Structured changelog typography and fail-safe SQLite pre-update safety snapshots with 4-step live progress feedback.
+            ### ✨ Key Highlights in v1.5.1:
+            - **html2canvas-pro Modern PDF Engine**: Native support for modern OKLab/OKLCh Tailwind v4 colors in regular and GST invoices.
+            - **Rule 48 CGST Multi-Copy Bill Prints**: Original, Duplicate, and Triplicate copy modes with badges.
+            - **Fixed POS Billing Layout**: Pinned bottom checkout buttons preventing overflow on partial and credit payments.
+            - **Uniform Credit Tender**: Compact "Credit" button matching other tenders.
+            - **Strict Cash & Bank Liquidity Routing**: Precise separation of cash drawer and bank liquidity.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
@@ -98,9 +99,9 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           gh release upload "${{ github.ref_name }}" \
-            "release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst" \
-            "release/lynterminal_1.5.0_amd64.deb" \
-            "release/lynterminal-1.5.0-1.x86_64.rpm" \
+            "release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst" \
+            "release/lynterminal_1.5.1_amd64.deb" \
+            "release/lynterminal-1.5.1-1.x86_64.rpm" \
             "bin/lynterminal.gz" \
             --clobber
         env:

@@ -6,7 +6,7 @@
 set -e
 
 REPO_RAW="https://raw.githubusercontent.com/chronoarchon/LynTerminal/main"
-VERSION="1.5.0v"
+VERSION="1.5.1v"
 ARCH="$(uname -m)"
 
 # Terminal styling

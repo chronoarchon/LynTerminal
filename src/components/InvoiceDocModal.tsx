@@ -9,7 +9,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import type { InvoiceDetail, Settings } from "../types";
 import { api } from "../services/api";
@@ -30,6 +30,9 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
   const { invoice, items } = invoiceDetail;
   const { formatCurrency } = useCurrency();
   const [docFormat, setDocFormat] = useState<"thermal" | "standard">("thermal");
+  const [copyType, setCopyType] = useState<
+    "ORIGINAL FOR RECIPIENT" | "DUPLICATE FOR TRANSPORTER" | "TRIPLICATE FOR SUPPLIER"
+  >("ORIGINAL FOR RECIPIENT");
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const docRef = useRef<HTMLDivElement>(null);
@@ -172,8 +175,18 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
             </div>
           </div>
 
-          {/* Segmented Format Selector (Thermal vs Standard) */}
-          <div className="flex items-center gap-2">
+          {/* Copy Type & Format Selector */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={copyType}
+              onChange={(e) => setCopyType(e.target.value as any)}
+              className="text-xs bg-[#F5F5F7] border border-black/[0.08] rounded-xl px-2.5 py-1 font-semibold text-[#1D1D1F] focus:outline-hidden cursor-pointer"
+            >
+              <option value="ORIGINAL FOR RECIPIENT">Original for Recipient</option>
+              <option value="DUPLICATE FOR TRANSPORTER">Duplicate for Transporter</option>
+              <option value="TRIPLICATE FOR SUPPLIER">Triplicate for Supplier</option>
+            </select>
+
             <div className="flex items-center p-0.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] text-xs">
               <button
                 onClick={() => setDocFormat("thermal")}
@@ -237,6 +250,9 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
             >
               {/* Header branding */}
               <div className="text-center space-y-1 pb-3 border-b border-dashed border-black/20">
+                <div className="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-black/5 uppercase text-black border border-black/10 inline-block mb-1">
+                  {copyType}
+                </div>
                 <div className="font-bold text-base tracking-tight font-sans text-black">
                   {settings.business_name || "LynTerminal Store"}
                 </div>
@@ -394,6 +410,9 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                 </div>
 
                 <div className="text-right">
+                  <div className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-black/5 uppercase text-black border border-black/10 inline-block mb-1">
+                    {copyType}
+                  </div>
                   <div className="text-xl font-bold text-[#1D1D1F] tracking-tight">
                     TAX INVOICE
                   </div>

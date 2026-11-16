@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![LynTerminal Version](https://img.shields.io/badge/version-1.5.0v-0071E3?style=for-the-badge&logo=linux&logoColor=white)
+![LynTerminal Version](https://img.shields.io/badge/version-1.5.1v-0071E3?style=for-the-badge&logo=linux&logoColor=white)
 ![Architecture](https://img.shields.io/badge/arch-x86__64-34C759?style=for-the-badge)
 ![Security](https://img.shields.io/badge/security-100%25%20Offline%20%7C%20Zero%20Telemetry-1D1D1F?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-Commercial-86868B?style=for-the-badge)
@@ -17,14 +17,14 @@ Built with **Tauri v2**, **Rust**, **SQLite (WAL Mode)**, **React 19**, and **Ta
 
 ---
 
-## 📦 Official Release Downloads & Quick Installation (v1.5.0v)
+## 📦 Official Release Downloads & Quick Installation (v1.5.1v)
 
 | Platform / Distribution | Package Format | Direct Installation Command |
 | :--- | :--- | :--- |
 | **Universal Linux (Any Distro)** | **Standalone Binary Bundle** | `curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.sh \| bash` |
-| **Arch Linux / Manjaro / EndeavourOS** | [**`lynterminal-1.5.0v-1-x86_64.pkg.tar.zst`**](release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst` |
-| **Debian / Ubuntu / Linux Mint** | [**`lynterminal_1.5.0_amd64.deb`**](release/lynterminal_1.5.0_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.0_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | [**`lynterminal-1.5.0-1.x86_64.rpm`**](release/lynterminal-1.5.0-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.0-1.x86_64.rpm` |
+| **Arch Linux / Manjaro / EndeavourOS** | [**`lynterminal-1.5.1v-1-x86_64.pkg.tar.zst`**](release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst` |
+| **Debian / Ubuntu / Linux Mint** | [**`lynterminal_1.5.1_amd64.deb`**](release/lynterminal_1.5.1_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.1_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | [**`lynterminal-1.5.1-1.x86_64.rpm`**](release/lynterminal-1.5.1-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.1-1.x86_64.rpm` |
 
 ---
 
@@ -41,15 +41,15 @@ Modern package managers (`apt`, `dnf`, `pacman`) automatically resolve, download
 
 - **Arch Linux / Manjaro / EndeavourOS**:
   ```bash
-  sudo pacman -U ./release/lynterminal-1.5.0v-1-x86_64.pkg.tar.zst
+  sudo pacman -U ./release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst
   ```
 - **Debian / Ubuntu / Linux Mint**:
   ```bash
-  sudo apt install ./release/lynterminal_1.5.0_amd64.deb
+  sudo apt install ./release/lynterminal_1.5.1_amd64.deb
   ```
 - **Fedora / RHEL / openSUSE**:
   ```bash
-  sudo dnf install ./release/lynterminal-1.5.0-1.x86_64.rpm
+  sudo dnf install ./release/lynterminal-1.5.1-1.x86_64.rpm
   ```
 
 ### 🗑️ Uninstall Anytime
@@ -79,6 +79,16 @@ curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/unins
 - **Zero Telemetry & 100% Offline**: No remote servers, cloud sync delays, or third-party analytics trackers. Every sales receipt, customer balance, and payroll voucher is stored locally on your SSD.
 - **Embedded SQLite in WAL Mode**: Concurrency-safe SQLite engine operating in Write-Ahead Logging mode for instant ACID transactions with zero database lock contention.
 - **Multi-Jurisdiction Ready**: Built-in tax presets (US State Sales Tax, EU/UK VAT, Japan JCT, India GST, or Custom Tax) and multi-currency selector with safe catalog preservation.
+
+---
+
+## ⚡ What's New in v1.5.1 (v1.5.1v)
+
+- **OKLab/OKLCh PDF Rendering**: Integrated `html2canvas-pro` across regular invoices and GST POS tax modals, resolving CSS modern color function parsing errors and delivering pristine PDF downloads.
+- **Rule 48 CGST Multi-Copy Bill Prints**: Full statutory multi-copy printing support (Original for Recipient, Duplicate for Transporter, Triplicate for Supplier) with real-time copy selection and document badges.
+- **POS & GST POS Responsive Layout Pinning**: Pinned the register checkout button to the bottom while providing scrollable payment controls and totals, eliminating button clipping when credit and partial-pay options are toggled.
+- **Compact Uniform Credit Tender**: Streamlined payment tender button to "Credit" with a compact `min-w-[70px]` footprint uniform with cash, card, and custom tenders.
+- **Strict Cash & Bank Liquidity Routing**: Hardened liquidity engine to route cash payments to the cash drawer, digital/bank/card/UPI payments strictly to bank balances, and pure credit to 0 cash/bank liquidity.
 
 ---
 

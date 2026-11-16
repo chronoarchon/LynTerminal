@@ -421,7 +421,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           setShowAddCustomerModal(true);
           appleAlert({
             title: "Customer Selection Required",
-            message: "Credit / Udhaar billing requires customer details (name and phone). Please select or register a customer.",
+            message: "Credit billing requires customer details (name and phone). Please select or register a customer.",
             type: "warning",
           });
           setIsSubmitting(false);
@@ -435,7 +435,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           paymentMethodDesc = `Partial Credit (${currency}${effectivePaid.toFixed(2)} ${creditPaidMethod} + ${currency}${remCredit.toFixed(2)} Credit)`;
         } else {
           effectivePaid = 0;
-          paymentMethodDesc = "Credit (Udhaar)";
+          paymentMethodDesc = "Credit";
         }
       }
 
@@ -451,7 +451,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         total_amount: Math.round(totalAmount * 100) / 100,
         paid_amount: effectivePaid,
         payment_method: paymentMethodDesc,
-        notes: notes || (paymentMethod === "CREDIT" ? "Customer Credit / Udhaar Bill" : (isPurchase ? "Purchase Inward" : "Counter Sale")),
+        notes: notes || (paymentMethod === "CREDIT" ? "Customer Credit Bill" : (isPurchase ? "Purchase Inward" : "Counter Sale")),
         reference: referenceNumber.trim() || null,
         items: cart.map((ci) => {
           const lineTotal = ci.unit_price * ci.quantity * (1 - ci.discount_percent / 100);
@@ -699,7 +699,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       {/* RIGHT COLUMN: Active Ticket & Checkout */}
       <div
-        className={`w-full lg:w-[410px] bg-white flex flex-col justify-between shrink-0 border-l border-black/[0.07] shadow-sm overflow-hidden ${
+        className={`w-full lg:w-[410px] bg-white flex flex-col h-full shrink-0 border-l border-black/[0.07] shadow-sm overflow-hidden ${
           mobileView === "catalog" ? "hidden lg:flex" : "flex"
         }`}
       >
@@ -936,7 +936,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         </div>
 
         {/* Totals & Payment Control */}
-        <div className="p-4 border-t border-black/[0.07] bg-white space-y-3 shrink-0">
+        <div className="border-t border-black/[0.07] bg-white flex flex-col shrink-0 min-h-0">
+          <div className="p-3.5 space-y-2.5 overflow-y-auto max-h-[46vh]">
           
           {/* Numbers breakdown */}
           <div className="space-y-1 text-xs">
@@ -1053,7 +1054,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   </button>
                 )}
 
-                {/* Credit / Udhaar */}
+                {/* Credit */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1066,18 +1067,18 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       }
                     }
                   }}
-                  className={`flex-1 min-w-[90px] py-2 px-2 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
+                  className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
                     paymentMethod === "CREDIT" && !isSplitPayment
                       ? "bg-[#FF9500] text-white border-[#FF9500] font-semibold shadow-xs"
                       : "bg-[#FFF9F2] text-[#FF9500] border-[#FF9500]/30 hover:bg-[#FFF3E6]"
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-bold truncate">Credit / Udhaar</span>
+                  <span className="text-[11px] font-bold truncate">Credit</span>
                 </button>
               </div>
 
-              {/* CREDIT / UDHAAR BILLING PANEL */}
+              {/* CREDIT BILLING PANEL */}
               {paymentMethod === "CREDIT" && !isSplitPayment && (
                 <div className="p-3 rounded-2xl bg-[#FFF9F2] border border-[#FF9500]/25 space-y-2.5 animate-in fade-in duration-150">
                   {/* Customer status */}
@@ -1368,24 +1369,27 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               )}
             </div>
           )}
+          </div>
 
-          {/* Checkout Button */}
-          <button
-            onClick={handleCheckout}
-            disabled={cart.length === 0 || isSubmitting}
-            className="w-full py-3 rounded-2xl font-semibold text-xs sm:text-sm text-white bg-[#0071E3] hover:bg-[#0077ED] flex items-center justify-center gap-2 shadow-xs transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>
-              {isSubmitting
-                ? "Processing..."
-                : billMode === "PURCHASE"
-                ? `Record Inward (${formatCurrency(totalAmount)})`
-                : billMode === "QUOTATION"
-                ? `Issue Quotation (${formatCurrency(totalAmount)})`
-                : `Charge ${formatCurrency(totalAmount)}`}
-            </span>
-          </button>
+          {/* Pinned Checkout Button */}
+          <div className="p-3 pt-2 bg-white border-t border-black/[0.05] shrink-0">
+            <button
+              onClick={handleCheckout}
+              disabled={cart.length === 0 || isSubmitting}
+              className="w-full py-3 rounded-2xl font-semibold text-xs sm:text-sm text-white bg-[#0071E3] hover:bg-[#0077ED] flex items-center justify-center gap-2 shadow-xs transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>
+                {isSubmitting
+                  ? "Processing..."
+                  : billMode === "PURCHASE"
+                  ? `Record Inward (${formatCurrency(totalAmount)})`
+                  : billMode === "QUOTATION"
+                  ? `Issue Quotation (${formatCurrency(totalAmount)})`
+                  : `Charge ${formatCurrency(totalAmount)}`}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
