@@ -8,31 +8,52 @@ Built with **Tauri v2**, **Rust**, **React 19**, and **SQLite (WAL mode)**.
 
 ---
 
-## Downloads & Installation
+## 📦 Installation
 
-### Linux Packages (v1.5.1)
+### 1-Line Universal Linux Installer (Recommended)
+Installs LynTerminal on any Linux distribution (Ubuntu, Debian, Fedora, Arch, Manjaro, openSUSE, etc.):
 
-| Distribution | Package | Install Command |
+```bash
+curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.sh | bash
+```
+
+> **Note for Indian ISPs (Jio, Airtel, ACT, Vi):** If your ISP blocks `raw.githubusercontent.com`, use the CDN mirror:
+> ```bash
+> curl -fsSL https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main/install.sh | bash
+> ```
+
+---
+
+### Distribution Packages (v1.5.1)
+
+| Distribution | Package | Direct Install Command |
 | :--- | :--- | :--- |
 | **Arch Linux / Manjaro / EndeavourOS** | [`lynterminal-1.5.1v-1-x86_64.pkg.tar.zst`](release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst` |
 | **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.5.1_amd64.deb`](release/lynterminal_1.5.1_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.1_amd64.deb` |
 | **Fedora / RHEL / openSUSE** | [`lynterminal-1.5.1-1.x86_64.rpm`](release/lynterminal-1.5.1-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.1-1.x86_64.rpm` |
-| **Any Linux (Standalone Script)** | [`install.sh`](install.sh) | `curl -fsSL https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main/install.sh \| bash` |
 
-### If you already have the repository cloned:
+---
+
+### Local Installation (From Cloned Repo)
+If you already have the repository on your machine:
 ```bash
-# Install directly using the local build:
 ./install.sh
 ```
 
-### Uninstall
+---
 
-To remove LynTerminal from your system:
+### 🗑️ Uninstall Anytime
+
 ```bash
-# Using the installed command:
-lynterminal-uninstall
+# 1-Line curl uninstaller:
+curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/uninstall.sh | bash
 
-# Or to remove the application and delete local databases:
+# To remove the application and purge all local databases:
+curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/uninstall.sh | bash -s -- --purge
+
+# Or using the built-in system shortcut:
+lynterminal-uninstall
+# (or with data purge):
 lynterminal-uninstall --purge
 ```
 
