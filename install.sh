@@ -53,8 +53,11 @@ elif [ -f "$LOCAL_BIN" ]; then
     echo -e "${GREEN}==>${RESET} Decompressing local binary bundle: $LOCAL_BIN"
     gzip -dc "$LOCAL_BIN" > "$TARGET_BIN"
 else
-    echo -e "${BLUE}==>${RESET} Downloading standalone LynTerminal binary from GitHub..."
-    curl -fSL "${REPO_RAW}/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz"
+    echo -e "${BLUE}==>${RESET} Downloading standalone LynTerminal binary..."
+    if ! curl -fSL "${REPO_RAW}/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz" 2>/dev/null; then
+        echo -e "${YELLOW}==>${RESET} GitHub direct raw host unreachable (likely ISP DNS filter). Trying CDN mirror..."
+        curl -fSL "https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz"
+    fi
     gzip -dc "$TEMP_DIR/lynterminal.gz" > "$TARGET_BIN"
 fi
 
