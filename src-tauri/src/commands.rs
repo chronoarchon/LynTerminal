@@ -1496,21 +1496,84 @@ pub fn generate_and_save_invoice_pdf(
     Ok(dest_pdf.to_string_lossy().to_string())
 }
 
+fn decode_base64_pdf(s: &str) -> Result<Vec<u8>, String> {
+    let raw = if let Some(idx) = s.find(";base64,") {
+        &s[idx + 8..]
+    } else {
+        s.trim()
+    };
+    let mut out = Vec::new();
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+    for &b in raw.as_bytes() {
+        let val = match b {
+            b'A'..=b'Z' => (b - b'A') as u32,
+            b'a'..=b'z' => (b - b'a' + 26) as u32,
+            b'0'..=b'9' => (b - b'0' + 52) as u32,
+            b'+' => 62,
+            b'/' => 63,
+            b'=' | b'\r' | b'\n' | b' ' => continue,
+            _ => continue,
+        };
+        buf = (buf << 6) | val;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((buf >> bits) as u8);
+            buf &= (1 << bits) - 1;
+        }
+    }
+    if out.is_empty() {
+        return Err("Failed to decode base64 PDF: empty decoded buffer".to_string());
+    }
+    Ok(out)
+}
+
 #[tauri::command]
 pub fn save_invoice_pdf_file(
     invoice_number: String,
-    bytes: Vec<u8>,
+    bytes: Option<Vec<u8>>,
+    base64_data: Option<String>,
 ) -> Result<String, String> {
     let bills_dir = get_bills_storage_dir();
 
     std::fs::create_dir_all(&bills_dir)
         .map_err(|e| format!("Failed to create bills directory: {}", e))?;
 
-    let dest_pdf = bills_dir.join(format!("{}.pdf", invoice_number));
-    std::fs::write(&dest_pdf, &bytes)
+    let safe_name = invoice_number
+        .replace('/', "-")
+        .replace('\\', "-")
+        .replace(':', "-")
+        .replace('*', "-")
+        .replace('?', "-")
+        .replace('"', "-")
+        .replace('<', "-")
+        .replace('>', "-")
+        .replace('|', "-");
+
+    let dest_pdf = bills_dir.join(format!("{}.pdf", safe_name));
+    if let Some(parent) = dest_pdf.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    let pdf_bytes = if let Some(b) = bytes {
+        if !b.is_empty() {
+            b
+        } else if let Some(b64) = base64_data {
+            decode_base64_pdf(&b64)?
+        } else {
+            return Err("Empty PDF data provided".to_string());
+        }
+    } else if let Some(b64) = base64_data {
+        decode_base64_pdf(&b64)?
+    } else {
+        return Err("No PDF bytes or base64 provided".to_string());
+    };
+
+    std::fs::write(&dest_pdf, &pdf_bytes)
         .map_err(|e| format!("Failed to write PDF: {}", e))?;
 
-    let old_html = bills_dir.join(format!("{}.html", invoice_number));
+    let old_html = bills_dir.join(format!("{}.html", safe_name));
     if old_html.exists() {
         let _ = std::fs::remove_file(old_html);
     }
