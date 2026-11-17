@@ -9,8 +9,8 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
+import { safeHtml2Canvas } from "../utils/safeHtml2Canvas";
 import type { InvoiceDetail, Settings } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
@@ -59,7 +59,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
 
       // 2. Client-side canvas export for browser download & verification
       const element = docRef.current;
-      const canvas = await html2canvas(element, {
+      const canvas = await safeHtml2Canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,

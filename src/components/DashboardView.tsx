@@ -43,6 +43,9 @@ interface DashboardViewProps {
   onRefresh?: () => void;
 }
 
+import { mockItems, mockInvoices } from "../browserMock";
+const isMock = typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__;
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   summary,
   settings,
@@ -55,9 +58,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currency = currencySymbol || settings.currency_symbol || "$";
   const { alert, toast } = useAppleDialog();
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>(() => (isMock ? (mockInvoices as any) : []));
+  const [items, setItems] = useState<Item[]>(() => (isMock ? (mockItems as any) : []));
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() =>
+    isMock
+      ? [
+          {
+            id: "ba-1",
+            bank_name: "Silicon Valley Commercial",
+            account_number: "****4821",
+            current_balance: 14800.0,
+          } as any,
+        ]
+      : []
+  );
   const [isPaySupplierOpen, setIsPaySupplierOpen] = useState(false);
   const [isManageMoneyOpen, setIsManageMoneyOpen] = useState(false);
   const [manageMoneyTab, setManageMoneyTab] = useState<"deposit" | "transfer" | "manage">("deposit");
@@ -1644,6 +1658,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         summary={summary}
         onSuccess={() => {
           if (onRefresh) onRefresh();
+          api.listBankAccounts().then(setBankAccounts).catch(console.error);
         }}
       />
     </div>

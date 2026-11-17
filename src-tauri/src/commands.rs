@@ -4625,11 +4625,19 @@ pub fn transfer_cash_bank_internal(
 
     if direction == "CASH_TO_BANK" {
         // Deposit physical cash drawer to bank account
-        let updated = conn.execute(
-            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2 OR is_primary = 1",
+        let mut updated = conn.execute(
+            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
             params![amount, target_acct],
         )
         .map_err(|e| e.to_string())?;
+
+        if updated == 0 {
+            updated = conn.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                params![amount],
+            )
+            .unwrap_or(0);
+        }
 
         if updated == 0 {
             let now = Local::now().to_rfc3339();
@@ -4653,16 +4661,24 @@ pub fn transfer_cash_bank_internal(
             "DEPOSIT",
             "BANK_ACCOUNT",
             target_acct,
-            &format!("Deposited ${:.2} from Cash Drawer to Bank: {}", amount, notes),
+            &format!("Deposited {:.2} from Cash Drawer to Bank: {}", amount, notes),
         )
         .ok();
     } else {
         // Withdraw bank cash to register drawer float
-        let updated = conn.execute(
-            "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2 OR is_primary = 1",
+        let mut updated = conn.execute(
+            "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2",
             params![amount, target_acct],
         )
         .map_err(|e| e.to_string())?;
+
+        if updated == 0 {
+            updated = conn.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
+                params![amount],
+            )
+            .unwrap_or(0);
+        }
 
         if updated == 0 {
             let now = Local::now().to_rfc3339();
@@ -4686,7 +4702,7 @@ pub fn transfer_cash_bank_internal(
             "WITHDRAWAL",
             "BANK_ACCOUNT",
             target_acct,
-            &format!("Withdrew ${:.2} from Bank to Cash Drawer: {}", amount, notes),
+            &format!("Withdrew {:.2} from Bank to Cash Drawer: {}", amount, notes),
         )
         .ok();
     }
@@ -4764,11 +4780,19 @@ pub fn record_deposit_internal(
             "BANK-PRIMARY".to_string()
         };
 
-        let updated = conn.execute(
-            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2 OR is_primary = 1",
+        let mut updated = conn.execute(
+            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
             params![payload.amount, bank_acc_id],
         )
         .unwrap_or(0);
+
+        if updated == 0 {
+            updated = conn.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                params![payload.amount],
+            )
+            .unwrap_or(0);
+        }
 
         if updated == 0 {
             let (_, bank_bal) = calculate_liquidity_internal(conn).unwrap_or((0.0, 0.0));
@@ -4792,11 +4816,46 @@ pub fn record_deposit_internal(
         .ok();
     } else {
         // Owner Capital Equity Injection
-        conn.execute(
-            "UPDATE settings SET capital_cash = capital_cash + ?1 WHERE id = 1",
-            params![payload.amount],
-        )
-        .map_err(|e| e.to_string())?;
+        let cap_mode: String = conn
+            .query_row("SELECT capital_mode FROM settings WHERE id = 1", [], |r| r.get(0))
+            .unwrap_or_else(|_| "CASH".to_string());
+
+        if cap_mode.to_uppercase() == "BANK" {
+            conn.execute(
+                "UPDATE settings SET capital_bank = capital_bank + ?1 WHERE id = 1",
+                params![payload.amount],
+            )
+            .map_err(|e| e.to_string())?;
+
+            let bank_acc_id = if let Some(ref bid) = payload.bank_account_id {
+                if !bid.trim().is_empty() {
+                    bid.trim().to_string()
+                } else {
+                    "BANK-PRIMARY".to_string()
+                }
+            } else {
+                "BANK-PRIMARY".to_string()
+            };
+
+            let updated = conn.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
+                params![payload.amount, bank_acc_id],
+            )
+            .unwrap_or(0);
+
+            if updated == 0 {
+                let _ = conn.execute(
+                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                    params![payload.amount],
+                );
+            }
+        } else {
+            conn.execute(
+                "UPDATE settings SET capital_cash = capital_cash + ?1 WHERE id = 1",
+                params![payload.amount],
+            )
+            .map_err(|e| e.to_string())?;
+        }
 
         DatabaseManager::log_audit(
             conn,

@@ -172,6 +172,22 @@ A unified modal component (`ManageMoneyModal.tsx`) and backend command engine (`
 - **Keyboard Shortcuts**: `F2` (New Sale / POS), `F8` (GST Tax POS), `F1` (Tally Accounting Hub), `F5` (Record Expense), `F6` (Customer Credit Ledger), `F9` (Invoices), `Ctrl+1..0` (Instant Tab Switching).
 - **Pinned Bottom Panel**: Checkout actions and charge button remain pinned to the bottom of the checkout dock, ensuring partial credit tender and custom payment methods never push the charge button off-screen.
 - **Credit Customer Enforcement**: POS billing prohibits credit or partial-credit transactions on walk-in customers, requiring an explicit ledger customer profile for statutory debt tracking.
+- **Compact Credit Action & Tender Spacing**: Simplified credit trigger with no text overflow on long payment titles (e.g. "Bank Transfer / NEFT") using text truncation and clean layout beside `+ Split Tender`.
+
+### 6.1 PDF Export & Oklab Modern CSS Resilience
+During real-world deployment on modern Linux desktops, WebKit2GTK evaluated modern CSS color functions (`oklab`, `oklch`, `color(srgb)`) introduced by modern UI toolkits, causing canvas-based PDF generation to fail with `Attempting to parse an unsupported color function "oklab"`.
+
+**Architectural Solution (`src/utils/safeHtml2Canvas.ts`)**:
+1. **Mathematical Color Space Bridge**:
+   - `oklabToRgb`: Pure mathematical conversion from Oklab $(L, a, b)$ color space to linear sRGB and gamma-corrected sRGB with alpha channel preservation.
+   - `oklchToRgb`: Polar cylindrical transformation $(L, C, H)$ to Cartesian Oklab followed by sRGB projection.
+   - `srgbColorToRgb`: Normalization of `color(srgb ...)` values.
+2. **Deep Dynamic Style Interception**:
+   - A transparent ES6 Proxy intercepts `window.getComputedStyle` and `getPropertyValue` across both the host document and the isolated cloning iframe.
+   - All computed colors containing `oklab`, `oklch`, or `color(srgb)` are dynamically translated into standard `rgb(...)` / `rgba(...)` before `html2canvas` tokenizes the CSS tree.
+3. **Dual-Engine Export Pipeline**:
+   - **Engine A (Rust Native)**: Invokes `api.exportInvoicePdf(invoice.id)` generating lossless vector PDFs written directly to `~/.local/share/lynterminal/bills/`.
+   - **Engine B (Safe Canvas Vector)**: Multi-page A4 and continuous thermal (80mm) PDF generation via `jspdf` with multi-page automatic slice pagination for enterprise invoices with 20+ line items.
 
 ---
 

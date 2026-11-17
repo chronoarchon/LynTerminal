@@ -24,11 +24,14 @@ import { api } from "../services/api";
 import { AppleSelect } from "./common/AppleSelect";
 import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
-import { UpdateNotificationModal } from "./UpdateNotificationModal";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
 import { ManageMoneyModal } from "./ManageMoneyModal";
+
+const UpdateNotificationModal = React.lazy(() =>
+  import("./UpdateNotificationModal").then((m) => ({ default: m.UpdateNotificationModal }))
+);
 
 interface SettingsViewProps {
   settings: Settings | null;
@@ -1852,16 +1855,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       )}
 
       {/* UPDATE NOTIFICATION MODAL */}
-      <UpdateNotificationModal
-        updateInfo={availableUpdate}
-        isOpen={updateModalOpen}
-        onClose={() => setUpdateModalOpen(false)}
-      />
+      <React.Suspense fallback={null}>
+        <UpdateNotificationModal
+          updateInfo={availableUpdate}
+          isOpen={updateModalOpen}
+          onClose={() => setUpdateModalOpen(false)}
+        />
+      </React.Suspense>
 
       {/* MANAGE MONEY MODAL */}
       <ManageMoneyModal
         isOpen={isManageMoneyOpen}
         onClose={() => setIsManageMoneyOpen(false)}
+        initialTab="manage"
         settings={formData}
         summary={summary}
         onSuccess={() => {

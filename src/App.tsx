@@ -10,37 +10,16 @@ import type { GstSettings } from "./modules/india_gst/gstTypes";
 import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, AppUpdateInfo } from "./types";
 import { api } from "./services/api";
 
-// Lazy-loaded code-split view chunks (<100ms parse time on any Linux distro)
-const DashboardView = lazy(() =>
-  import("./components/DashboardView").then((m) => ({ default: m.DashboardView }))
-);
-const POSBilling = lazy(() =>
-  import("./components/POSBilling").then((m) => ({ default: m.POSBilling }))
-);
-const InventoryView = lazy(() =>
-  import("./components/InventoryView").then((m) => ({ default: m.InventoryView }))
-);
-const PartiesView = lazy(() =>
-  import("./components/PartiesView").then((m) => ({ default: m.PartiesView }))
-);
-const InvoicesView = lazy(() =>
-  import("./components/InvoicesView").then((m) => ({ default: m.InvoicesView }))
-);
-const ExpensesView = lazy(() =>
-  import("./components/ExpensesView").then((m) => ({ default: m.ExpensesView }))
-);
-const StaffView = lazy(() =>
-  import("./components/StaffView").then((m) => ({ default: m.StaffView }))
-);
-const ReportsView = lazy(() =>
-  import("./components/ReportsView").then((m) => ({ default: m.ReportsView }))
-);
-const AuditLogView = lazy(() =>
-  import("./components/AuditLogView").then((m) => ({ default: m.AuditLogView }))
-);
-const SettingsView = lazy(() =>
-  import("./components/SettingsView").then((m) => ({ default: m.SettingsView }))
-);
+import { DashboardView } from "./components/DashboardView";
+import { POSBilling } from "./components/POSBilling";
+import { InventoryView } from "./components/InventoryView";
+import { PartiesView } from "./components/PartiesView";
+import { InvoicesView } from "./components/InvoicesView";
+import { ExpensesView } from "./components/ExpensesView";
+import { StaffView } from "./components/StaffView";
+import { ReportsView } from "./components/ReportsView";
+import { AuditLogView } from "./components/AuditLogView";
+import { SettingsView } from "./components/SettingsView";
 const TallyAccountingHub = lazy(() =>
   import("./modules/india_gst/TallyAccountingHub").then((m) => ({ default: m.TallyAccountingHub }))
 );
@@ -97,7 +76,13 @@ const defaultSettings: Settings = {
 };
 
 export function AppContent() {
-  const [activeTab, setActiveTab] = useState<string>("pos");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("tab");
+      if (p) return p;
+    }
+    return "pos";
+  });
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [items, setItems] = useState<Item[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
@@ -106,7 +91,7 @@ export function AppContent() {
   const [authState, setAuthState] = useState<AuthState | null>(null);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);

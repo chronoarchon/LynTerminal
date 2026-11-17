@@ -405,3 +405,151 @@ fn test_database_indexes_performance_and_query_plans() {
         .unwrap_or_default();
     assert!(exp_plan.contains("USING INDEX idx_expenses_date"));
 }
+
+#[test]
+fn test_multi_bank_account_transfer_isolation() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let conn = db.conn.lock().expect("Failed to lock DB connection");
+
+    // Initialize with Cash = $1000, Bank = $1500
+    conn.execute(
+        "UPDATE settings SET opening_cash = 1000.0, opening_bank = 1500.0 WHERE id = 1",
+        [],
+    )
+    .expect("Setup settings");
+
+    // Configure primary bank account ($1000) and insert secondary bank account ($500)
+    conn.execute(
+        "UPDATE bank_accounts SET current_balance = 1000.0, is_primary = 1 WHERE id = 'BANK-PRIMARY'",
+        [],
+    )
+    .expect("Update primary account");
+
+    conn.execute(
+        "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+         VALUES ('BANK-SECONDARY', 'Reserve Savings Account', 'Wells Fargo', '0002', 500.0, 0, '2026-11-17')",
+        [],
+    )
+    .expect("Insert secondary account");
+
+    // Transfer $200 from Cash Drawer specifically into BANK-SECONDARY
+    let ok = transfer_cash_bank_internal(
+        &conn,
+        "CASH_TO_BANK",
+        "BANK-SECONDARY",
+        200.0,
+        "Reserve funding",
+    )
+    .expect("Transfer to secondary account must succeed");
+    assert!(ok);
+
+    // Verify secondary account balance increased to 700.0
+    let bal_sec: f64 = conn
+        .query_row(
+            "SELECT current_balance FROM bank_accounts WHERE id = 'BANK-SECONDARY'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(bal_sec, 700.0);
+
+    // CRITICAL: Verify primary account was NOT touched (must remain 1000.0, NOT 1200.0)
+    let bal_pri: f64 = conn
+        .query_row(
+            "SELECT current_balance FROM bank_accounts WHERE id = 'BANK-PRIMARY'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(bal_pri, 1000.0);
+
+    // Now withdraw $150 from BANK-SECONDARY to Cash Drawer
+    let ok2 = transfer_cash_bank_internal(
+        &conn,
+        "BANK_TO_CASH",
+        "BANK-SECONDARY",
+        150.0,
+        "Withdraw reserve to float",
+    )
+    .expect("Withdrawal must succeed");
+    assert!(ok2);
+
+    let bal_sec2: f64 = conn
+        .query_row(
+            "SELECT current_balance FROM bank_accounts WHERE id = 'BANK-SECONDARY'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(bal_sec2, 550.0);
+
+    // Primary account must STILL be completely untouched at 1000.0
+    let bal_pri2: f64 = conn
+        .query_row(
+            "SELECT current_balance FROM bank_accounts WHERE id = 'BANK-PRIMARY'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(bal_pri2, 1000.0);
+}
+
+#[test]
+fn test_deposit_validation_and_bank_capital_mode() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let conn = db.conn.lock().expect("Failed to lock DB connection");
+
+    // 1. Negative amount must be rejected
+    let bad_dep = DepositPayload {
+        destination: "CASH".to_string(),
+        amount: -50.0,
+        source: "Invalid".to_string(),
+        reference: "BAD-01".to_string(),
+        date: "2026-11-17".to_string(),
+        bank_account_id: None,
+        notes: "Should fail".to_string(),
+    };
+    assert!(record_deposit_internal(&conn, &bad_dep).is_err());
+
+    // 2. Zero amount must be rejected
+    let zero_dep = DepositPayload {
+        destination: "BANK".to_string(),
+        amount: 0.0,
+        source: "Zero".to_string(),
+        reference: "ZERO-01".to_string(),
+        date: "2026-11-17".to_string(),
+        bank_account_id: None,
+        notes: "Should fail".to_string(),
+    };
+    assert!(record_deposit_internal(&conn, &zero_dep).is_err());
+
+    // 3. Capital deposit when capital_mode = 'BANK'
+    conn.execute(
+        "UPDATE settings SET capital_mode = 'BANK', capital_cash = 0.0, capital_bank = 0.0 WHERE id = 1",
+        [],
+    )
+    .unwrap();
+
+    let cap_dep = DepositPayload {
+        destination: "CAPITAL".to_string(),
+        amount: 750.0,
+        source: "Bank Equity Wire".to_string(),
+        reference: "WIRE-750".to_string(),
+        date: "2026-11-17".to_string(),
+        bank_account_id: None,
+        notes: "Capital injection via wire".to_string(),
+    };
+    let (cash_bal, bank_bal) = record_deposit_internal(&conn, &cap_dep).expect("Deposit succeeds");
+    assert_eq!(cash_bal, 0.0);
+    assert_eq!(bank_bal, 750.0);
+
+    let (cap_cash, cap_bank): (f64, f64) = conn
+        .query_row(
+            "SELECT capital_cash, capital_bank FROM settings WHERE id = 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(cap_cash, 0.0);
+    assert_eq!(cap_bank, 750.0);
+}

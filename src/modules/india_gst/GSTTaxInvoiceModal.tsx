@@ -10,8 +10,8 @@ import {
   Building2,
   ShieldCheck,
 } from "lucide-react";
-import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
+import { safeHtml2Canvas } from "../../utils/safeHtml2Canvas";
 import type { CompleteGstInvoice, GstSettings } from "./gstTypes";
 import type { Settings } from "../../types";
 import { amountToIndianWords, getStateByCode } from "./gstUtils";
@@ -53,7 +53,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
       setIsExporting(true);
 
       const element = docRef.current;
-      const canvas = await html2canvas(element, {
+      const canvas = await safeHtml2Canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
@@ -82,12 +82,31 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
         });
 
         const pageWidth = 210;
+        const pageHeight = 297;
         const margin = 8;
         const printWidth = pageWidth - margin * 2;
         const printHeight = (canvas.height * printWidth) / canvas.width;
         const imgData = canvas.toDataURL("image/png");
 
-        pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
+        if (printHeight <= pageHeight - margin * 2) {
+          pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
+        } else {
+          // Multi-page slicing for GST bills with many line items
+          let heightLeft = printHeight;
+          let position = margin;
+          let page = 1;
+          const usableHeight = pageHeight - margin * 2;
+
+          while (heightLeft > 0) {
+            if (page > 1) {
+              pdf.addPage();
+            }
+            pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
+            heightLeft -= usableHeight;
+            position -= usableHeight;
+            page++;
+          }
+        }
       }
 
       // Persist client bytes through backend storage
