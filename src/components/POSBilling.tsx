@@ -1048,35 +1048,154 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     }`}
                   >
                     <Building className="w-3.5 h-3.5" />
-                    <span className="text-[11px] truncate">
+                    <span className="text-[10.5px] font-semibold truncate max-w-full px-0.5" title={settings.custom_payment_2_name || "Custom 2"}>
                       {settings.custom_payment_2_name || "Custom 2"}
                     </span>
                   </button>
                 )}
-
-                {/* Credit */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod("CREDIT");
-                    setIsSplitPayment(false);
-                    if (!selectedPartyId) {
-                      const customers = parties.filter((p) => p.party_type === "CUSTOMER");
-                      if (customers.length === 0) {
-                        setShowAddCustomerModal(true);
-                      }
-                    }
-                  }}
-                  className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
-                    paymentMethod === "CREDIT" && !isSplitPayment
-                      ? "bg-[#FF9500] text-white border-[#FF9500] font-semibold shadow-xs"
-                      : "bg-[#FFF9F2] text-[#FF9500] border-[#FF9500]/30 hover:bg-[#FFF3E6]"
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-bold truncate">Credit</span>
-                </button>
               </div>
+
+              {/* Cash Quick Tenders */}
+              {paymentMethod === "CASH" && !isSplitPayment && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      placeholder="Tendered cash..."
+                      value={tenderedAmount}
+                      onChange={(e) => setTenderedAmount(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-[#0071E3]"
+                    />
+                    <div className="flex gap-1 shrink-0">
+                      {(currency === "₹" || currency.includes("₹")
+                        ? [50, 100, 200, 500]
+                        : [10, 20, 50, 100]
+                      ).map((denom) => (
+                        <button
+                          key={denom}
+                          type="button"
+                          onClick={() => setTenderedAmount(denom.toString())}
+                          className="px-2 py-1 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBED] text-[10px] font-mono font-semibold text-[#1D1D1F] transition apple-press cursor-pointer"
+                        >
+                          {currency}{denom}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setTenderedAmount(totalAmount.toFixed(2))}
+                        className="px-2 py-1 rounded-lg bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[10px] font-semibold text-[#0071E3] transition apple-press cursor-pointer"
+                      >
+                        Exact
+                      </button>
+                    </div>
+                  </div>
+
+                  {tenderedAmount && parseFloat(tenderedAmount) > 0 && (
+                    <div className="flex justify-between items-center px-3 py-1.5 rounded-xl bg-[#34C759]/10 text-[#34C759] text-xs font-semibold">
+                      <span>Change Due:</span>
+                      <span className="font-mono text-sm font-bold">
+                        {currency}
+                        {changeDue.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reference Number for Card / Custom Methods */}
+              {(paymentMethod === "CARD" || paymentMethod === "CUSTOM_1" || paymentMethod === "CUSTOM_2") && !isSplitPayment && (
+                <input
+                  type="text"
+                  placeholder="Card auth code or transaction ref (optional)..."
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                />
+              )}
+
+              {/* Secondary Options: Split Tender, Credit & Receipt Preview */}
+              <div className="flex items-center justify-between pt-1.5 gap-2 border-t border-black/[0.04]">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSplitPayment(!isSplitPayment);
+                      if (!isSplitPayment && paymentMethod === "CREDIT") {
+                        setPaymentMethod("CASH");
+                      }
+                    }}
+                    className={`text-[11px] font-medium transition cursor-pointer py-1 px-1.5 rounded-lg ${
+                      isSplitPayment ? "text-[#0071E3] font-semibold bg-[#0071E3]/10" : "text-[#86868B] hover:text-[#1D1D1F]"
+                    }`}
+                  >
+                    {isSplitPayment ? "✓ Split Tender" : "+ Split Tender"}
+                  </button>
+
+                  <span className="text-black/15">|</span>
+
+                  {/* Credit Button beside Split Tender */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (paymentMethod === "CREDIT") {
+                        setPaymentMethod("CASH");
+                      } else {
+                        setPaymentMethod("CREDIT");
+                        setIsSplitPayment(false);
+                        if (!selectedPartyId) {
+                          const customers = parties.filter((p) => p.party_type === "CUSTOMER");
+                          if (customers.length === 0) {
+                            setShowAddCustomerModal(true);
+                          }
+                        }
+                      }
+                    }}
+                    className={`py-1 px-2.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition apple-press cursor-pointer border ${
+                      paymentMethod === "CREDIT" && !isSplitPayment
+                        ? "bg-[#FF9500] text-white border-[#FF9500] shadow-xs"
+                        : "bg-[#FFF9F2] text-[#FF9500] border-[#FF9500]/30 hover:bg-[#FFF3E6]"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Credit</span>
+                  </button>
+                </div>
+
+                <label className="flex items-center gap-1.5 text-[11px] text-[#86868B] hover:text-[#1D1D1F] cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={previewAfterSale}
+                    onChange={(e) => handleTogglePreview(e.target.checked)}
+                    className="rounded text-[#0071E3] focus:ring-0 cursor-pointer"
+                  />
+                  <span>Show receipt</span>
+                </label>
+              </div>
+
+              {isSplitPayment && (
+                <div className="p-2.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-[#6E6E73]">Cash:</span>
+                    <input
+                      type="number"
+                      placeholder={`${currency} Cash`}
+                      value={splitCash}
+                      onChange={(e) => setSplitCash(e.target.value)}
+                      className="w-24 px-2 py-1 rounded-lg border border-black/[0.08] bg-white text-right font-mono"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-[#6E6E73]">Card / Wallet:</span>
+                    <input
+                      type="number"
+                      placeholder={`${currency} Card`}
+                      value={splitCard}
+                      onChange={(e) => setSplitCard(e.target.value)}
+                      className="w-24 px-2 py-1 rounded-lg border border-black/[0.08] bg-white text-right font-mono"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* CREDIT BILLING PANEL */}
               {paymentMethod === "CREDIT" && !isSplitPayment && (
@@ -1259,112 +1378,6 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       })()}
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Cash Quick Tenders */}
-              {paymentMethod === "CASH" && !isSplitPayment && (
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      placeholder="Tendered cash..."
-                      value={tenderedAmount}
-                      onChange={(e) => setTenderedAmount(e.target.value)}
-                      className="flex-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-[#0071E3]"
-                    />
-                    <div className="flex gap-1 shrink-0">
-                      {(currency === "₹" || currency.includes("₹")
-                        ? [50, 100, 200, 500]
-                        : [10, 20, 50, 100]
-                      ).map((denom) => (
-                        <button
-                          key={denom}
-                          type="button"
-                          onClick={() => setTenderedAmount(denom.toString())}
-                          className="px-2 py-1 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBED] text-[10px] font-mono font-semibold text-[#1D1D1F] transition apple-press cursor-pointer"
-                        >
-                          {currency}{denom}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setTenderedAmount(totalAmount.toFixed(2))}
-                        className="px-2 py-1 rounded-lg bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[10px] font-semibold text-[#0071E3] transition apple-press cursor-pointer"
-                      >
-                        Exact
-                      </button>
-                    </div>
-                  </div>
-
-                  {tenderedAmount && parseFloat(tenderedAmount) > 0 && (
-                    <div className="flex justify-between items-center px-3 py-1.5 rounded-xl bg-[#34C759]/10 text-[#34C759] text-xs font-semibold">
-                      <span>Change Due:</span>
-                      <span className="font-mono text-sm font-bold">
-                        {currency}
-                        {changeDue.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Reference Number for Card / Custom Methods */}
-              {(paymentMethod === "CARD" || paymentMethod === "CUSTOM_1" || paymentMethod === "CUSTOM_2") && !isSplitPayment && (
-                <input
-                  type="text"
-                  placeholder="Card auth code or transaction ref (optional)..."
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
-                />
-              )}
-
-              {/* Receipt Preview Toggle */}
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsSplitPayment(!isSplitPayment)}
-                  className={`text-[11px] font-medium transition ${
-                    isSplitPayment ? "text-[#0071E3] font-semibold" : "text-[#86868B] hover:text-[#1D1D1F]"
-                  }`}
-                >
-                  {isSplitPayment ? "✓ Split Tender Active" : "+ Split Tender"}
-                </button>
-
-                <label className="flex items-center gap-1.5 text-[11px] text-[#86868B] hover:text-[#1D1D1F] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={previewAfterSale}
-                    onChange={(e) => handleTogglePreview(e.target.checked)}
-                    className="rounded text-[#0071E3] focus:ring-0"
-                  />
-                  <span>Show receipt</span>
-                </label>
-              </div>
-
-              {isSplitPayment && (
-                <div className="p-2.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-[#6E6E73]">Cash:</span>
-                    <input
-                      type="number"
-                      placeholder={`${currency} Cash`}
-                      value={splitCash}
-                      onChange={(e) => setSplitCash(e.target.value)}
-                      className="w-24 px-2 py-1 rounded-lg border border-black/[0.08] bg-white text-right font-mono"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-[#6E6E73]">Card / Wallet:</span>
-                    <input
-                      type="number"
-                      placeholder={`${currency} Card`}
-                      value={splitCard}
-                      onChange={(e) => setSplitCard(e.target.value)}
-                      className="w-24 px-2 py-1 rounded-lg border border-black/[0.08] bg-white text-right font-mono"
-                    />
-                  </div>
                 </div>
               )}
             </div>
