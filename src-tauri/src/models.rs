@@ -695,4 +695,15 @@ pub struct SetupPayload {
     pub currency_code: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DepositPayload {
+    pub destination: String, // "CASH" | "BANK" | "CAPITAL"
+    pub amount: f64,
+    pub source: String,
+    pub reference: String,
+    pub date: String,
+    pub bank_account_id: Option<String>,
+    pub notes: String,
+}
+
 

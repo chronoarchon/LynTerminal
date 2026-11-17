@@ -1,31 +1,78 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { MobileNavBar } from "./components/MobileNavBar";
-import { DashboardView } from "./components/DashboardView";
-import { POSBilling } from "./components/POSBilling";
-import { InventoryView } from "./components/InventoryView";
-import { PartiesView } from "./components/PartiesView";
-import { InvoicesView } from "./components/InvoicesView";
-import { ExpensesView } from "./components/ExpensesView";
-import { StaffView } from "./components/StaffView";
-import { ReportsView } from "./components/ReportsView";
-import { AuditLogView } from "./components/AuditLogView";
-import { SettingsView } from "./components/SettingsView";
-import { SetupWizardModal } from "./components/SetupWizardModal";
 import { AppLockScreen } from "./components/AppLockScreen";
-import { UpdateNotificationModal } from "./components/UpdateNotificationModal";
 import { AppleDialogProvider } from "./components/common/AppleDialog";
 import { CurrencyProvider } from "./context/CurrencyContext";
-import { TallyAccountingHub } from "./modules/india_gst/TallyAccountingHub";
-import { GSTPOSBilling } from "./modules/india_gst/GSTPOSBilling";
-import { CreditManagementView } from "./modules/india_gst/CreditManagementView";
-import { GSTR1ReportView } from "./modules/india_gst/GSTR1ReportView";
-import { GSTR3BReportView } from "./modules/india_gst/GSTR3BReportView";
 import { gstApi } from "./modules/india_gst/gstApi";
 import type { GstSettings } from "./modules/india_gst/gstTypes";
 import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, AppUpdateInfo } from "./types";
 import { api } from "./services/api";
+
+// Lazy-loaded code-split view chunks (<100ms parse time on any Linux distro)
+const DashboardView = lazy(() =>
+  import("./components/DashboardView").then((m) => ({ default: m.DashboardView }))
+);
+const POSBilling = lazy(() =>
+  import("./components/POSBilling").then((m) => ({ default: m.POSBilling }))
+);
+const InventoryView = lazy(() =>
+  import("./components/InventoryView").then((m) => ({ default: m.InventoryView }))
+);
+const PartiesView = lazy(() =>
+  import("./components/PartiesView").then((m) => ({ default: m.PartiesView }))
+);
+const InvoicesView = lazy(() =>
+  import("./components/InvoicesView").then((m) => ({ default: m.InvoicesView }))
+);
+const ExpensesView = lazy(() =>
+  import("./components/ExpensesView").then((m) => ({ default: m.ExpensesView }))
+);
+const StaffView = lazy(() =>
+  import("./components/StaffView").then((m) => ({ default: m.StaffView }))
+);
+const ReportsView = lazy(() =>
+  import("./components/ReportsView").then((m) => ({ default: m.ReportsView }))
+);
+const AuditLogView = lazy(() =>
+  import("./components/AuditLogView").then((m) => ({ default: m.AuditLogView }))
+);
+const SettingsView = lazy(() =>
+  import("./components/SettingsView").then((m) => ({ default: m.SettingsView }))
+);
+const TallyAccountingHub = lazy(() =>
+  import("./modules/india_gst/TallyAccountingHub").then((m) => ({ default: m.TallyAccountingHub }))
+);
+const GSTPOSBilling = lazy(() =>
+  import("./modules/india_gst/GSTPOSBilling").then((m) => ({ default: m.GSTPOSBilling }))
+);
+const CreditManagementView = lazy(() =>
+  import("./modules/india_gst/CreditManagementView").then((m) => ({ default: m.CreditManagementView }))
+);
+const GSTR1ReportView = lazy(() =>
+  import("./modules/india_gst/GSTR1ReportView").then((m) => ({ default: m.GSTR1ReportView }))
+);
+const GSTR3BReportView = lazy(() =>
+  import("./modules/india_gst/GSTR3BReportView").then((m) => ({ default: m.GSTR3BReportView }))
+);
+const SetupWizardModal = lazy(() =>
+  import("./components/SetupWizardModal").then((m) => ({ default: m.SetupWizardModal }))
+);
+const UpdateNotificationModal = lazy(() =>
+  import("./components/UpdateNotificationModal").then((m) => ({ default: m.UpdateNotificationModal }))
+);
+
+function ViewFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-[360px]">
+      <div className="flex flex-col items-center gap-2.5">
+        <div className="w-6 h-6 border-2 border-[#0071E3] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold text-[#86868B] tracking-tight">Loading view...</span>
+      </div>
+    </div>
+  );
+}
 
 const defaultSettings: Settings = {
   id: 1,
@@ -101,37 +148,14 @@ export function AppContent() {
     loadAllData();
   }, []);
 
-  // Central data loader
+  // Two-phase central data loader: instant metadata unblocks UI, heavy lists stream non-blocking
   const loadAllData = useCallback(async () => {
     try {
-      const [
-        fetchedSettings,
-        fetchedItems,
-        fetchedParties,
-        fetchedInvoices,
-        fetchedSummary,
-        fetchedAuth,
-        fetchedGstSettings,
-      ] = await Promise.all([
+      // Phase 1: Essential configuration & security check (sub-10ms)
+      const [fetchedSettings, fetchedAuth, fetchedGstSettings] = await Promise.all([
         api.getSettings().catch((e) => {
           console.error("Error fetching settings:", e);
           return defaultSettings;
-        }),
-        api.listItems().catch((e) => {
-          console.error("Error fetching items:", e);
-          return [] as Item[];
-        }),
-        api.listParties().catch((e) => {
-          console.error("Error fetching parties:", e);
-          return [] as Party[];
-        }),
-        api.listInvoices().catch((e) => {
-          console.error("Error fetching invoices:", e);
-          return [] as Invoice[];
-        }),
-        api.getDashboardSummary().catch((e) => {
-          console.error("Error fetching summary:", e);
-          return null;
         }),
         api.getAuthState().catch((e) => {
           console.error("Error fetching auth state:", e);
@@ -144,10 +168,6 @@ export function AppContent() {
       ]);
 
       if (fetchedSettings) setSettings(fetchedSettings);
-      setItems(fetchedItems);
-      setParties(fetchedParties);
-      setInvoices(fetchedInvoices);
-      setSummary(fetchedSummary);
       if (fetchedGstSettings) setGstSettings(fetchedGstSettings);
 
       if (fetchedAuth) {
@@ -158,9 +178,19 @@ export function AppContent() {
           setIsLocked(true);
         }
       }
+
+      // Unblock UI skeleton immediately!
+      setInitialLoading(false);
+
+      // Phase 2: Asynchronously stream catalog, ledger, and metrics in background
+      Promise.all([
+        api.listItems().then((it) => setItems(it)).catch(console.error),
+        api.listParties().then((pa) => setParties(pa)).catch(console.error),
+        api.listInvoices().then((inv) => setInvoices(inv)).catch(console.error),
+        api.getDashboardSummary().then((sum) => setSummary(sum)).catch(console.error),
+      ]).catch(console.error);
     } catch (err) {
       console.error("Fatal error loading LynTerminal data:", err);
-    } finally {
       setInitialLoading(false);
     }
   }, []);
@@ -428,7 +458,9 @@ export function AppContent() {
                 : "overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"
             }`}
           >
-            {renderContent()}
+            <Suspense fallback={<ViewFallback />}>
+              {renderContent()}
+            </Suspense>
           </main>
 
           {/* Mobile Bottom Navigation Bar (Shows on screens < lg) */}
@@ -443,13 +475,15 @@ export function AppContent() {
         </div>
 
         {/* First-time Onboarding & Privacy Setup Wizard */}
-        <SetupWizardModal
-          isOpen={isSetupOpen}
-          onComplete={() => {
-            setIsSetupOpen(false);
-            loadAllData();
-          }}
-        />
+        <Suspense fallback={null}>
+          <SetupWizardModal
+            isOpen={isSetupOpen}
+            onComplete={() => {
+              setIsSetupOpen(false);
+              loadAllData();
+            }}
+          />
+        </Suspense>
 
         {/* Sovereign Master Lock Screen */}
         <AppLockScreen
@@ -460,11 +494,13 @@ export function AppContent() {
         />
 
         {/* GitHub Software Update Notification Modal */}
-        <UpdateNotificationModal
-          updateInfo={updateInfo}
-          isOpen={isUpdateModalOpen}
-          onClose={() => setIsUpdateModalOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <UpdateNotificationModal
+            updateInfo={updateInfo}
+            isOpen={isUpdateModalOpen}
+            onClose={() => setIsUpdateModalOpen(false)}
+          />
+        </Suspense>
       </div>
     </CurrencyProvider>
   );

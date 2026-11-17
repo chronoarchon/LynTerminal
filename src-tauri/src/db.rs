@@ -204,6 +204,10 @@ impl DatabaseManager {
             CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(invoice_date);
             CREATE INDEX IF NOT EXISTS idx_invoices_type ON invoices(invoice_type);
             CREATE INDEX IF NOT EXISTS idx_invoices_party ON invoices(party_id);
+            CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON invoices(created_at);
+            CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+            CREATE INDEX IF NOT EXISTS idx_invoices_status_type_date ON invoices(status, invoice_type, invoice_date);
+            CREATE INDEX IF NOT EXISTS idx_invoices_party_date ON invoices(party_id, invoice_date);
 
             CREATE TABLE IF NOT EXISTS invoice_items (
                 id TEXT PRIMARY KEY,
@@ -239,6 +243,8 @@ impl DatabaseManager {
 
             CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
             CREATE INDEX IF NOT EXISTS idx_payments_party ON payments(party_id);
+            CREATE INDEX IF NOT EXISTS idx_payments_type ON payments(payment_type);
+            CREATE INDEX IF NOT EXISTS idx_payments_party_date ON payments(party_id, payment_date);
 
             CREATE TABLE IF NOT EXISTS expenses (
                 id TEXT PRIMARY KEY,
@@ -252,6 +258,7 @@ impl DatabaseManager {
 
             CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
             CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+            CREATE INDEX IF NOT EXISTS idx_expenses_date_cat ON expenses(expense_date, category);
 
             CREATE TABLE IF NOT EXISTS stock_movements (
                 id TEXT PRIMARY KEY,

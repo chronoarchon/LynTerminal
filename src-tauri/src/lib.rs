@@ -6,6 +6,7 @@ pub mod gst;
 use db::DatabaseManager;
 use commands::AppState;
 use std::sync::Mutex;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,8 +15,21 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            // Safety fallback: Ensure window is revealed even if webview render or IPC delays
+            if let Some(main_win) = app.get_webview_window("main") {
+                let win_clone = main_win.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    let _ = win_clone.show();
+                });
+            }
+            Ok(())
+        })
         .manage(state)
         .invoke_handler(tauri::generate_handler![
+            commands::show_main_window,
+            commands::record_deposit,
             commands::get_settings,
             commands::save_settings,
             commands::list_items,

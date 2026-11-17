@@ -4530,6 +4530,33 @@ pub fn list_bank_accounts(
     for r in rows.filter_map(Result::ok) {
         list.push(r);
     }
+    if list.is_empty() {
+        let (_, cash_in_bank) = calculate_liquidity_internal(&conn).unwrap_or((0.0, 0.0));
+        let now = Local::now().to_rfc3339();
+        let default_acc = BankAccount {
+            id: "BANK-PRIMARY".to_string(),
+            account_name: "Primary Operating Account".to_string(),
+            bank_name: "Commercial Bank".to_string(),
+            account_number: "0001".to_string(),
+            current_balance: cash_in_bank,
+            is_primary: true,
+            created_at: now.clone(),
+        };
+        let _ = conn.execute(
+            "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                default_acc.id,
+                default_acc.account_name,
+                default_acc.bank_name,
+                default_acc.account_number,
+                default_acc.current_balance,
+                1,
+                now,
+            ],
+        );
+        list.push(default_acc);
+    }
     Ok(list)
 }
 
@@ -4579,6 +4606,94 @@ pub fn save_bank_account(
     Ok(account)
 }
 
+pub fn transfer_cash_bank_internal(
+    conn: &rusqlite::Connection,
+    direction: &str,
+    bank_account_id: &str,
+    amount: f64,
+    notes: &str,
+) -> Result<bool, String> {
+    if amount <= 0.0 {
+        return Err("Transfer amount must be greater than zero".to_string());
+    }
+
+    let target_acct = if bank_account_id.trim().is_empty() {
+        "BANK-PRIMARY"
+    } else {
+        bank_account_id.trim()
+    };
+
+    if direction == "CASH_TO_BANK" {
+        // Deposit physical cash drawer to bank account
+        let updated = conn.execute(
+            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2 OR is_primary = 1",
+            params![amount, target_acct],
+        )
+        .map_err(|e| e.to_string())?;
+
+        if updated == 0 {
+            let now = Local::now().to_rfc3339();
+            let _ = conn.execute(
+                "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+                 VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', ?1, 1, ?2)",
+                params![amount, now],
+            );
+        }
+
+        let tx_id = Uuid::new_v4().to_string();
+        let now = Local::now().to_rfc3339();
+        let _ = conn.execute(
+            "INSERT INTO cash_bank_transfers (id, direction, bank_account_id, amount, notes, timestamp)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![tx_id, direction, target_acct, amount, notes, now],
+        );
+
+        DatabaseManager::log_audit(
+            conn,
+            "DEPOSIT",
+            "BANK_ACCOUNT",
+            target_acct,
+            &format!("Deposited ${:.2} from Cash Drawer to Bank: {}", amount, notes),
+        )
+        .ok();
+    } else {
+        // Withdraw bank cash to register drawer float
+        let updated = conn.execute(
+            "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2 OR is_primary = 1",
+            params![amount, target_acct],
+        )
+        .map_err(|e| e.to_string())?;
+
+        if updated == 0 {
+            let now = Local::now().to_rfc3339();
+            let _ = conn.execute(
+                "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+                 VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', ?1, 1, ?2)",
+                params![-amount, now],
+            );
+        }
+
+        let tx_id = Uuid::new_v4().to_string();
+        let now = Local::now().to_rfc3339();
+        let _ = conn.execute(
+            "INSERT INTO cash_bank_transfers (id, direction, bank_account_id, amount, notes, timestamp)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![tx_id, direction, target_acct, amount, notes, now],
+        );
+
+        DatabaseManager::log_audit(
+            conn,
+            "WITHDRAWAL",
+            "BANK_ACCOUNT",
+            target_acct,
+            &format!("Withdrew ${:.2} from Bank to Cash Drawer: {}", amount, notes),
+        )
+        .ok();
+    }
+
+    Ok(true)
+}
+
 #[tauri::command]
 pub fn transfer_cash_bank(
     direction: String, // "CASH_TO_BANK" | "BANK_TO_CASH"
@@ -4589,57 +4704,130 @@ pub fn transfer_cash_bank(
 ) -> Result<bool, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    transfer_cash_bank_internal(&conn, &direction, &bank_account_id, amount, &notes)
+}
 
-    if direction == "CASH_TO_BANK" {
-        // Deposit physical cash drawer to bank account
+pub fn record_deposit_internal(
+    conn: &rusqlite::Connection,
+    payload: &DepositPayload,
+) -> Result<(f64, f64), String> {
+    if payload.amount <= 0.0 {
+        return Err("Deposit amount must be greater than zero".to_string());
+    }
+
+    let upper_dest = payload.destination.to_uppercase();
+    let now = if payload.date.is_empty() {
+        Local::now().to_rfc3339()
+    } else {
+        payload.date.clone()
+    };
+    let ref_str = if payload.reference.trim().is_empty() {
+        format!("DEP-{}", &Uuid::new_v4().to_string()[..8].to_uppercase())
+    } else {
+        payload.reference.trim().to_string()
+    };
+
+    if upper_dest == "CASH" {
+        // Direct cash drawer deposit / float topup
         conn.execute(
-            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
-            params![amount, bank_account_id],
+            "UPDATE settings SET capital_cash = capital_cash + ?1 WHERE id = 1",
+            params![payload.amount],
         )
         .map_err(|e| e.to_string())?;
 
-        let tx_id = Uuid::new_v4().to_string();
-        let now = Local::now().to_rfc3339();
-        let _ = conn.execute(
-            "INSERT INTO cash_bank_transfers (id, direction, bank_account_id, amount, notes, timestamp)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![tx_id, direction, bank_account_id, amount, notes, now],
-        );
+        DatabaseManager::log_audit(
+            conn,
+            "DEPOSIT",
+            "CASH_DRAWER",
+            &ref_str,
+            &format!(
+                "Deposited {:.2} to Cash Drawer. Source: {}. Notes: {}",
+                payload.amount, payload.source, payload.notes
+            ),
+        )
+        .ok();
+    } else if upper_dest == "BANK" {
+        // Direct bank deposit
+        conn.execute(
+            "UPDATE settings SET capital_bank = capital_bank + ?1 WHERE id = 1",
+            params![payload.amount],
+        )
+        .map_err(|e| e.to_string())?;
+
+        let bank_acc_id = if let Some(ref bid) = payload.bank_account_id {
+            if !bid.trim().is_empty() {
+                bid.trim().to_string()
+            } else {
+                "BANK-PRIMARY".to_string()
+            }
+        } else {
+            "BANK-PRIMARY".to_string()
+        };
+
+        let updated = conn.execute(
+            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2 OR is_primary = 1",
+            params![payload.amount, bank_acc_id],
+        )
+        .unwrap_or(0);
+
+        if updated == 0 {
+            let (_, bank_bal) = calculate_liquidity_internal(conn).unwrap_or((0.0, 0.0));
+            let _ = conn.execute(
+                "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+                 VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', ?1, 1, ?2)",
+                params![bank_bal, now],
+            );
+        }
 
         DatabaseManager::log_audit(
-            &conn,
+            conn,
             "DEPOSIT",
             "BANK_ACCOUNT",
-            &bank_account_id,
-            &format!("Deposited ${:.2} from Cash Drawer to Bank: {}", amount, notes),
+            &ref_str,
+            &format!(
+                "Deposited {:.2} to Bank Account. Source: {}. Notes: {}",
+                payload.amount, payload.source, payload.notes
+            ),
         )
         .ok();
     } else {
-        // Withdraw bank cash to register drawer float
+        // Owner Capital Equity Injection
         conn.execute(
-            "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2",
-            params![amount, bank_account_id],
+            "UPDATE settings SET capital_cash = capital_cash + ?1 WHERE id = 1",
+            params![payload.amount],
         )
         .map_err(|e| e.to_string())?;
 
-        let tx_id = Uuid::new_v4().to_string();
-        let now = Local::now().to_rfc3339();
-        let _ = conn.execute(
-            "INSERT INTO cash_bank_transfers (id, direction, bank_account_id, amount, notes, timestamp)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![tx_id, direction, bank_account_id, amount, notes, now],
-        );
-
         DatabaseManager::log_audit(
-            &conn,
-            "WITHDRAWAL",
-            "BANK_ACCOUNT",
-            &bank_account_id,
-            &format!("Withdrew ${:.2} from Bank to Cash Drawer: {}", amount, notes),
+            conn,
+            "CAPITAL_INJECTION",
+            "OWNER_CAPITAL",
+            &ref_str,
+            &format!(
+                "Injected {:.2} Owner Capital. Source: {}. Notes: {}",
+                payload.amount, payload.source, payload.notes
+            ),
         )
         .ok();
     }
 
+    calculate_liquidity_internal(conn)
+}
+
+#[tauri::command]
+pub fn record_deposit(
+    payload: DepositPayload,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<(f64, f64), String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    record_deposit_internal(&conn, &payload)
+}
+
+#[tauri::command]
+pub fn show_main_window(window: tauri::Window) -> Result<bool, String> {
+    let _ = window.show();
+    let _ = window.set_focus();
     Ok(true)
 }
 

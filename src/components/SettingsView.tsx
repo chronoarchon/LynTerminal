@@ -28,6 +28,7 @@ import { UpdateNotificationModal } from "./UpdateNotificationModal";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
+import { ManageMoneyModal } from "./ManageMoneyModal";
 
 interface SettingsViewProps {
   settings: Settings | null;
@@ -169,6 +170,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   useEffect(() => {
     api.getAuthState().then(setAuthState).catch(() => {});
+    api.getDashboardSummary().then(setSummary).catch(() => {});
     gstApi
       .getGstSettings()
       .then((res) => {
@@ -178,6 +180,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       })
       .catch(console.error);
   }, []);
+
+  // Manage Money Modal State
+  const [isManageMoneyOpen, setIsManageMoneyOpen] = useState(false);
+  const [summary, setSummary] = useState<any>(null);
 
   // Currency Switch State
   const [pendingCurrency, setPendingCurrency] = useState<{ symbol: string; code: string; name: string } | null>(null);
@@ -1053,18 +1059,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* SECTION: Opening Balance & Capital Allocation (Cash vs. Bank) */}
+      {/* SECTION: Capital & Liquidity Management */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-6">
-        <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
-          <div className="flex items-center gap-2">
-            <Coins className="w-4 h-4 text-[#0071E3]" />
-            <h2 className="text-sm font-semibold text-[#1D1D1F]">
-              Opening Balance & Owner Capital Allocation
-            </h2>
+        <div className="flex flex-wrap items-center justify-between border-b border-black/[0.06] pb-3 gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center shrink-0">
+              <Coins className="w-4 h-4 stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-[#1D1D1F]">
+                Capital & Liquidity Management
+              </h2>
+              <p className="text-[11px] text-[#86868B]">
+                Opening register float, owner equity allocation & instant money movement
+              </p>
+            </div>
           </div>
-          <span className="text-[11px] font-medium text-[#86868B]">
-            Separated Cash & Bank Accounting
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsManageMoneyOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            >
+              <Coins className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Manage Money</span>
+            </button>
+            <span className="text-[11px] font-medium text-[#86868B] hidden sm:inline">
+              Separated Cash & Bank Accounting
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1833,6 +1856,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         updateInfo={availableUpdate}
         isOpen={updateModalOpen}
         onClose={() => setUpdateModalOpen(false)}
+      />
+
+      {/* MANAGE MONEY MODAL */}
+      <ManageMoneyModal
+        isOpen={isManageMoneyOpen}
+        onClose={() => setIsManageMoneyOpen(false)}
+        settings={formData}
+        summary={summary}
+        onSuccess={() => {
+          api.getSettings().then(onSettingsUpdated).catch(() => {});
+          api.getDashboardSummary().then(setSummary).catch(() => {});
+        }}
       />
     </div>
   );

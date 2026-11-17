@@ -1,9 +1,10 @@
 use lynterminal_lib::commands::{
-    create_invoice_internal, create_pre_update_backup_internal, get_settings_internal,
-    parse_payment_liquidity, record_payment_internal,
+    calculate_liquidity_internal, create_invoice_internal, create_pre_update_backup_internal,
+    get_settings_internal, parse_payment_liquidity, record_deposit_internal, record_payment_internal,
+    transfer_cash_bank_internal,
 };
 use lynterminal_lib::db::DatabaseManager;
-use lynterminal_lib::models::{InvoicePayload, Payment};
+use lynterminal_lib::models::{DepositPayload, InvoicePayload, Payment};
 use rusqlite::params;
 use uuid::Uuid;
 
@@ -257,4 +258,150 @@ fn test_liquidity_routing_cash_bank_credit_and_partial() {
         parse_payment_liquidity("Split ($25.00 Cash + $75.00 Card)", 100.0),
         (25.0, 75.0)
     );
+}
+
+#[test]
+fn test_deposit_money_cash_bank_capital() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let conn = db.conn.lock().expect("Failed to lock DB connection");
+
+    // 1. Initial zero balances
+    let (c0, b0) = calculate_liquidity_internal(&conn).expect("Liquidity calculation");
+    assert_eq!(c0, 0.0);
+    assert_eq!(b0, 0.0);
+
+    // 2. Deposit $500 to Cash Drawer
+    let dep_cash = DepositPayload {
+        destination: "CASH".to_string(),
+        amount: 500.0,
+        source: "Owner Investment".to_string(),
+        reference: "DEP-001".to_string(),
+        date: "2026-11-17".to_string(),
+        bank_account_id: None,
+        notes: "Starting cash drawer float".to_string(),
+    };
+    let (c1, b1) = record_deposit_internal(&conn, &dep_cash).expect("Deposit to cash must succeed");
+    assert_eq!(c1, 500.0);
+    assert_eq!(b1, 0.0);
+
+    // 3. Deposit $2000 to Bank Account
+    let dep_bank = DepositPayload {
+        destination: "BANK".to_string(),
+        amount: 2000.0,
+        source: "Bank Transfer Inflow".to_string(),
+        reference: "DEP-002".to_string(),
+        date: "2026-11-17".to_string(),
+        bank_account_id: None,
+        notes: "Direct capital deposit to bank".to_string(),
+    };
+    let (c2, b2) = record_deposit_internal(&conn, &dep_bank).expect("Deposit to bank must succeed");
+    assert_eq!(c2, 500.0);
+    assert_eq!(b2, 2000.0);
+
+    // 4. Deposit $1000 to Owner Capital
+    let dep_cap = DepositPayload {
+        destination: "CAPITAL".to_string(),
+        amount: 1000.0,
+        source: "Partner Equity".to_string(),
+        reference: "DEP-003".to_string(),
+        date: "2026-11-17".to_string(),
+        bank_account_id: None,
+        notes: "Equity addition".to_string(),
+    };
+    let (c3, b3) = record_deposit_internal(&conn, &dep_cap).expect("Deposit to capital must succeed");
+    assert_eq!(c3, 1500.0);
+    assert_eq!(b2, 2000.0);
+    assert_eq!(b3, 2000.0);
+
+    // 5. Verify audit logs recorded every deposit
+    let audit_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM audit_logs WHERE action IN ('DEPOSIT', 'CAPITAL_INJECTION')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(audit_count, 3);
+}
+
+#[test]
+fn test_contra_transfer_cash_to_bank_and_bank_to_cash() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let conn = db.conn.lock().expect("Failed to lock DB connection");
+
+    // Initialize with Cash = $1000, Bank = $2000
+    conn.execute(
+        "UPDATE settings SET opening_cash = 1000.0, opening_bank = 2000.0 WHERE id = 1",
+        [],
+    )
+    .expect("Setup settings");
+
+    // 1. Transfer $400 from Cash Drawer to Bank Account
+    let ok1 = transfer_cash_bank_internal(
+        &conn,
+        "CASH_TO_BANK",
+        "BANK-PRIMARY",
+        400.0,
+        "Daily cash drop",
+    )
+    .expect("Contra transfer cash to bank");
+    assert!(ok1);
+
+    let (c1, b1) = calculate_liquidity_internal(&conn).unwrap();
+    assert_eq!(c1, 600.0);
+    assert_eq!(b1, 2400.0);
+
+    // 2. Transfer $150 from Bank Account to Cash Drawer
+    let ok2 = transfer_cash_bank_internal(
+        &conn,
+        "BANK_TO_CASH",
+        "BANK-PRIMARY",
+        150.0,
+        "ATM drawer float withdrawal",
+    )
+    .expect("Contra transfer bank to cash");
+    assert!(ok2);
+
+    let (c2, b2) = calculate_liquidity_internal(&conn).unwrap();
+    assert_eq!(c2, 750.0);
+    assert_eq!(b2, 2250.0);
+
+    // Total net liquidity is invariant during contra transfers: 750 + 2250 == 3000
+    assert_eq!(c2 + b2, 3000.0);
+}
+
+#[test]
+fn test_database_indexes_performance_and_query_plans() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let conn = db.conn.lock().expect("Failed to lock DB connection");
+
+    // Verify index on invoices (created_at, invoice_date, status, party_id)
+    let inv_plan: String = conn
+        .query_row(
+            "EXPLAIN QUERY PLAN SELECT id FROM invoices WHERE status = 'PAID' AND invoice_date >= '2026-01-01'",
+            [],
+            |r| r.get(3),
+        )
+        .unwrap_or_default();
+    assert!(inv_plan.contains("USING INDEX idx_invoices_status"));
+
+    // Verify index on payments (payment_date, party_id)
+    let pmt_plan: String = conn
+        .query_row(
+            "EXPLAIN QUERY PLAN SELECT id FROM payments WHERE payment_date >= '2026-01-01'",
+            [],
+            |r| r.get(3),
+        )
+        .unwrap_or_default();
+    assert!(pmt_plan.contains("USING INDEX idx_payments_date"));
+
+    // Verify index on expenses (expense_date)
+    let exp_plan: String = conn
+        .query_row(
+            "EXPLAIN QUERY PLAN SELECT id FROM expenses WHERE expense_date >= '2026-01-01'",
+            [],
+            |r| r.get(3),
+        )
+        .unwrap_or_default();
+    assert!(exp_plan.contains("USING INDEX idx_expenses_date"));
 }

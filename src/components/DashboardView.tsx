@@ -23,6 +23,7 @@ import {
   Clock,
   Shield,
   DollarSign,
+  Coins,
 } from "lucide-react";
 import type { DashboardSummary, Settings, Party, BankAccount, Invoice, Item } from "../types";
 import { api } from "../services/api";
@@ -31,6 +32,7 @@ import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
+import { ManageMoneyModal } from "./ManageMoneyModal";
 
 interface DashboardViewProps {
   summary: DashboardSummary | null;
@@ -57,6 +59,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [items, setItems] = useState<Item[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [isPaySupplierOpen, setIsPaySupplierOpen] = useState(false);
+  const [isManageMoneyOpen, setIsManageMoneyOpen] = useState(false);
+  const [manageMoneyTab, setManageMoneyTab] = useState<"deposit" | "transfer" | "manage">("deposit");
+  const [manageMoneyDest, setManageMoneyDest] = useState<"CASH" | "BANK" | "CAPITAL">("CASH");
+
+  const handleOpenManageMoney = (tab: "deposit" | "transfer" | "manage" = "deposit", dest: "CASH" | "BANK" | "CAPITAL" = "CASH") => {
+    setManageMoneyTab(tab);
+    setManageMoneyDest(dest);
+    setIsManageMoneyOpen(true);
+  };
 
   // Indian GST Engine toggle state
   const isGstEnabled = gstSettings?.is_enabled ?? true;
@@ -390,6 +401,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
 
           <button
+            onClick={() => handleOpenManageMoney("deposit")}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-[#0071E3] border border-[#0071E3]/25 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+          >
+            <Coins className="w-3.5 h-3.5 stroke-[2.5] text-[#0071E3]" />
+            <span>Manage Money</span>
+          </button>
+
+          <button
             onClick={() => onNavigate("reports")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
           >
@@ -529,8 +548,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Physical cash float
             </span>
             <button
-              onClick={() => onNavigate("banking")}
-              className="text-[#0071E3] hover:underline cursor-pointer"
+              onClick={() => handleOpenManageMoney("deposit", "CASH")}
+              className="text-[#0071E3] hover:underline cursor-pointer font-medium"
             >
               Deposit
             </button>
@@ -555,8 +574,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {bankAccounts.length || 1} connected
             </span>
             <button
-              onClick={() => onNavigate("banking")}
-              className="text-[#0071E3] hover:underline cursor-pointer"
+              onClick={() => handleOpenManageMoney("transfer")}
+              className="text-[#0071E3] hover:underline cursor-pointer font-medium"
             >
               Transfer
             </button>
@@ -1614,6 +1633,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Unified Manage Money (Deposit / Transfer / Balances) Modal */}
+      <ManageMoneyModal
+        isOpen={isManageMoneyOpen}
+        onClose={() => setIsManageMoneyOpen(false)}
+        initialTab={manageMoneyTab}
+        initialDepositDestination={manageMoneyDest}
+        settings={settings}
+        summary={summary}
+        onSuccess={() => {
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 };

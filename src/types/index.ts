@@ -577,4 +577,14 @@ export interface SetupPayload {
   currency_code?: string;
 }
 
+export interface DepositPayload {
+  destination: "CASH" | "BANK" | "CAPITAL" | string;
+  amount: number;
+  source: string;
+  reference: string;
+  date: string;
+  bank_account_id?: string | null;
+  notes: string;
+}
+
 

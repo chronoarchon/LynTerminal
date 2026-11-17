@@ -38,6 +38,7 @@ import type {
   PaySalaryPayload,
   StaffSummaryStats,
   OpeningCapitalPayload,
+  DepositPayload,
   SwitchCurrencyPayload,
   AuthState,
   SetupPayload,
@@ -142,6 +143,9 @@ export const api = {
     invoke<BankAccount>("save_bank_account", { account }),
   transferCashBank: (direction: "CASH_TO_BANK" | "BANK_TO_CASH", bankAccountId: string, amount: number, notes: string) =>
     invoke<boolean>("transfer_cash_bank", { direction, bankAccountId, amount, notes }),
+  recordDeposit: (payload: DepositPayload) =>
+    invoke<[number, number]>("record_deposit", { payload }),
+  showMainWindow: () => invoke<boolean>("show_main_window"),
 
   // Business Loans & Startup Liabilities
   listBusinessLoans: () => invoke<BusinessLoan[]>("list_business_loans"),
