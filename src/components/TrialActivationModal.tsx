@@ -28,7 +28,13 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
   licenseStatus,
   onActivated,
 }) => {
-  const [licenseKeyInput, setLicenseKeyInput] = useState("");
+  const [licenseKeyInput, setLicenseKeyInput] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("key_input");
+      if (p) return p;
+    }
+    return "";
+  });
   const [customerEmail, setCustomerEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

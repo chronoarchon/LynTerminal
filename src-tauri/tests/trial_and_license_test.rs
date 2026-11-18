@@ -152,3 +152,104 @@ fn test_anti_tamper_clock_rollback() {
     let status = db.get_license_status().expect("Must get license status");
     assert!(status.is_expired, "Clock rollback tampering must lock the trial");
 }
+
+#[test]
+fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+
+    // 1. Verify 14-day trial countdown progression
+    let day0_status = db.get_license_status().expect("Status day 0");
+    assert_eq!(day0_status.days_remaining, 14);
+    assert_eq!(day0_status.days_elapsed, 0);
+    assert!(!day0_status.is_expired);
+    assert!(!day0_status.is_licensed);
+
+    db.set_trial_start_days_ago(7).expect("Set to day 7");
+    let day7_status = db.get_license_status().expect("Status day 7");
+    assert_eq!(day7_status.days_remaining, 7);
+    assert_eq!(day7_status.days_elapsed, 7);
+    assert!(!day7_status.is_expired);
+
+    // 2. Simulate trial expiration (> 14 days)
+    db.set_trial_start_days_ago(15).expect("Set to day 15 (expired)");
+    let expired_status = db.get_license_status().expect("Status day 15");
+    assert!(expired_status.is_expired, "Day 15 must be expired");
+    assert_eq!(expired_status.days_remaining, 0);
+    assert!(db.is_trial_expired(), "is_trial_expired must return true");
+
+    // 3. Cryptographic Key Generation matching /api/razorpay/verify
+    // Salt: WINTERSHOGUN_LYNTERMINAL_SOVEREIGN_OFFLINE_SECRET_2026
+    let p1 = "RZP8";
+    let p2 = "COMM";
+    let razorpay_key = generate_offline_license_key(p1, p2);
+    assert!(razorpay_key.starts_with("LYN-COMM-RZP8-COMM-"));
+    assert_eq!(razorpay_key.len(), 28); // LYN-COMM-XXXX-XXXX-XXXX-XXXX = 8+5+5+5+5-? 8+4+1+4+1+4+1+4 = 28
+
+    // 4. Negative tests: invalid, malformed, or tampered keys must fail and NOT unlock
+    let mut tampered_key = razorpay_key.clone();
+    let flipped_char = if tampered_key.ends_with('9') { '8' } else { '9' };
+    tampered_key.pop();
+    tampered_key.push(flipped_char);
+
+    let res_tampered = db.activate_license(&tampered_key, Some("customer@shop.in".to_string()));
+    assert!(res_tampered.is_err(), "Tampered signature key must be rejected");
+    assert!(db.is_trial_expired(), "Trial must remain expired after failed activation");
+
+    let res_bad_prefix = db.activate_license("XYZ-COMM-RZP8-COMM-1111-2222", None);
+    assert!(res_bad_prefix.is_err(), "Foreign prefix must be rejected");
+
+    let res_empty = db.activate_license("", None);
+    assert!(res_empty.is_err(), "Empty license string must be rejected");
+
+    let res_garbage = db.activate_license("CORRUPTED-DATA-NOT-A-KEY", None);
+    assert!(res_garbage.is_err(), "Garbage string must be rejected");
+
+    // 5. Positive test: Activation with authentic Razorpay key unlocks billing
+    let activated = db
+        .activate_license(&razorpay_key, Some("licensed_merchant@kirana.store".to_string()))
+        .expect("Activation with authentic key must succeed");
+
+    assert!(activated.is_licensed, "Workstation must now be licensed");
+    assert!(!activated.is_trial, "Trial mode terminated");
+    assert!(!activated.is_expired, "Not expired");
+    assert_eq!(activated.license_key, Some(razorpay_key.clone()));
+    assert_eq!(activated.customer_email, Some("licensed_merchant@kirana.store".to_string()));
+    assert_eq!(activated.license_tier, Some("Commercial Windows Lifetime".to_string()));
+    assert!(!db.is_trial_expired(), "is_trial_expired must return false");
+
+    // 6. Verify SQLite persistence across fresh connection queries
+    let persisted = db.get_license_status().expect("Must read persisted license status");
+    assert!(persisted.is_licensed, "Must persist in SQLite database");
+    assert_eq!(persisted.license_key, Some(razorpay_key));
+    assert_eq!(persisted.customer_email, Some("licensed_merchant@kirana.store".to_string()));
+
+    // 7. Verify POS Billing is unlocked: create_invoice_internal succeeds
+    let mut conn = db.conn.lock().expect("Lock connection");
+    let payload = InvoicePayload {
+        invoice_type: "SALE".to_string(),
+        party_id: None,
+        party_name: "Cash Retail Guest".to_string(),
+        invoice_date: "2026-11-18".to_string(),
+        due_date: "2026-11-18".to_string(),
+        subtotal: 180.0,
+        discount_amount: 0.0,
+        tax_amount: 9.0,
+        total_amount: 189.0,
+        paid_amount: 189.0,
+        payment_method: "CASH".to_string(),
+        notes: "Smoke test unlocked invoice".to_string(),
+        items: vec![InvoiceItemPayload {
+            item_id: None,
+            item_name: "Specialty Tea Pack".to_string(),
+            quantity: 2.0,
+            unit: "PACK".to_string(),
+            unit_price: 90.0,
+            discount_percent: 0.0,
+            tax_rate: 5.0,
+            line_total: 189.0,
+        }],
+        reference: None,
+    };
+    let invoice = create_invoice_internal(&mut conn, payload).expect("Invoice creation must succeed when unlocked");
+    assert_eq!(invoice.invoice.total_amount, 189.0);
+}

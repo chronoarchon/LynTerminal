@@ -1,0 +1,81 @@
+name: Windows Virtual Machine CI & Build Verification
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-build-and-test:
+    name: Windows CI (cargo test & tauri build)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust Stable Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Dependencies Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Frontend Dependencies
+        run: bun install
+
+      - name: Run Core & License Integration Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --verbose
+
+      - name: Build Production Frontend Assets
+        run: bun run build
+
+      - name: Build Tauri Windows Executable & NSIS Bundle
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ''
+          releaseDraft: false
+          prerelease: false
+          args: --bundles nsis
+
+      - name: Verify Windows Binary Artifacts
+        shell: pwsh
+        run: |
+          Write-Host "Verifying built Windows artifacts in src-tauri/target/release..."
+          $binaries = Get-ChildItem -Path src-tauri/target/release -Recurse -Include *.exe, *.msi
+          if ($binaries.Count -eq 0) {
+            Write-Error "No Windows binary (.exe or .msi) generated!"
+            exit 1
+          }
+          $binaries | Select-Object FullName, Length | Format-Table -AutoSize
+          Write-Host "Windows build and binary verification succeeded!"
+
+      - name: Upload Windows Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lynterminal-windows-artifacts
+          path: |
+            src-tauri/target/release/lynterminal.exe
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: warn

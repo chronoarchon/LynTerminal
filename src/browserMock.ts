@@ -421,8 +421,17 @@ export function initBrowserMock() {
           return mockSettings;
         case "get_auth_state":
           return { has_account: true, is_setup_completed: true, is_locked: false };
-        case "get_gst_settings":
-          return { is_enabled: false };
+        case "get_gst_settings": {
+          const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const enableGst = urlParams?.get("gst") === "1" || urlParams?.get("tab") === "gst_pos" || urlParams?.get("tab") === "gst_hub";
+          return {
+            is_enabled: enableGst,
+            gstin: "27AABCU9603R1ZM",
+            state_code: "27",
+            composition_scheme: false,
+            filing_frequency: "MONTHLY",
+          };
+        }
         case "list_items":
           return mockItems;
         case "list_parties":
@@ -490,7 +499,43 @@ export function initBrowserMock() {
           return [
             { id: "ba-1", bank_name: "Silicon Valley Commercial", account_number: "****4821", current_balance: 14800.0 },
           ];
-        case "get_license_status":
+        case "get_license_status": {
+          const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const isExpired = urlParams?.get("trial") === "expired" || urlParams?.get("expired") === "1";
+          const isLicensed = urlParams?.get("licensed") === "1" || urlParams?.get("activated") === "1";
+
+          if (isLicensed) {
+            return {
+              is_licensed: true,
+              is_trial: false,
+              is_expired: false,
+              days_elapsed: 2,
+              days_remaining: 12,
+              trial_days_limit: 14,
+              first_run_date: new Date(Date.now() - 2 * 86400000).toISOString(),
+              license_key: "LYN-COMM-RZP8-COMM-4892-1082",
+              license_tier: "Commercial Windows Lifetime",
+              customer_email: "support@wintershogun.tech",
+              activated_at: new Date(Date.now() - 86400000).toISOString(),
+              platform: "windows",
+            };
+          }
+          if (isExpired) {
+            return {
+              is_licensed: false,
+              is_trial: true,
+              is_expired: true,
+              days_elapsed: 15,
+              days_remaining: 0,
+              trial_days_limit: 14,
+              first_run_date: new Date(Date.now() - 15 * 86400000).toISOString(),
+              license_key: null,
+              license_tier: null,
+              customer_email: null,
+              activated_at: null,
+              platform: "windows",
+            };
+          }
           return {
             is_licensed: false,
             is_trial: true,
@@ -505,6 +550,7 @@ export function initBrowserMock() {
             activated_at: null,
             platform: "windows",
           };
+        }
         case "activate_license": {
           const rawKey = (_args?.payload?.license_key || "").trim().toUpperCase();
           if (!rawKey.includes("COMM") || rawKey.length < 15) {

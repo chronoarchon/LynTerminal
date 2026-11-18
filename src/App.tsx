@@ -100,7 +100,13 @@ export function AppContent() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
-  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("modal");
+      if (p === "license" || p === "key") return true;
+    }
+    return false;
+  });
 
 
   // Check for updates on startup and periodically (every 4 hours)
