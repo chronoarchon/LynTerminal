@@ -17,6 +17,8 @@ import {
   Building,
   Users,
   AlertCircle,
+  Lock,
+  ExternalLink,
 } from "lucide-react";
 import type { Item, Party, Settings, InvoicePayload, InvoiceDetail, LicenseStatus } from "../types";
 import { api } from "../services/api";
@@ -517,12 +519,23 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>14-Day Free Trial Expired — Counter billing is locked until activated. Past sales and records remain safe.</span>
           </div>
-          <button
-            onClick={onOpenLicenseModal}
-            className="px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer shrink-0"
-          >
-            Activate License
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="https://lynterminal.wintershogun.tech/pricing?checkout=windows"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            >
+              <span>Buy Commercial License</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <button
+              onClick={onOpenLicenseModal}
+              className="px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            >
+              Activate Key
+            </button>
+          </div>
         </div>
       )}
 
@@ -1421,18 +1434,31 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             <button
               onClick={handleCheckout}
               disabled={cart.length === 0 || isSubmitting}
-              className="w-full py-3 rounded-2xl font-semibold text-xs sm:text-sm text-white bg-[#0071E3] hover:bg-[#0077ED] flex items-center justify-center gap-2 shadow-xs transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className={`w-full py-3 rounded-2xl font-semibold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-xs transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                licenseStatus?.is_expired
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-[#0071E3] hover:bg-[#0077ED]"
+              }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>
-                {isSubmitting
-                  ? "Processing..."
-                  : billMode === "PURCHASE"
-                  ? `Record Inward (${formatCurrency(totalAmount)})`
-                  : billMode === "QUOTATION"
-                  ? `Issue Quotation (${formatCurrency(totalAmount)})`
-                  : `Charge ${formatCurrency(totalAmount)}`}
-              </span>
+              {licenseStatus?.is_expired ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Trial Expired — Activate License ({formatCurrency(totalAmount)})</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    {isSubmitting
+                      ? "Processing..."
+                      : billMode === "PURCHASE"
+                      ? `Record Inward (${formatCurrency(totalAmount)})`
+                      : billMode === "QUOTATION"
+                      ? `Issue Quotation (${formatCurrency(totalAmount)})`
+                      : `Charge ${formatCurrency(totalAmount)}`}
+                  </span>
+                </>
+              )}
             </button>
           </div>
         </div>

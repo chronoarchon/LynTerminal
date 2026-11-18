@@ -505,7 +505,11 @@ export function initBrowserMock() {
             activated_at: null,
             platform: "windows",
           };
-        case "activate_license":
+        case "activate_license": {
+          const rawKey = (_args?.payload?.license_key || "").trim().toUpperCase();
+          if (!rawKey.includes("COMM") || rawKey.length < 15) {
+            throw new Error("Invalid license key format. Expected format: LYN-COMM-XXXX-XXXX-XXXX-XXXX");
+          }
           return {
             is_licensed: true,
             is_trial: false,
@@ -514,12 +518,13 @@ export function initBrowserMock() {
             days_remaining: 12,
             trial_days_limit: 14,
             first_run_date: new Date(Date.now() - 2 * 86400000).toISOString(),
-            license_key: _args?.payload?.license_key || "LYN-COMM-TEST-MOCK-XXXX-YYYY",
+            license_key: rawKey,
             license_tier: "Commercial Windows Lifetime",
             customer_email: _args?.payload?.customer_email || "user@store.local",
             activated_at: new Date().toISOString(),
             platform: "windows",
           };
+        }
         case "show_main_window":
           return null;
         default:

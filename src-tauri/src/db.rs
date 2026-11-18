@@ -8,7 +8,7 @@ use crate::models::LicenseStatus;
 pub const LICENSE_SECRET_SALT: &str = "WINTERSHOGUN_LYNTERMINAL_SOVEREIGN_OFFLINE_SECRET_2026";
 
 pub fn verify_offline_license_key(key: &str) -> std::result::Result<(String, String), String> {
-    let cleaned = key.trim().to_uppercase();
+    let cleaned = key.trim().to_uppercase().replace(' ', "-");
     let parts: Vec<&str> = cleaned.split('-').collect();
 
     // Supports:
@@ -877,9 +877,15 @@ impl DatabaseManager {
             false
         };
 
+        let trial_deadline = first_run + chrono::Duration::days(trial_limit);
         let days_elapsed = (now - first_run).num_days().max(0);
-        let days_remaining = (trial_limit - days_elapsed).max(0);
-        let is_expired = !is_licensed && (days_elapsed > trial_limit || is_clock_tampered);
+        let days_remaining = if now >= trial_deadline {
+            0
+        } else {
+            let diff = trial_deadline - now;
+            ((diff.num_seconds() + 86399) / 86400).max(0)
+        };
+        let is_expired = !is_licensed && (now >= trial_deadline || is_clock_tampered);
 
         let platform = if cfg!(target_os = "windows") || std::env::consts::OS == "windows" {
             "windows".to_string()

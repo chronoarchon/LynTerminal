@@ -43,7 +43,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
   const daysElapsed = licenseStatus?.days_elapsed ?? 0;
 
   const handleOpenStore = async () => {
-    const url = "https://lynterminal.wintershogun.tech/pricing";
+    const url = "https://lynterminal.wintershogun.tech/pricing?checkout=windows";
     try {
       const { openUrl } = await import("@tauri-apps/plugin-opener");
       await openUrl(url);
@@ -54,7 +54,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const key = licenseKeyInput.trim();
+    const key = licenseKeyInput.trim().toUpperCase().replace(/ /g, "-");
     if (!key) {
       setErrorMessage("Please enter your commercial license key.");
       return;

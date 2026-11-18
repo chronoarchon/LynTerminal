@@ -30,10 +30,14 @@ fn test_offline_cryptographic_license_validation() {
     assert_eq!(tier, "Commercial Windows Lifetime");
     assert_eq!(normalized, key1);
 
-    // 2. Also accept "WS-COMM-..." prefix
+    // 2. Also accept "WS-COMM-..." prefix and keys with spaces instead of hyphens
     let ws_key = key1.replace("LYN-COMM", "WS-COMM");
     let res_ws = verify_offline_license_key(&ws_key);
     assert!(res_ws.is_ok(), "WS-COMM prefix must be accepted for Wintershogun compatibility");
+
+    let space_key = key1.replace('-', " ");
+    let res_space = verify_offline_license_key(&space_key);
+    assert!(res_space.is_ok(), "Keys with spaces instead of hyphens must verify successfully");
 
     // 3. Test tamper detection (altering even 1 character in the signature or payload)
     let mut tampered_key = key1.clone();

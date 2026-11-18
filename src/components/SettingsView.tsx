@@ -1611,7 +1611,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
             {!licenseStatus?.is_licensed && (
               <a
-                href="https://lynterminal.wintershogun.tech/pricing"
+                href="https://lynterminal.wintershogun.tech/pricing?checkout=windows"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"

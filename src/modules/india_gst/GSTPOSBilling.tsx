@@ -11,6 +11,8 @@ import {
   CreditCard,
   Banknote,
   Building,
+  Lock,
+  ExternalLink,
 } from "lucide-react";
 import type { Item, Party, Settings, LicenseStatus } from "../../types";
 import type {
@@ -375,12 +377,23 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>14-Day Free Trial Expired — GST counter billing is locked until activated. Past invoices and reports remain safe.</span>
           </div>
-          <button
-            onClick={onOpenLicenseModal}
-            className="px-3.5 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer shrink-0"
-          >
-            Activate License
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="https://lynterminal.wintershogun.tech/pricing?checkout=windows"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3.5 py-1 rounded-full bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            >
+              <span>Buy Commercial License</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <button
+              onClick={onOpenLicenseModal}
+              className="px-3.5 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            >
+              Activate Key
+            </button>
+          </div>
         </div>
       )}
 
@@ -807,14 +820,27 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             <button
               onClick={handleCheckout}
               disabled={isSubmitting || cart.length === 0}
-              className="w-full py-3 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
+                licenseStatus?.is_expired
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-[#0071E3] hover:bg-[#0077ED]"
+              }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>
-                {isSubmitting
-                  ? "Generating GST Tax Invoice..."
-                  : `Generate GST Bill (₹${roundedGrandTotal.toFixed(2)})`}
-              </span>
+              {licenseStatus?.is_expired ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Trial Expired — Commercial License Required (₹{roundedGrandTotal.toFixed(2)})</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    {isSubmitting
+                      ? "Generating GST Tax Invoice..."
+                      : `Generate GST Bill (₹${roundedGrandTotal.toFixed(2)})`}
+                  </span>
+                </>
+              )}
             </button>
           </div>
         </div>
