@@ -1,104 +1,199 @@
 #!/usr/bin/env bash
 # =============================================================================
 # LynTerminal — Modern Business OS & Point of Sale Universal Linux Installer
+# Official Domain: https://wintershogun.tech
 # Official Repository: https://github.com/chronoarchon/LynTerminal
 # =============================================================================
 set -e
 
-REPO_RAW="https://raw.githubusercontent.com/chronoarchon/LynTerminal/main"
 VERSION="1.5.1v"
+PRIMARY_URL="https://wintershogun.tech/lynterminal"
+CDN_URL="https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main"
+RAW_URL="https://raw.githubusercontent.com/chronoarchon/LynTerminal@main"
 ARCH="$(uname -m)"
 
-# Terminal styling
-BOLD="\033[1m"
-GREEN="\033[0;32m"
-BLUE="\033[0;34m"
-YELLOW="\033[1;33m"
-RED="\033[0;31m"
-RESET="\033[0m"
+# Color & Style Setup
+setup_colors() {
+    if [ -t 1 ] && [ -n "$(tput colors 2>/dev/null || echo "")" ] && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+        BOLD="\033[1m"
+        DIM="\033[2m"
+        CYAN="\033[38;5;51m"
+        BLUE="\033[38;5;39m"
+        GREEN="\033[38;5;48m"
+        AMBER="\033[38;5;214m"
+        PURPLE="\033[38;5;141m"
+        RED="\033[38;5;196m"
+        GRAY="\033[38;5;244m"
+        BORDER="\033[38;5;60m"
+        RESET="\033[0m"
+    else
+        BOLD=""
+        DIM=""
+        CYAN=""
+        BLUE=""
+        GREEN=""
+        AMBER=""
+        PURPLE=""
+        RED=""
+        GRAY=""
+        BORDER=""
+        RESET=""
+    fi
+}
+setup_colors
 
-echo -e "${BOLD}${BLUE}"
-echo "  _                 _____               _             _ "
-echo " | |   _   _ _ __  |_   _|__ _ __ _ __ ___ (_)_ __   __ _| |"
-echo " | |  | | | | '_ \   | |/ _ \ '__| '_ \` _ \| | '_ \ / _\` | |"
-echo " | |__| |_| | | | |  | |  __/ |  | | | | | | | | | | (_| | |"
-echo " |_____\__, |_| |_|  |_|\___|_|  |_| |_| |_|_|_| |_|\__,_|_|"
-echo "       |___/  Modern Business OS v${VERSION}"
-echo -e "${RESET}"
+# Detect Linux Distribution
+detect_distro() {
+    if [ -f /etc/os-release ]; then
+        # shellcheck source=/dev/null
+        . /etc/os-release
+        DISTRO_NAME="${NAME:-Linux}"
+    elif command -v lsb_release >/dev/null 2>&1; then
+        DISTRO_NAME="$(lsb_release -d -s)"
+    else
+        DISTRO_NAME="$(uname -s)"
+    fi
+}
+detect_distro
 
+# Print Modern Visual Banner
+echo ""
+echo -e "${BORDER}╭────────────────────────────────────────────────────────────╮${RESET}"
+echo -e "${BORDER}│${RESET}   ${BLUE}${BOLD}_                 _____               _             _${RESET}    ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}| |   _   _ _ __  |_   _|__ _ __ _ __ ___ (_)_ __   __ _| |${RESET}   ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}| |  | | | | '_ \   | |/ _ \ '__| '_ \` _ \| | '_ \ / _\` | |${RESET}   ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}| |__| |_| | | | |  | |  __/ |  | | | | | | | | | | (_| | |${RESET}   ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}|_____\__, |_| |_|  |_|\___|_|  |_| |_| |_|_|_| |_|\__,_|_|${RESET}   ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}        ${CYAN}|___/${RESET}   ${BOLD}Modern Business OS & Indian GST POS${RESET}        ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}        ${GRAY}Offline-First • Zero-Telemetry • Linux Native${RESET}       ${BORDER}│${RESET}"
+echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+echo ""
+
+# System Architecture Check
 if [ "$ARCH" != "x86_64" ]; then
-    echo -e "${RED}Error: LynTerminal provides precompiled desktop binaries for x86_64 Linux systems (detected: ${ARCH}).${RESET}"
+    echo -e "${RED}${BOLD}✖ Unsupported Architecture:${RESET} LynTerminal provides precompiled binaries for x86_64 Linux (detected: ${ARCH})."
     exit 1
 fi
 
-TEMP_DIR="$(mktemp -d -t lynterminal-install-XXXXXX)"
+# Print Environment Card
+echo -e "${BORDER}╭─ System Environment ───────────────────────────────────────╮${RESET}"
+echo -e "${BORDER}│${RESET}  ${GRAY}Distribution${RESET} : ${BOLD}${DISTRO_NAME}${RESET}"
+echo -e "${BORDER}│${RESET}  ${GRAY}Architecture${RESET} : ${BOLD}${ARCH}${RESET}"
+echo -e "${BORDER}│${RESET}  ${GRAY}Version     ${RESET} : ${CYAN}${VERSION}${RESET}"
+echo -e "${BORDER}│${RESET}  ${GRAY}Install Path${RESET} : ${GREEN}\$HOME/.local/bin/lynterminal${RESET}"
+echo -e "${BORDER}│${RESET}  ${GRAY}Cloud Source${RESET} : ${BLUE}https://wintershogun.tech${RESET}"
+echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+echo ""
+
+TEMP_DIR="$(mktemp -d -t lynterminal-setup-XXXXXX)"
 cleanup() {
     rm -rf "$TEMP_DIR"
 }
 trap cleanup EXIT
 
-echo -e "${BLUE}==>${RESET} ${BOLD}Preparing LynTerminal installation...${RESET}"
+# -----------------------------------------------------------------------------
+# STEP 1: Obtain Binary Bundle
+# -----------------------------------------------------------------------------
+echo -e "${CYAN}${BOLD}◆ [1/4]${RESET} ${BOLD}Acquiring LynTerminal binary...${RESET}"
 
-# Determine whether running from local clone or remote curl
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
 LOCAL_BIN="$SCRIPT_DIR/bin/lynterminal.gz"
 LOCAL_RELEASE_BIN="$SCRIPT_DIR/src-tauri/target/release/lynterminal"
-
 TARGET_BIN="$TEMP_DIR/lynterminal"
 
 if [ -f "$LOCAL_RELEASE_BIN" ]; then
-    echo -e "${GREEN}==>${RESET} Using freshly built local binary: $LOCAL_RELEASE_BIN"
+    echo -e "      ${GREEN}✔${RESET} Using freshly built local binary: ${DIM}${LOCAL_RELEASE_BIN}${RESET}"
     cp "$LOCAL_RELEASE_BIN" "$TARGET_BIN"
 elif [ -f "$LOCAL_BIN" ]; then
-    echo -e "${GREEN}==>${RESET} Decompressing local binary bundle: $LOCAL_BIN"
+    echo -e "      ${GREEN}✔${RESET} Decompressing local package bundle: ${DIM}${LOCAL_BIN}${RESET}"
     gzip -dc "$LOCAL_BIN" > "$TARGET_BIN"
 else
-    echo -e "${BLUE}==>${RESET} Downloading standalone LynTerminal binary..."
-    if ! curl -fSL "${REPO_RAW}/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz" 2>/dev/null; then
-        echo -e "${YELLOW}==>${RESET} GitHub direct raw host unreachable (likely ISP DNS filter). Trying CDN mirror..."
-        curl -fSL "https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz"
+    echo -e "      ${BLUE}➜${RESET} Downloading package bundle from ${BOLD}wintershogun.tech${RESET}..."
+    DOWNLOADED=false
+
+    # Attempt 1: Official custom domain via Cloudflare
+    if curl -fSL --progress-bar "${PRIMARY_URL}/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz" 2>/dev/null; then
+        DOWNLOADED=true
+        echo -e "      ${GREEN}✔${RESET} Verified download via wintershogun.tech CDN"
     fi
+
+    # Attempt 2: Global jsDelivr CDN Mirror
+    if [ "$DOWNLOADED" = false ]; then
+        echo -e "      ${AMBER}➜${RESET} Primary CDN busy, trying jsDelivr global mirror..."
+        if curl -fSL --progress-bar "${CDN_URL}/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz" 2>/dev/null; then
+            DOWNLOADED=true
+            echo -e "      ${GREEN}✔${RESET} Downloaded from global CDN mirror"
+        fi
+    fi
+
+    # Attempt 3: Direct GitHub Raw
+    if [ "$DOWNLOADED" = false ]; then
+        echo -e "      ${AMBER}➜${RESET} Falling back to GitHub direct source..."
+        if curl -fSL --progress-bar "${RAW_URL}/bin/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz"; then
+            DOWNLOADED=true
+            echo -e "      ${GREEN}✔${RESET} Downloaded from GitHub source"
+        fi
+    fi
+
+    if [ "$DOWNLOADED" = false ]; then
+        echo -e "${RED}${BOLD}✖ Download Failed:${RESET} Unable to download binary bundle from any mirror."
+        exit 1
+    fi
+
     gzip -dc "$TEMP_DIR/lynterminal.gz" > "$TARGET_BIN"
 fi
 
 chmod +x "$TARGET_BIN"
 
-# Check and resolve missing runtime libraries automatically
+# -----------------------------------------------------------------------------
+# STEP 2: Runtime Library & Dependency Verification
+# -----------------------------------------------------------------------------
+echo -e "${CYAN}${BOLD}◆ [2/4]${RESET} ${BOLD}Verifying system runtime dependencies...${RESET}"
+
 MISSING_LIBS=$(ldd "$TARGET_BIN" 2>&1 | grep "not found" || true)
 if [ -n "$MISSING_LIBS" ]; then
-    echo -e "${YELLOW}==>${RESET} Missing system runtime libraries detected. Installing dependencies automatically..."
-    if command -v apt-get >/dev/null 2>&1; then
-        echo -e "${BLUE}==>${RESET} Installing WebKit2GTK and GTK3 via apt-get..."
-        if [ "$EUID" -eq 0 ]; then
-            apt-get update && (apt-get install -y libwebkit2gtk-4.1-0 libgtk-3-0t64 2>/dev/null || apt-get install -y libwebkit2gtk-4.1-0 libgtk-3-0)
-        elif command -v sudo >/dev/null 2>&1; then
-            sudo apt-get update && (sudo apt-get install -y libwebkit2gtk-4.1-0 libgtk-3-0t64 2>/dev/null || sudo apt-get install -y libwebkit2gtk-4.1-0 libgtk-3-0)
-        fi
-    elif command -v dnf >/dev/null 2>&1; then
-        echo -e "${BLUE}==>${RESET} Installing WebKit2GTK and GTK3 via dnf..."
-        if [ "$EUID" -eq 0 ]; then
-            dnf install -y webkit2gtk4.1 gtk3
-        elif command -v sudo >/dev/null 2>&1; then
-            sudo dnf install -y webkit2gtk4.1 gtk3
-        fi
-    elif command -v pacman >/dev/null 2>&1; then
-        echo -e "${BLUE}==>${RESET} Installing WebKit2GTK and GTK3 via pacman..."
+    echo -e "      ${AMBER}➜${RESET} Installing missing libraries for ${DISTRO_NAME}..."
+    if command -v pacman >/dev/null 2>&1; then
         if [ "$EUID" -eq 0 ]; then
             pacman -S --needed --noconfirm webkit2gtk-4.1 gtk3
         elif command -v sudo >/dev/null 2>&1; then
             sudo pacman -S --needed --noconfirm webkit2gtk-4.1 gtk3
         fi
+    elif command -v apt-get >/dev/null 2>&1; then
+        if [ "$EUID" -eq 0 ]; then
+            apt-get update -qq && (apt-get install -y -qq libwebkit2gtk-4.1-0 libgtk-3-0t64 2>/dev/null || apt-get install -y -qq libwebkit2gtk-4.1-0 libgtk-3-0)
+        elif command -v sudo >/dev/null 2>&1; then
+            sudo apt-get update -qq && (sudo apt-get install -y -qq libwebkit2gtk-4.1-0 libgtk-3-0t64 2>/dev/null || sudo apt-get install -y -qq libwebkit2gtk-4.1-0 libgtk-3-0)
+        fi
+    elif command -v dnf >/dev/null 2>&1; then
+        if [ "$EUID" -eq 0 ]; then
+            dnf install -y -q webkit2gtk4.1 gtk3
+        elif command -v sudo >/dev/null 2>&1; then
+            sudo dnf install -y -q webkit2gtk4.1 gtk3
+        fi
     elif command -v zypper >/dev/null 2>&1; then
-        echo -e "${BLUE}==>${RESET} Installing WebKit2GTK and GTK3 via zypper..."
         if [ "$EUID" -eq 0 ]; then
             zypper install -y webkit2gtk-4.1 gtk3
         elif command -v sudo >/dev/null 2>&1; then
             sudo zypper install -y webkit2gtk-4.1 gtk3
         fi
     fi
+    echo -e "      ${GREEN}✔${RESET} Dependencies successfully resolved"
+else
+    echo -e "      ${GREEN}✔${RESET} All runtime libraries present (WebKit2GTK 4.1 & GTK3 ready)"
 fi
 
-# Check sudo access without blocking
+# -----------------------------------------------------------------------------
+# STEP 3: Binary & Desktop Launcher Installation
+# -----------------------------------------------------------------------------
+echo -e "${CYAN}${BOLD}◆ [3/4]${RESET} ${BOLD}Installing binary and desktop integration...${RESET}"
+
+# Install user-local binary
+mkdir -p "$HOME/.local/bin"
+install -Dm755 "$TARGET_BIN" "$HOME/.local/bin/lynterminal"
+ln -sf "$HOME/.local/bin/lynterminal" "$HOME/.local/bin/lyndesk" 2>/dev/null || true
+
+# Optional system-wide symlink if sudo access is available
 USE_SUDO=false
 if [ "$EUID" -eq 0 ]; then
     USE_SUDO=true
@@ -106,180 +201,150 @@ elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
     USE_SUDO=true
 fi
 
-# 1. Install executable binary
-echo -e "${BLUE}==>${RESET} Deploying binary..."
-mkdir -p "$HOME/.local/bin"
-install -Dm755 "$TARGET_BIN" "$HOME/.local/bin/lynterminal"
-# Remove legacy binary if exists
-rm -f "$HOME/.local/bin/lyndesk" 2>/dev/null || true
-
 if [ "$USE_SUDO" = true ]; then
     if [ "$EUID" -eq 0 ]; then
         install -Dm755 "$TARGET_BIN" /usr/local/bin/lynterminal 2>/dev/null || true
-        rm -f /usr/local/bin/lyndesk /usr/bin/lyndesk 2>/dev/null || true
+        ln -sf /usr/local/bin/lynterminal /usr/local/bin/lyndesk 2>/dev/null || true
     else
         sudo install -Dm755 "$TARGET_BIN" /usr/local/bin/lynterminal 2>/dev/null || true
-        sudo rm -f /usr/local/bin/lyndesk /usr/bin/lyndesk 2>/dev/null || true
+        sudo ln -sf /usr/local/bin/lynterminal /usr/local/bin/lyndesk 2>/dev/null || true
     fi
 fi
+echo -e "      ${GREEN}✔${RESET} Binary installed at ${BOLD}~/.local/bin/lynterminal${RESET}"
 
-# 2. Fetch/Prepare Desktop Launcher
-DESKTOP_SRC="$TEMP_DIR/lynterminal.desktop"
-if [ -f "$SCRIPT_DIR/public/lynterminal.desktop" ]; then
-    cp "$SCRIPT_DIR/public/lynterminal.desktop" "$DESKTOP_SRC"
-else
-    curl -fsSL "${REPO_RAW}/public/lynterminal.desktop" -o "$DESKTOP_SRC"
-fi
+# Self-Contained SVG Icon
+SVG_ICON="$TEMP_DIR/lynterminal.svg"
+cat << 'EOF' > "$SVG_ICON"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="lynterminal_bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#18191E" />
+      <stop offset="100%" stop-color="#0E0F12" />
+    </linearGradient>
+    <linearGradient id="lynterminal_stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2997FF" />
+      <stop offset="60%" stop-color="#0071E3" />
+      <stop offset="100%" stop-color="#00C7BE" />
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="104" fill="url(#lynterminal_bg)" />
+  <rect x="32" y="32" width="448" height="448" rx="104" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+  <path d="M 188 128 V 334 C 188 358 206 376 230 376 H 352" fill="none" stroke="url(#lynterminal_stroke)" stroke-width="72" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+EOF
 
-echo -e "${BLUE}==>${RESET} Registering desktop application entry..."
-mkdir -p "$HOME/.local/share/applications"
+# Install Scalable Icon
+mkdir -p "$HOME/.local/share/icons/hicolor/scalable/apps"
+mkdir -p "$HOME/.local/share/pixmaps"
+install -Dm644 "$SVG_ICON" "$HOME/.local/share/icons/hicolor/scalable/apps/lynterminal.svg"
+install -Dm644 "$SVG_ICON" "$HOME/.local/share/pixmaps/lynterminal.svg"
 
-# For user installations, point Exec and Icon to explicit absolute paths to avoid conflicts with old system packages
-sed -e "s|^Icon=.*|Icon=$HOME/.local/share/icons/hicolor/512x512/apps/lynterminal.png|" \
-    -e "s|^Exec=.*|Exec=$HOME/.local/bin/lynterminal|" "$DESKTOP_SRC" > "$HOME/.local/share/applications/lynterminal.desktop"
-chmod 644 "$HOME/.local/share/applications/lynterminal.desktop"
-rm -f "$HOME/.local/share/applications/lyndesk.desktop" 2>/dev/null || true
-
-if [ "$USE_SUDO" = true ]; then
-    if [ "$EUID" -eq 0 ]; then
-        install -Dm644 "$DESKTOP_SRC" /usr/share/applications/lynterminal.desktop 2>/dev/null || true
-        rm -f /usr/share/applications/lyndesk.desktop 2>/dev/null || true
-    else
-        sudo install -Dm644 "$DESKTOP_SRC" /usr/share/applications/lynterminal.desktop 2>/dev/null || true
-        sudo rm -f /usr/share/applications/lyndesk.desktop 2>/dev/null || true
-    fi
-fi
-
-# 3. Install High-Resolution Icons Across All Standard Linux Dimensions
-echo -e "${BLUE}==>${RESET} Installing high-resolution desktop icons (16px to 512px + SVG)..."
+# Fetch or extract multi-res PNG icons
 SIZES=("16x16" "32x32" "48x48" "64x64" "128x128" "256x256" "512x512")
-
 for size in "${SIZES[@]}"; do
-    ICON_FILE="$TEMP_DIR/$size.png"
+    mkdir -p "$HOME/.local/share/icons/hicolor/$size/apps"
     if [ -f "$SCRIPT_DIR/public/icons/$size.png" ]; then
-        cp "$SCRIPT_DIR/public/icons/$size.png" "$ICON_FILE"
-    else
-        curl -fsSL "${REPO_RAW}/public/icons/$size.png" -o "$ICON_FILE" 2>/dev/null || true
-    fi
-
-    if [ -f "$ICON_FILE" ]; then
-        mkdir -p "$HOME/.local/share/icons/hicolor/$size/apps"
-        install -Dm644 "$ICON_FILE" "$HOME/.local/share/icons/hicolor/$size/apps/lynterminal.png"
-        rm -f "$HOME/.local/share/icons/hicolor/$size/apps/lyndesk.png" 2>/dev/null || true
-        if [ "$USE_SUDO" = true ]; then
-            if [ "$EUID" -eq 0 ]; then
-                install -Dm644 "$ICON_FILE" "/usr/share/icons/hicolor/$size/apps/lynterminal.png" 2>/dev/null || true
-                rm -f "/usr/share/icons/hicolor/$size/apps/lyndesk.png" 2>/dev/null || true
-            else
-                sudo install -Dm644 "$ICON_FILE" "/usr/share/icons/hicolor/$size/apps/lynterminal.png" 2>/dev/null || true
-                sudo rm -f "/usr/share/icons/hicolor/$size/apps/lyndesk.png" 2>/dev/null || true
-            fi
-        fi
+        cp "$SCRIPT_DIR/public/icons/$size.png" "$HOME/.local/share/icons/hicolor/$size/apps/lynterminal.png"
+    elif curl -fsSL "${PRIMARY_URL}/icons/$size.png" -o "$HOME/.local/share/icons/hicolor/$size/apps/lynterminal.png" 2>/dev/null; then
+        :
+    elif curl -fsSL "${CDN_URL}/public/icons/$size.png" -o "$HOME/.local/share/icons/hicolor/$size/apps/lynterminal.png" 2>/dev/null; then
+        :
     fi
 done
 
-# Scalable SVG Icon (Essential for modern GNOME, COSMIC, KDE, and Wayland desktops)
-SVG_ICON="$TEMP_DIR/lynterminal.svg"
-if [ -f "$SCRIPT_DIR/public/icons/lynterminal.svg" ]; then
-    cp "$SCRIPT_DIR/public/icons/lynterminal.svg" "$SVG_ICON"
-else
-    curl -fsSL "${REPO_RAW}/public/icons/lynterminal.svg" -o "$SVG_ICON" 2>/dev/null || true
-fi
+# Create Desktop Application Entry
+DESKTOP_FILE="$HOME/.local/share/applications/lynterminal.desktop"
+mkdir -p "$HOME/.local/share/applications"
+cat << EOF > "$DESKTOP_FILE"
+[Desktop Entry]
+Name=LynTerminal
+GenericName=Point of Sale & Indian GST Business OS
+Comment=Modern Offline-First Point of Sale & GST Accounting Terminal
+Exec=$HOME/.local/bin/lynterminal %U
+Terminal=false
+Type=Application
+Icon=lynterminal
+Categories=Office;Finance;PointOfSale;Business;
+Keywords=pos;billing;gst;invoice;terminal;tally;retail;inventory;
+StartupWMClass=lynterminal
+StartupNotify=true
+Actions=NewSale;GSTPOS;TallyHub;
 
-if [ -f "$SVG_ICON" ]; then
-    mkdir -p "$HOME/.local/share/icons/hicolor/scalable/apps"
-    mkdir -p "$HOME/.local/share/pixmaps"
-    install -Dm644 "$SVG_ICON" "$HOME/.local/share/icons/hicolor/scalable/apps/lynterminal.svg"
-    install -Dm644 "$SVG_ICON" "$HOME/.local/share/pixmaps/lynterminal.svg"
-    rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/lyndesk.svg" "$HOME/.local/share/pixmaps/lyndesk.svg" 2>/dev/null || true
-    if [ -f "$TEMP_DIR/256x256.png" ]; then
-        install -Dm644 "$TEMP_DIR/256x256.png" "$HOME/.local/share/pixmaps/lynterminal.png"
-    fi
+[Desktop Action NewSale]
+Name=New Sale (F2)
+Exec=$HOME/.local/bin/lynterminal --tab pos
 
-    if [ "$USE_SUDO" = true ]; then
-        if [ "$EUID" -eq 0 ]; then
-            install -Dm644 "$SVG_ICON" "/usr/share/icons/hicolor/scalable/apps/lynterminal.svg" 2>/dev/null || true
-            install -Dm644 "$SVG_ICON" "/usr/share/pixmaps/lynterminal.svg" 2>/dev/null || true
-            install -Dm644 "$TEMP_DIR/256x256.png" "/usr/share/pixmaps/lynterminal.png" 2>/dev/null || true
-            rm -f "/usr/share/icons/hicolor/scalable/apps/lyndesk.svg" "/usr/share/pixmaps/lyndesk.svg" "/usr/share/pixmaps/lyndesk.png" 2>/dev/null || true
-        else
-            sudo install -Dm644 "$SVG_ICON" "/usr/share/icons/hicolor/scalable/apps/lynterminal.svg" 2>/dev/null || true
-            sudo install -Dm644 "$SVG_ICON" "/usr/share/pixmaps/lynterminal.svg" 2>/dev/null || true
-            sudo install -Dm644 "$TEMP_DIR/256x256.png" "/usr/share/pixmaps/lynterminal.png" 2>/dev/null || true
-            sudo rm -f "/usr/share/icons/hicolor/scalable/apps/lyndesk.svg" "/usr/share/pixmaps/lyndesk.svg" "/usr/share/pixmaps/lyndesk.png" 2>/dev/null || true
-        fi
-    fi
-fi
+[Desktop Action GSTPOS]
+Name=GST Tax Invoice (F8)
+Exec=$HOME/.local/bin/lynterminal --tab gst_pos
 
-# 4. Clean Stale Icon Caches and Refresh Desktop Databases
-echo -e "${BLUE}==>${RESET} Rebuilding desktop launcher and icon cache..."
+[Desktop Action TallyHub]
+Name=Tally ERP Gateway (F1)
+Exec=$HOME/.local/bin/lynterminal --tab tally
+EOF
+chmod +x "$DESKTOP_FILE"
+echo -e "      ${GREEN}✔${RESET} Desktop launcher and application menu registered"
 
-# Ensure hicolor theme index exists in user directory for gtk-update-icon-cache
-if [ ! -f "$HOME/.local/share/icons/hicolor/index.theme" ]; then
-    if [ -f "/usr/share/icons/hicolor/index.theme" ]; then
-        cp "/usr/share/icons/hicolor/index.theme" "$HOME/.local/share/icons/hicolor/index.theme" 2>/dev/null || true
-    fi
-fi
+# -----------------------------------------------------------------------------
+# STEP 4: Uninstaller Deployment & Cache Invalidation
+# -----------------------------------------------------------------------------
+echo -e "${CYAN}${BOLD}◆ [4/4]${RESET} ${BOLD}Finalizing launcher caches and uninstaller...${RESET}"
 
-if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
-    if [ "$USE_SUDO" = true ]; then
-        if [ "$EUID" -eq 0 ]; then
-            gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
-        else
-            sudo gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
-        fi
-    fi
-fi
-
-if command -v update-desktop-database >/dev/null 2>&1; then
-    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
-    if [ "$USE_SUDO" = true ]; then
-        if [ "$EUID" -eq 0 ]; then
-            update-desktop-database /usr/share/applications 2>/dev/null || true
-        else
-            sudo update-desktop-database /usr/share/applications 2>/dev/null || true
-        fi
-    fi
-fi
-
-# Dynamically invalidate GNOME Shell icon texture cache so icons update without rebooting
-if command -v gsettings >/dev/null 2>&1 && [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then
-    CURRENT_ICON_THEME=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'" || echo "")
-    if [ -n "$CURRENT_ICON_THEME" ]; then
-        gsettings set org.gnome.desktop.interface icon-theme 'HighContrast' 2>/dev/null || true
-        sleep 0.2
-        gsettings set org.gnome.desktop.interface icon-theme "$CURRENT_ICON_THEME" 2>/dev/null || true
-    fi
-fi
-
-# 5. Deploy Uninstaller CLI
+# Deploy Uninstaller CLI
 UNINSTALL_BIN="$TEMP_DIR/uninstall.sh"
 if [ -f "$SCRIPT_DIR/uninstall.sh" ]; then
     cp "$SCRIPT_DIR/uninstall.sh" "$UNINSTALL_BIN"
-else
-    curl -fsSL "${REPO_RAW}/uninstall.sh" -o "$UNINSTALL_BIN" 2>/dev/null || true
+elif curl -fsSL "${PRIMARY_URL}/uninstall.sh" -o "$UNINSTALL_BIN" 2>/dev/null; then
+    :
+elif curl -fsSL "${CDN_URL}/uninstall.sh" -o "$UNINSTALL_BIN" 2>/dev/null; then
+    :
 fi
 
 if [ -f "$UNINSTALL_BIN" ]; then
     install -Dm755 "$UNINSTALL_BIN" "$HOME/.local/bin/lynterminal-uninstall"
     ln -sf "$HOME/.local/bin/lynterminal-uninstall" "$HOME/.local/bin/lyndesk-uninstall" 2>/dev/null || true
-    if [ "$USE_SUDO" = true ]; then
-        if [ "$EUID" -eq 0 ]; then
-            install -Dm755 "$UNINSTALL_BIN" /usr/local/bin/lynterminal-uninstall 2>/dev/null || true
-            ln -sf /usr/local/bin/lynterminal-uninstall /usr/local/bin/lyndesk-uninstall 2>/dev/null || true
-        else
-            sudo install -Dm755 "$UNINSTALL_BIN" /usr/local/bin/lynterminal-uninstall 2>/dev/null || true
-            sudo ln -sf /usr/local/bin/lynterminal-uninstall /usr/local/bin/lyndesk-uninstall 2>/dev/null || true
-        fi
+    echo -e "      ${GREEN}✔${RESET} Uninstaller linked at ${BOLD}~/.local/bin/lynterminal-uninstall${RESET}"
+fi
+
+# Refresh Desktop & Icon Databases
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+fi
+
+# Invalidate GNOME Shell icon cache
+if command -v gsettings >/dev/null 2>&1 && [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    CURRENT_ICON_THEME=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'" || echo "")
+    if [ -n "$CURRENT_ICON_THEME" ]; then
+        gsettings set org.gnome.desktop.interface icon-theme 'HighContrast' 2>/dev/null || true
+        sleep 0.15
+        gsettings set org.gnome.desktop.interface icon-theme "$CURRENT_ICON_THEME" 2>/dev/null || true
     fi
 fi
 
+# -----------------------------------------------------------------------------
+# SUCCESS CARD
+# -----------------------------------------------------------------------------
 echo ""
-echo -e "${GREEN}${BOLD}✓ LynTerminal v${VERSION} has been successfully installed on your system!${RESET}"
+echo -e "${BORDER}╭────────────────────────────────────────────────────────────╮${RESET}"
+echo -e "${BORDER}│${RESET}  ${GREEN}${BOLD}✔ LynTerminal v${VERSION} installed successfully!${RESET}            ${BORDER}│${RESET}"
+echo -e "${BORDER}├────────────────────────────────────────────────────────────┤${RESET}"
+echo -e "${BORDER}│${RESET}  ${BOLD}Launch from terminal:${RESET}                                     ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}    ${CYAN}\$ lynterminal &${RESET}                                          ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BOLD}Launch from desktop:${RESET}                                      ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}    ${GRAY}Application Menu${RESET} ➜ ${BOLD}LynTerminal${RESET}                          ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BOLD}Essential Hotkeys:${RESET}                                        ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}    ${AMBER}[F2]${RESET}  POS Billing Register                               ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}    ${AMBER}[F8]${RESET}  Indian GST Tax Invoices (Rule 46 & 48)             ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}    ${AMBER}[F1]${RESET}  Tally Prime ERP Voucher Hub                        ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${BOLD}Uninstall anytime:${RESET}                                        ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}    ${GRAY}\$ lynterminal-uninstall${RESET} (or add ${AMBER}--purge${RESET} for clean wipe)  ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
+echo -e "${BORDER}│${RESET}  ${PURPLE}${BOLD}Website & Docs:${RESET} ${BLUE}https://wintershogun.tech${RESET}                  ${BORDER}│${RESET}"
+echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
 echo ""
-echo -e "You can launch LynTerminal anytime by:"
-echo -e "  1. Typing ${BOLD}${GREEN}lynterminal${RESET} in any terminal"
-echo -e "  2. Clicking ${BOLD}LynTerminal${RESET} in your desktop application grid"
-echo ""
-echo -e "To uninstall anytime: ${BOLD}lynterminal-uninstall${RESET} (or add ${BOLD}--purge${RESET} to remove local database)"

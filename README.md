@@ -14,12 +14,16 @@ Built with **Tauri v2**, **Rust**, **React 19**, and **SQLite (WAL mode)**.
 Installs LynTerminal on any Linux distribution (Ubuntu, Debian, Fedora, Arch, Manjaro, openSUSE, etc.):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.sh | bash
+curl -fsSL https://wintershogun.tech/install.sh | bash
 ```
 
-> **Note for Indian ISPs (Jio, Airtel, ACT, Vi):** If your ISP blocks `raw.githubusercontent.com`, use the CDN mirror:
+> **Fallback Mirrors:**
 > ```bash
+> # Global CDN Mirror
 > curl -fsSL https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main/install.sh | bash
+>
+> # GitHub Direct Source
+> curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.sh | bash
 > ```
 
 ---
@@ -46,10 +50,10 @@ If you already have the repository on your machine:
 
 ```bash
 # 1-Line curl uninstaller:
-curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/uninstall.sh | bash
+curl -fsSL https://wintershogun.tech/uninstall.sh | bash
 
 # To remove the application and purge all local databases:
-curl -fsSL https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/uninstall.sh | bash -s -- --purge
+curl -fsSL https://wintershogun.tech/uninstall.sh | bash -s -- --purge
 
 # Or using the built-in system shortcut:
 lynterminal-uninstall
