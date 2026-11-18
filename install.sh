@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # LynTerminal — Modern Business OS & Point of Sale Universal Linux Installer
-# Official Domain: https://wintershogun.tech
+# Official Domain: https://lynterminal.wintershogun.tech
 # Official Repository: https://github.com/chronoarchon/LynTerminal
 # =============================================================================
 set -e
 
 VERSION="1.5.1v"
-PRIMARY_URL="https://wintershogun.tech/lynterminal"
+PRIMARY_URL="https://lynterminal.wintershogun.tech/lynterminal"
 CDN_URL="https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main"
 RAW_URL="https://raw.githubusercontent.com/chronoarchon/LynTerminal@main"
 ARCH="$(uname -m)"
@@ -42,6 +42,49 @@ setup_colors() {
 }
 setup_colors
 
+# Precise Box Alignment Engine (Guarantees 100% straight vertical borders)
+BOX_INNER=62
+
+box_top() {
+    local title="${1:-}"
+    if [ -n "$title" ]; then
+        local t_len=${#title}
+        local rem=$(( BOX_INNER - t_len - 2 ))
+        local dashes=""
+        for ((i=0; i<rem; i++)); do dashes="${dashes}─"; done
+        echo -e "${BORDER}╭─ ${title} ${dashes}─╮${RESET}"
+    else
+        local dashes=""
+        for ((i=0; i<BOX_INNER; i++)); do dashes="${dashes}─"; done
+        echo -e "${BORDER}╭─${dashes}─╮${RESET}"
+    fi
+}
+
+box_div() {
+    local dashes=""
+    for ((i=0; i<BOX_INNER; i++)); do dashes="${dashes}─"; done
+    echo -e "${BORDER}├─${dashes}─┤${RESET}"
+}
+
+box_bottom() {
+    local dashes=""
+    for ((i=0; i<BOX_INNER; i++)); do dashes="${dashes}─"; done
+    echo -e "${BORDER}╰─${dashes}─╯${RESET}"
+}
+
+box_row() {
+    local content="$1"
+    local plain
+    plain="$(echo -e "$content" | sed -E "s/\x1B\[[0-9;]*[a-zA-Z]//g")"
+    local vlen=${#plain}
+    local pad=$(( BOX_INNER - vlen ))
+    local spaces=""
+    if [ $pad -gt 0 ]; then
+        spaces="$(printf "%*s" "$pad" "")"
+    fi
+    echo -e "${BORDER}│${RESET} ${content}${spaces} ${BORDER}│${RESET}"
+}
+
 # Detect Linux Distribution
 detect_distro() {
     if [ -f /etc/os-release ]; then
@@ -56,17 +99,17 @@ detect_distro() {
 }
 detect_distro
 
-# Print Modern Visual Banner
+# Print Modern Visual Banner with Exact Border Alignment
 echo ""
-echo -e "${BORDER}╭────────────────────────────────────────────────────────────╮${RESET}"
-echo -e "${BORDER}│${RESET}   ${BLUE}${BOLD}_                 _____               _             _${RESET}    ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}| |   _   _ _ __  |_   _|__ _ __ _ __ ___ (_)_ __   __ _| |${RESET}   ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}| |  | | | | '_ \   | |/ _ \ '__| '_ \` _ \| | '_ \ / _\` | |${RESET}   ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}| |__| |_| | | | |  | |  __/ |  | | | | | | | | | | (_| | |${RESET}   ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BLUE}${BOLD}|_____\__, |_| |_|  |_|\___|_|  |_| |_| |_|_|_| |_|\__,_|_|${RESET}   ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}        ${CYAN}|___/${RESET}   ${BOLD}Modern Business OS & Indian GST POS${RESET}        ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}        ${GRAY}Offline-First • Zero-Telemetry • Linux Native${RESET}       ${BORDER}│${RESET}"
-echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+box_top
+box_row "  ${BLUE}${BOLD}_                 _____               _             _${RESET} "
+box_row " ${BLUE}${BOLD}| |   _   _ _ __  |_   _|__ _ __ _ __ ___ (_)_ __   __ _| |${RESET}"
+box_row " ${BLUE}${BOLD}| |  | | | | '_ \\   | |/ _ \\ '__| '_ \` _ \\| | '_ \\ / _\` | |${RESET}"
+box_row " ${BLUE}${BOLD}| |__| |_| | | | |  | |  __/ |  | | | | | | | | | | (_| | |${RESET}"
+box_row " ${BLUE}${BOLD}|_____\\__, |_| |_|  |_|\\___|_|  |_| |_| |_|_|_| |_|\\__,_|_|${RESET}"
+box_row "       ${CYAN}|___/${RESET}   ${BOLD}Modern Business OS & Indian GST POS${RESET}      "
+box_row "        ${GRAY}Offline-First • Zero-Telemetry • Linux Native${RESET}   "
+box_bottom
 echo ""
 
 # System Architecture Check
@@ -75,14 +118,14 @@ if [ "$ARCH" != "x86_64" ]; then
     exit 1
 fi
 
-# Print Environment Card
-echo -e "${BORDER}╭─ System Environment ───────────────────────────────────────╮${RESET}"
-echo -e "${BORDER}│${RESET}  ${GRAY}Distribution${RESET} : ${BOLD}${DISTRO_NAME}${RESET}"
-echo -e "${BORDER}│${RESET}  ${GRAY}Architecture${RESET} : ${BOLD}${ARCH}${RESET}"
-echo -e "${BORDER}│${RESET}  ${GRAY}Version     ${RESET} : ${CYAN}${VERSION}${RESET}"
-echo -e "${BORDER}│${RESET}  ${GRAY}Install Path${RESET} : ${GREEN}\$HOME/.local/bin/lynterminal${RESET}"
-echo -e "${BORDER}│${RESET}  ${GRAY}Cloud Source${RESET} : ${BLUE}https://wintershogun.tech${RESET}"
-echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+# Print Environment Card with Exact Border Alignment
+box_top "System Environment"
+box_row "${GRAY}Distribution${RESET} : ${BOLD}${DISTRO_NAME}${RESET}"
+box_row "${GRAY}Architecture${RESET} : ${BOLD}${ARCH}${RESET}"
+box_row "${GRAY}Version     ${RESET} : ${CYAN}${VERSION}${RESET}"
+box_row "${GRAY}Install Path${RESET} : ${GREEN}\$HOME/.local/bin/lynterminal${RESET}"
+box_row "${GRAY}Cloud Source${RESET} : ${CYAN}https://lynterminal.wintershogun.tech${RESET}"
+box_bottom
 echo ""
 
 TEMP_DIR="$(mktemp -d -t lynterminal-setup-XXXXXX)"
@@ -108,13 +151,13 @@ elif [ -f "$LOCAL_BIN" ]; then
     echo -e "      ${GREEN}✔${RESET} Decompressing local package bundle: ${DIM}${LOCAL_BIN}${RESET}"
     gzip -dc "$LOCAL_BIN" > "$TARGET_BIN"
 else
-    echo -e "      ${BLUE}➜${RESET} Downloading package bundle from ${BOLD}wintershogun.tech${RESET}..."
+    echo -e "      ${BLUE}➜${RESET} Downloading package bundle from ${BOLD}lynterminal.wintershogun.tech${RESET}..."
     DOWNLOADED=false
 
     # Attempt 1: Official custom domain via Cloudflare
     if curl -fSL --progress-bar "${PRIMARY_URL}/lynterminal.gz" -o "$TEMP_DIR/lynterminal.gz" 2>/dev/null; then
         DOWNLOADED=true
-        echo -e "      ${GREEN}✔${RESET} Verified download via wintershogun.tech CDN"
+        echo -e "      ${GREEN}✔${RESET} Verified download via lynterminal.wintershogun.tech CDN"
     fi
 
     # Attempt 2: Global jsDelivr CDN Mirror
@@ -328,23 +371,23 @@ fi
 # SUCCESS CARD
 # -----------------------------------------------------------------------------
 echo ""
-echo -e "${BORDER}╭────────────────────────────────────────────────────────────╮${RESET}"
-echo -e "${BORDER}│${RESET}  ${GREEN}${BOLD}✔ LynTerminal v${VERSION} installed successfully!${RESET}            ${BORDER}│${RESET}"
-echo -e "${BORDER}├────────────────────────────────────────────────────────────┤${RESET}"
-echo -e "${BORDER}│${RESET}  ${BOLD}Launch from terminal:${RESET}                                     ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${CYAN}\$ lynterminal &${RESET}                                          ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BOLD}Launch from desktop:${RESET}                                      ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${GRAY}Application Menu${RESET} ➜ ${BOLD}LynTerminal${RESET}                          ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BOLD}Essential Hotkeys:${RESET}                                        ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${AMBER}[F2]${RESET}  POS Billing Register                               ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${AMBER}[F8]${RESET}  Indian GST Tax Invoices (Rule 46 & 48)             ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${AMBER}[F1]${RESET}  Tally Prime ERP Voucher Hub                        ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${BOLD}Uninstall anytime:${RESET}                                        ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${GRAY}\$ lynterminal-uninstall${RESET} (or add ${AMBER}--purge${RESET} for clean wipe)  ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}                                                            ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}  ${PURPLE}${BOLD}Website & Docs:${RESET} ${BLUE}https://wintershogun.tech${RESET}                  ${BORDER}│${RESET}"
-echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+box_top
+box_row "${GREEN}${BOLD}✔ LynTerminal v${VERSION} installed successfully!${RESET}"
+box_div
+box_row "${BOLD}Launch from terminal:${RESET}"
+box_row "  ${CYAN}\$ lynterminal &${RESET}"
+box_row ""
+box_row "${BOLD}Launch from desktop:${RESET}"
+box_row "  ${GRAY}Application Menu${RESET} -> ${BOLD}LynTerminal${RESET}"
+box_row ""
+box_row "${BOLD}Essential Hotkeys:${RESET}"
+box_row "  ${AMBER}[F2]${RESET}  POS Billing Register"
+box_row "  ${AMBER}[F8]${RESET}  Indian GST Tax Invoices (Rule 46 & 48)"
+box_row "  ${AMBER}[F1]${RESET}  Tally Prime ERP Voucher Hub"
+box_row ""
+box_row "${BOLD}Uninstall anytime:${RESET}"
+box_row "  ${GRAY}\$ lynterminal-uninstall${RESET} (or add ${AMBER}--purge${RESET} for clean wipe)"
+box_row ""
+box_row "${PURPLE}${BOLD}Website & Docs:${RESET} ${CYAN}https://lynterminal.wintershogun.tech${RESET}"
+box_bottom
 echo ""

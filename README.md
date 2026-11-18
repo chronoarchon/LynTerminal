@@ -14,7 +14,7 @@ Built with **Tauri v2**, **Rust**, **React 19**, and **SQLite (WAL mode)**.
 Installs LynTerminal on any Linux distribution (Ubuntu, Debian, Fedora, Arch, Manjaro, openSUSE, etc.):
 
 ```bash
-curl -fsSL https://wintershogun.tech/install.sh | bash
+curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash
 ```
 
 > **Fallback Mirrors:**
@@ -50,10 +50,10 @@ If you already have the repository on your machine:
 
 ```bash
 # 1-Line curl uninstaller:
-curl -fsSL https://wintershogun.tech/uninstall.sh | bash
+curl -fsSL https://lynterminal.wintershogun.tech/uninstall.sh | bash
 
 # To remove the application and purge all local databases:
-curl -fsSL https://wintershogun.tech/uninstall.sh | bash -s -- --purge
+curl -fsSL https://lynterminal.wintershogun.tech/uninstall.sh | bash -s -- --purge
 
 # Or using the built-in system shortcut:
 lynterminal-uninstall

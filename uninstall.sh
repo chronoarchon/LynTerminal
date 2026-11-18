@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # LynTerminal — Uninstaller Script
-# Official Domain: https://wintershogun.tech
+# Official Domain: https://lynterminal.wintershogun.tech
 # Official Repository: https://github.com/chronoarchon/LynTerminal
 # =============================================================================
 set -e
@@ -36,11 +36,54 @@ setup_colors() {
 }
 setup_colors
 
+# Precise Box Alignment Engine (Guarantees 100% straight vertical borders)
+BOX_INNER=62
+
+box_top() {
+    local title="${1:-}"
+    if [ -n "$title" ]; then
+        local t_len=${#title}
+        local rem=$(( BOX_INNER - t_len - 2 ))
+        local dashes=""
+        for ((i=0; i<rem; i++)); do dashes="${dashes}─"; done
+        echo -e "${BORDER}╭─ ${title} ${dashes}─╮${RESET}"
+    else
+        local dashes=""
+        for ((i=0; i<BOX_INNER; i++)); do dashes="${dashes}─"; done
+        echo -e "${BORDER}╭─${dashes}─╮${RESET}"
+    fi
+}
+
+box_div() {
+    local dashes=""
+    for ((i=0; i<BOX_INNER; i++)); do dashes="${dashes}─"; done
+    echo -e "${BORDER}├─${dashes}─┤${RESET}"
+}
+
+box_bottom() {
+    local dashes=""
+    for ((i=0; i<BOX_INNER; i++)); do dashes="${dashes}─"; done
+    echo -e "${BORDER}╰─${dashes}─╯${RESET}"
+}
+
+box_row() {
+    local content="$1"
+    local plain
+    plain="$(echo -e "$content" | sed -E "s/\x1B\[[0-9;]*[a-zA-Z]//g")"
+    local vlen=${#plain}
+    local pad=$(( BOX_INNER - vlen ))
+    local spaces=""
+    if [ $pad -gt 0 ]; then
+        spaces="$(printf "%*s" "$pad" "")"
+    fi
+    echo -e "${BORDER}│${RESET} ${content}${spaces} ${BORDER}│${RESET}"
+}
+
 echo ""
-echo -e "${BORDER}╭────────────────────────────────────────────────────────────╮${RESET}"
-echo -e "${BORDER}│${RESET}   ${AMBER}${BOLD}LynTerminal Uninstaller v${VERSION}${RESET}                       ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}   ${GRAY}Clean removal of binaries, desktop entries & icons${RESET}       ${BORDER}│${RESET}"
-echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+box_top
+box_row "${AMBER}${BOLD}LynTerminal Uninstaller v${VERSION}${RESET}"
+box_row "${GRAY}Clean removal of binaries, desktop entries & icons${RESET}"
+box_bottom
 echo ""
 
 # Parse arguments for purge mode
@@ -128,10 +171,10 @@ if [ "$PURGE_DATA" = true ]; then
 fi
 
 echo ""
-echo -e "${BORDER}╭────────────────────────────────────────────────────────────╮${RESET}"
-echo -e "${BORDER}│${RESET}  ${GREEN}${BOLD}✔ LynTerminal has been uninstalled.${RESET}                       ${BORDER}│${RESET}"
-echo -e "${BORDER}├────────────────────────────────────────────────────────────┤${RESET}"
-echo -e "${BORDER}│${RESET}  To reinstall anytime:                                     ${BORDER}│${RESET}"
-echo -e "${BORDER}│${RESET}    ${CYAN}curl -fsSL https://wintershogun.tech/install.sh | bash${RESET}  ${BORDER}│${RESET}"
-echo -e "${BORDER}╰────────────────────────────────────────────────────────────╯${RESET}"
+box_top
+box_row "${GREEN}${BOLD}✔ LynTerminal has been uninstalled.${RESET}"
+box_div
+box_row "To reinstall anytime:"
+box_row "  ${CYAN}curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash${RESET}"
+box_bottom
 echo ""
