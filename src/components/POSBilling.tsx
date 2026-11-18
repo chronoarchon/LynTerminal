@@ -18,7 +18,7 @@ import {
   Users,
   AlertCircle,
 } from "lucide-react";
-import type { Item, Party, Settings, InvoicePayload, InvoiceDetail } from "../types";
+import type { Item, Party, Settings, InvoicePayload, InvoiceDetail, LicenseStatus } from "../types";
 import { api } from "../services/api";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { useAppleDialog } from "./common/AppleDialog";
@@ -28,9 +28,12 @@ interface POSBillingProps {
   settings: Settings;
   items: Item[];
   parties: Party[];
+  licenseStatus?: LicenseStatus | null;
   onInvoiceCreated: () => void;
   onRefreshData: () => void;
+  onOpenLicenseModal?: () => void;
 }
+
 
 interface CartItem {
   item_id: string;
@@ -47,8 +50,10 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   settings,
   items,
   parties,
+  licenseStatus,
   onInvoiceCreated,
   onRefreshData,
+  onOpenLicenseModal,
 }) => {
   const { currencySymbol, formatCurrency } = useCurrency();
   const currency = currencySymbol || settings.currency_symbol || "$";
@@ -355,6 +360,17 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    if (licenseStatus?.is_expired) {
+      onOpenLicenseModal?.();
+      appleAlert({
+        title: "14-Day Free Trial Expired",
+        message: "Your evaluation trial has ended. Please activate your commercial license to complete checkout and issue new bills.",
+        type: "warning",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -494,6 +510,22 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-[#F5F5F7] overflow-hidden relative select-none">
+      {/* 14-Day Free Trial Expired Warning Banner */}
+      {licenseStatus?.is_expired && (
+        <div className="w-full bg-rose-50 border-b border-rose-200 px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 z-30 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-rose-800 font-medium">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>14-Day Free Trial Expired — Counter billing is locked until activated. Past sales and records remain safe.</span>
+          </div>
+          <button
+            onClick={onOpenLicenseModal}
+            className="px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer shrink-0"
+          >
+            Activate License
+          </button>
+        </div>
+      )}
+
       
       {/* Toast Notification */}
       {successToast && (

@@ -490,6 +490,36 @@ export function initBrowserMock() {
           return [
             { id: "ba-1", bank_name: "Silicon Valley Commercial", account_number: "****4821", current_balance: 14800.0 },
           ];
+        case "get_license_status":
+          return {
+            is_licensed: false,
+            is_trial: true,
+            is_expired: false,
+            days_elapsed: 2,
+            days_remaining: 12,
+            trial_days_limit: 14,
+            first_run_date: new Date(Date.now() - 2 * 86400000).toISOString(),
+            license_key: null,
+            license_tier: null,
+            customer_email: null,
+            activated_at: null,
+            platform: "windows",
+          };
+        case "activate_license":
+          return {
+            is_licensed: true,
+            is_trial: false,
+            is_expired: false,
+            days_elapsed: 2,
+            days_remaining: 12,
+            trial_days_limit: 14,
+            first_run_date: new Date(Date.now() - 2 * 86400000).toISOString(),
+            license_key: _args?.payload?.license_key || "LYN-COMM-TEST-MOCK-XXXX-YYYY",
+            license_tier: "Commercial Windows Lifetime",
+            customer_email: _args?.payload?.customer_email || "user@store.local",
+            activated_at: new Date().toISOString(),
+            platform: "windows",
+          };
         case "show_main_window":
           return null;
         default:

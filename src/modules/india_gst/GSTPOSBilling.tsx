@@ -12,7 +12,7 @@ import {
   Banknote,
   Building,
 } from "lucide-react";
-import type { Item, Party, Settings } from "../../types";
+import type { Item, Party, Settings, LicenseStatus } from "../../types";
 import type {
   GstSettings,
   CompleteGstInvoice,
@@ -33,9 +33,12 @@ interface GSTPOSBillingProps {
   gstSettings: GstSettings;
   items: Item[];
   parties: Party[];
+  licenseStatus?: LicenseStatus | null;
   onInvoiceCreated: () => void;
   onRefreshData: () => void;
+  onOpenLicenseModal?: () => void;
 }
+
 
 interface GSTCartItem {
   item_id?: string;
@@ -53,8 +56,10 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
   gstSettings,
   items,
   parties,
+  licenseStatus,
   onInvoiceCreated,
   onRefreshData,
+  onOpenLicenseModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -256,6 +261,16 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
       return;
     }
 
+    if (licenseStatus?.is_expired) {
+      onOpenLicenseModal?.();
+      alert({
+        title: "14-Day Free Trial Expired",
+        message: "Your evaluation trial has ended. Please activate your commercial license to complete checkout and issue new GST bills.",
+        type: "warning",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const todayStr = new Date().toISOString().split("T")[0];
@@ -352,7 +367,25 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4 p-4">
+    <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
+      {/* 14-Day Free Trial Expired Warning Banner */}
+      {licenseStatus?.is_expired && (
+        <div className="w-full bg-rose-50 border border-rose-200 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 z-30 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-rose-800 font-medium">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>14-Day Free Trial Expired — GST counter billing is locked until activated. Past invoices and reports remain safe.</span>
+          </div>
+          <button
+            onClick={onOpenLicenseModal}
+            className="px-3.5 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer shrink-0"
+          >
+            Activate License
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+
       {/* LEFT COLUMN: Product Catalog & Quick HSN Picker */}
       <div className="flex-1 flex flex-col bg-white rounded-2xl border border-black/[0.08] shadow-xs overflow-hidden min-w-0">
         {/* Search & Categories Bar */}
@@ -785,6 +818,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Completed Rule 46 Tax Invoice Modal */}

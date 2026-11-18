@@ -7,7 +7,7 @@ import { AppleDialogProvider } from "./components/common/AppleDialog";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { gstApi } from "./modules/india_gst/gstApi";
 import type { GstSettings } from "./modules/india_gst/gstTypes";
-import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, AppUpdateInfo } from "./types";
+import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, AppUpdateInfo, LicenseStatus } from "./types";
 import { api } from "./services/api";
 
 import { DashboardView } from "./components/DashboardView";
@@ -41,6 +41,10 @@ const SetupWizardModal = lazy(() =>
 const UpdateNotificationModal = lazy(() =>
   import("./components/UpdateNotificationModal").then((m) => ({ default: m.UpdateNotificationModal }))
 );
+const TrialActivationModal = lazy(() =>
+  import("./components/TrialActivationModal").then((m) => ({ default: m.TrialActivationModal }))
+);
+
 
 function ViewFallback() {
   return (
@@ -95,6 +99,9 @@ export function AppContent() {
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+
 
   // Check for updates on startup and periodically (every 4 hours)
   useEffect(() => {
@@ -137,7 +144,7 @@ export function AppContent() {
   const loadAllData = useCallback(async () => {
     try {
       // Phase 1: Essential configuration & security check (sub-10ms)
-      const [fetchedSettings, fetchedAuth, fetchedGstSettings] = await Promise.all([
+      const [fetchedSettings, fetchedAuth, fetchedGstSettings, fetchedLicense] = await Promise.all([
         api.getSettings().catch((e) => {
           console.error("Error fetching settings:", e);
           return defaultSettings;
@@ -150,10 +157,21 @@ export function AppContent() {
           console.error("Error fetching GST settings:", e);
           return null;
         }),
+        api.getLicenseStatus().catch((e) => {
+          console.error("Error fetching license status:", e);
+          return null;
+        }),
       ]);
 
       if (fetchedSettings) setSettings(fetchedSettings);
       if (fetchedGstSettings) setGstSettings(fetchedGstSettings);
+      if (fetchedLicense) {
+        setLicenseStatus(fetchedLicense);
+        if (fetchedLicense.is_expired && !fetchedLicense.is_licensed) {
+          setIsLicenseModalOpen(true);
+        }
+      }
+
 
       if (fetchedAuth) {
         setAuthState(fetchedAuth);
@@ -312,8 +330,10 @@ export function AppContent() {
             settings={settings}
             items={items}
             parties={parties}
+            licenseStatus={licenseStatus}
             onInvoiceCreated={loadAllData}
             onRefreshData={loadAllData}
+            onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
         );
       case "inventory":
@@ -376,7 +396,9 @@ export function AppContent() {
           <SettingsView
             settings={settings}
             gstSettings={gstSettings}
+            licenseStatus={licenseStatus}
             onSettingsUpdated={handleSettingsUpdated}
+            onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
         );
       case "gst_hub":
@@ -394,8 +416,10 @@ export function AppContent() {
             gstSettings={gstSettings || ({} as any)}
             items={items}
             parties={parties}
+            licenseStatus={licenseStatus}
             onInvoiceCreated={loadAllData}
             onRefreshData={loadAllData}
+            onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
         );
       case "gst_credit":
@@ -425,6 +449,8 @@ export function AppContent() {
             onSelectTab={setActiveTab}
             lowStockCount={summary?.low_stock_count ?? 0}
             showGst={isGstActive}
+            licenseStatus={licenseStatus}
+            onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
         </div>
 
@@ -432,8 +458,16 @@ export function AppContent() {
         <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden bg-[#F5F5F7] relative">
           <Header
             settings={settings}
-            onOpenQuickSale={() => setActiveTab(isGstActive ? "gst_pos" : "pos")}
+            licenseStatus={licenseStatus}
+            onOpenQuickSale={() => {
+              if (licenseStatus?.is_expired) {
+                setIsLicenseModalOpen(true);
+              } else {
+                setActiveTab(isGstActive ? "gst_pos" : "pos");
+              }
+            }}
             onLockApp={authState?.has_account ? handleLockApp : undefined}
+            onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
 
           <main
@@ -486,7 +520,21 @@ export function AppContent() {
             onClose={() => setIsUpdateModalOpen(false)}
           />
         </Suspense>
+
+        {/* Commercial License & 14-Day Trial Activation Modal */}
+        <Suspense fallback={null}>
+          <TrialActivationModal
+            isOpen={isLicenseModalOpen}
+            onClose={() => setIsLicenseModalOpen(false)}
+            licenseStatus={licenseStatus}
+            onActivated={(updated) => {
+              setLicenseStatus(updated);
+              loadAllData();
+            }}
+          />
+        </Suspense>
       </div>
+
     </CurrencyProvider>
   );
 }

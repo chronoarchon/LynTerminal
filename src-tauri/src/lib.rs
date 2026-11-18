@@ -109,6 +109,8 @@ pub fn run() {
             commands::apply_update_and_restart,
             commands::check_app_update,
             commands::apply_app_update,
+            commands::get_license_status,
+            commands::activate_license,
             // Indian GST & Tally-Compliant Accounting commands
             gst::get_gst_settings,
             gst::save_gst_settings,

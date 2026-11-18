@@ -2187,6 +2187,9 @@ pub fn create_gst_invoice(
     state: State<'_, Mutex<AppState>>,
 ) -> Result<CompleteGstInvoice, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
+    if app.db.is_trial_expired() {
+        return Err("14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into());
+    }
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     create_gst_invoice_internal(&mut conn, payload)
 }

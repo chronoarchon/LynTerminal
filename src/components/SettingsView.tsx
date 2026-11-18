@@ -36,7 +36,9 @@ const UpdateNotificationModal = React.lazy(() =>
 interface SettingsViewProps {
   settings: Settings | null;
   gstSettings?: GstSettings | null;
+  licenseStatus?: import("../types").LicenseStatus | null;
   onSettingsUpdated: (newSettings: Settings) => void;
+  onOpenLicenseModal?: () => void;
 }
 
 const COMMON_CURRENCIES = [
@@ -107,7 +109,9 @@ const TAX_PRESETS: {
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   gstSettings,
+  licenseStatus,
   onSettingsUpdated,
+  onOpenLicenseModal,
 }) => {
   const [formData, setFormData] = useState<Settings>({
     id: 1,
@@ -1552,6 +1556,70 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               No backup snapshots yet. Press "Create Snapshot" to create one.
             </div>
           )}
+        </div>
+      </div>
+
+      {/* SECTION: Commercial Licensing & 14-Day Trial Engine */}
+      <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
+        <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#0071E3]" />
+            <h2 className="text-sm font-semibold text-[#1D1D1F]">
+              Commercial Licensing & Air-Gapped Key Verification
+            </h2>
+          </div>
+          <span
+            className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${
+              licenseStatus?.is_licensed
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : licenseStatus?.is_expired
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : "bg-blue-50 text-[#0071E3] border-blue-200"
+            }`}
+          >
+            {licenseStatus?.is_licensed
+              ? "LICENSED PERPETUAL"
+              : licenseStatus?.is_expired
+              ? "TRIAL EXPIRED"
+              : `14-DAY TRIAL (${licenseStatus?.days_remaining ?? 14}d left)`}
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
+          <div className="space-y-1">
+            <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
+              <span>Status: {licenseStatus?.is_licensed ? "Commercial Lifetime License Active" : licenseStatus?.is_expired ? "Evaluation Trial Concluded (Billing Locked)" : "14-Day Free Evaluation Trial"}</span>
+            </div>
+            {licenseStatus?.is_licensed ? (
+              <p className="text-[11px] text-[#6E6E73] font-mono">
+                Key: {licenseStatus.license_key || "LYN-COMM-XXXX-XXXX-XXXX-XXXX"} &bull; Verified 100% Offline via local SHA256 cryptographic MAC.
+              </p>
+            ) : (
+              <p className="text-[11px] text-[#6E6E73] leading-relaxed">
+                LynTerminal includes a 14-day free trial on your counter. Pay once for a lifetime commercial license with zero monthly subscriptions.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenLicenseModal}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#1D1D1F] hover:bg-[#2D2D2F] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            >
+              <span>{licenseStatus?.is_licensed ? "View License" : "Enter License Key"}</span>
+            </button>
+            {!licenseStatus?.is_licensed && (
+              <a
+                href="https://lynterminal.wintershogun.tech/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              >
+                <span>Buy License ($20 / ₹1,800)</span>
+              </a>
+            )}
+          </div>
         </div>
       </div>
 

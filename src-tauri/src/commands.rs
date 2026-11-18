@@ -1002,6 +1002,9 @@ pub fn create_invoice(
     state: State<'_, Mutex<AppState>>,
 ) -> Result<InvoiceDetail, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
+    if app.db.is_trial_expired() {
+        return Err("14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into());
+    }
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     create_invoice_internal(&mut conn, payload)
 }
@@ -6577,4 +6580,21 @@ pub fn apply_app_update(
     // 4. Apply & Restart
     apply_update_and_restart(target_version, app_handle)
 }
+
+#[tauri::command]
+pub fn get_license_status(state: State<'_, Mutex<AppState>>) -> Result<LicenseStatus, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    app.db.get_license_status()
+}
+
+#[tauri::command]
+pub fn activate_license(
+    payload: LicenseActivationPayload,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<LicenseStatus, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    app.db.activate_license(&payload.license_key, payload.customer_email)
+}
+
+
 

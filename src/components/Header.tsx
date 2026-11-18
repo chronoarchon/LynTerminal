@@ -5,21 +5,28 @@ import {
   Calendar,
   CheckCircle2,
   Lock,
+  Key,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
-import type { Settings } from "../types";
+import type { Settings, LicenseStatus } from "../types";
 import { Logo } from "./Logo";
 import { useCurrency } from "../context/CurrencyContext";
 
 interface HeaderProps {
   settings: Settings | null;
+  licenseStatus?: LicenseStatus | null;
   onOpenQuickSale: () => void;
   onLockApp?: () => void;
+  onOpenLicenseModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   settings,
+  licenseStatus,
   onOpenQuickSale,
   onLockApp,
+  onOpenLicenseModal,
 }) => {
   const { currencyCode } = useCurrency();
   const today = new Date().toLocaleDateString(undefined, {
@@ -53,8 +60,41 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Controls: Offline Status + New Sale Action */}
+      {/* Right Controls: Trial / License Badge + Offline Status + Actions */}
       <div className="flex items-center gap-2.5">
+        {/* Trial & License Badge */}
+        {licenseStatus && (
+          <button
+            onClick={onOpenLicenseModal}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition apple-press cursor-pointer ${
+              licenseStatus.is_licensed
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : licenseStatus.is_expired
+                ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
+                : "bg-blue-50 text-[#0071E3] border-blue-200"
+            }`}
+            title="Commercial License Status"
+          >
+            {licenseStatus.is_licensed ? (
+              <>
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                <span className="hidden sm:inline">Commercial Licensed</span>
+                <span className="sm:hidden">Licensed</span>
+              </>
+            ) : licenseStatus.is_expired ? (
+              <>
+                <AlertTriangle className="w-3 h-3 text-rose-600" />
+                <span>Trial Expired • Activate</span>
+              </>
+            ) : (
+              <>
+                <Key className="w-3 h-3 text-[#0071E3]" />
+                <span>14-Day Trial ({licenseStatus.days_remaining}d left)</span>
+              </>
+            )}
+          </button>
+        )}
+
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#86868B] font-medium">
           <CheckCircle2 className="w-3.5 h-3.5 text-[#34C759]" />
           <span>Offline & Private</span>
@@ -89,3 +129,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

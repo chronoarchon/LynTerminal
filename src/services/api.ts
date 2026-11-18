@@ -43,6 +43,8 @@ import type {
   AuthState,
   SetupPayload,
   AppUpdateInfo,
+  LicenseStatus,
+  LicenseActivationPayload,
 } from "../types";
 
 export const api = {
@@ -225,4 +227,15 @@ export const api = {
     invoke<boolean>("verify_update_binary", { targetVersion }),
   applyUpdateAndRestart: (targetVersion: string) =>
     invoke<void>("apply_update_and_restart", { targetVersion }),
+
+  // Commercial Licensing & 14-Day Trial Engine
+  getLicenseStatus: () => invoke<LicenseStatus>("get_license_status"),
+  activateLicense: (licenseKey: string, customerEmail?: string) =>
+    invoke<LicenseStatus>("activate_license", {
+      payload: {
+        license_key: licenseKey,
+        customer_email: customerEmail || null,
+      } as LicenseActivationPayload,
+    }),
 };
+

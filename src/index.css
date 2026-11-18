@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   WINDOWS & LINUX FONT & UI PARITY DECLARATIONS
+   Guarantees identical kerning, baseline metrics, and crisp rendering
+   on Windows WebView2 (Chromium Edge) and Linux WebKitGTK.
+   ============================================================================ */
+
+@font-face {
+  font-family: "LynSans";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src:
+    local("SF Pro Text"),
+    local("SF Pro Display"),
+    local("Inter"),
+    local("Segoe UI Variable Text"),
+    local("Segoe UI"),
+    local("Helvetica Neue"),
+    local("Ubuntu"),
+    local("Roboto"),
+    local("system-ui");
+}
+
+@font-face {
+  font-family: "LynMono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src:
+    local("SF Mono"),
+    local("Cascadia Code"),
+    local("Consolas"),
+    local("Liberation Mono"),
+    local("Menlo"),
+    local("Monaco"),
+    local("ui-monospace");
+}
+
 @layer base {
   :root {
     color-scheme: light;
@@ -15,8 +53,8 @@
     --apple-green: #34C759;
     --apple-orange: #FF9500;
     --apple-red: #FF3B30;
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --font-sans: "LynSans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", "Helvetica Neue", Roboto, Arial, sans-serif;
+    --font-mono: "LynMono", ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
   }
 
   * {
@@ -37,11 +75,16 @@
     font-family: var(--font-sans);
     user-select: none;
     overflow: hidden;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
     letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    image-rendering: -webkit-optimize-contrast;
+    scrollbar-width: thin;
+    scrollbar-color: #D2D2D7 transparent;
   }
+
 
   input, textarea, select {
     user-select: text;

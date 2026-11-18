@@ -2,6 +2,65 @@ use rusqlite::{params, Connection, Result};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use sha2::{Digest, Sha256};
+use crate::models::LicenseStatus;
+
+pub const LICENSE_SECRET_SALT: &str = "WINTERSHOGUN_LYNTERMINAL_SOVEREIGN_OFFLINE_SECRET_2026";
+
+pub fn verify_offline_license_key(key: &str) -> std::result::Result<(String, String), String> {
+    let cleaned = key.trim().to_uppercase();
+    let parts: Vec<&str> = cleaned.split('-').collect();
+
+    // Supports:
+    // 1) LYN-COMM-XXXX-XXXX-XXXX-XXXX (6 parts)
+    // 2) WS-COMM-XXXX-XXXX-XXXX-XXXX  (6 parts)
+    // 3) COMM-XXXX-XXXX-XXXX-XXXX     (5 parts)
+    let (_prefix, p1, p2, s1, s2) = if parts.len() == 6 && (parts[0] == "LYN" || parts[0] == "WS") && parts[1] == "COMM" {
+        (format!("{}-{}", parts[0], parts[1]), parts[2], parts[3], parts[4], parts[5])
+    } else if parts.len() == 5 && parts[0] == "COMM" {
+        ("LYN-COMM".to_string(), parts[1], parts[2], parts[3], parts[4])
+    } else {
+        return Err("Invalid license key format. Expected format: LYN-COMM-XXXX-XXXX-XXXX-XXXX".to_string());
+    };
+
+    if p1.len() != 4 || p2.len() != 4 || s1.len() != 4 || s2.len() != 4 {
+        return Err("Invalid license key segment lengths.".to_string());
+    }
+
+    if !p1.chars().all(|c| c.is_ascii_alphanumeric()) || !p2.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err("License key payload contains invalid characters.".to_string());
+    }
+
+    let payload = format!("{}{}", p1, p2);
+    let sign_data = format!("{}:{}:{}", LICENSE_SECRET_SALT, "LYN-COMM", payload);
+    let mut hasher = Sha256::new();
+    hasher.update(sign_data.as_bytes());
+    let hash_result = hasher.finalize();
+    let hash_hex = hex::encode(hash_result).to_uppercase();
+
+    let expected_s1 = &hash_hex[0..4];
+    let expected_s2 = &hash_hex[4..8];
+
+    if s1 != expected_s1 || s2 != expected_s2 {
+        return Err("Cryptographic signature verification failed. Invalid license key.".to_string());
+    }
+
+    Ok(("Commercial Windows Lifetime".to_string(), cleaned))
+}
+
+pub fn generate_offline_license_key(p1: &str, p2: &str) -> String {
+    let p1_clean = p1.trim().to_uppercase();
+    let p2_clean = p2.trim().to_uppercase();
+    let payload = format!("{}{}", p1_clean, p2_clean);
+    let sign_data = format!("{}:{}:{}", LICENSE_SECRET_SALT, "LYN-COMM", payload);
+    let mut hasher = Sha256::new();
+    hasher.update(sign_data.as_bytes());
+    let hash_result = hasher.finalize();
+    let hash_hex = hex::encode(hash_result).to_uppercase();
+    let s1 = &hash_hex[0..4];
+    let s2 = &hash_hex[4..8];
+    format!("LYN-COMM-{}-{}-{}-{}", p1_clean, p2_clean, s1, s2)
+}
 
 pub struct DatabaseManager {
     pub conn: Mutex<Connection>,
@@ -548,6 +607,20 @@ impl DatabaseManager {
                 FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
                 FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS app_license (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                first_run_date TEXT NOT NULL,
+                last_run_date TEXT NOT NULL,
+                is_licensed INTEGER NOT NULL DEFAULT 0,
+                license_key TEXT NOT NULL DEFAULT '',
+                license_tier TEXT NOT NULL DEFAULT '',
+                customer_email TEXT NOT NULL DEFAULT '',
+                activated_at TEXT NOT NULL DEFAULT '',
+                trial_days_limit INTEGER NOT NULL DEFAULT 14,
+                anti_tamper_hash TEXT NOT NULL DEFAULT ''
+            );
+
             "
         )?;
 
@@ -732,8 +805,149 @@ impl DatabaseManager {
             );
         }
 
+        let lic_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM app_license WHERE id = 1",
+            [],
+            |r| r.get(0),
+        ).unwrap_or(0);
+
+        if lic_count == 0 {
+            let now = chrono::Utc::now().to_rfc3339();
+            let _ = conn.execute(
+                "INSERT INTO app_license (
+                    id, first_run_date, last_run_date, is_licensed,
+                    license_key, license_tier, customer_email, activated_at,
+                    trial_days_limit, anti_tamper_hash
+                ) VALUES (
+                    1, ?1, ?1, 0,
+                    '', '', '', '',
+                    14, ''
+                )",
+                params![now],
+            );
+        }
+
         Ok(())
     }
+
+    pub fn get_license_status(&self) -> std::result::Result<LicenseStatus, String> {
+        let conn = self.conn.lock().unwrap();
+        let row = conn.query_row(
+            "SELECT first_run_date, last_run_date, is_licensed, license_key, license_tier, customer_email, activated_at, trial_days_limit
+             FROM app_license WHERE id = 1",
+            [],
+            |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
+                    r.get::<_, String>(5)?,
+                    r.get::<_, String>(6)?,
+                    r.get::<_, i64>(7)?,
+                ))
+            },
+        ).map_err(|e| e.to_string())?;
+
+        let (first_run_str, last_run_str, is_lic_num, key_str, tier_str, email_str, act_at_str, trial_limit) = row;
+        
+        let now = chrono::Utc::now();
+        let first_run = chrono::DateTime::parse_from_rfc3339(&first_run_str)
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or(now);
+        let last_run = chrono::DateTime::parse_from_rfc3339(&last_run_str)
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or(first_run);
+
+        // Anti-tamper clock rollback check: if system clock is moved backwards by more than 24 hours
+        let is_clock_tampered = now < (last_run - chrono::Duration::hours(24));
+
+        // Monotonic forward clock update
+        if now > last_run {
+            let _ = conn.execute(
+                "UPDATE app_license SET last_run_date = ?1 WHERE id = 1",
+                params![now.to_rfc3339()],
+            );
+        }
+
+        let is_licensed = if is_lic_num == 1 && !key_str.is_empty() {
+            verify_offline_license_key(&key_str).is_ok()
+        } else {
+            false
+        };
+
+        let days_elapsed = (now - first_run).num_days().max(0);
+        let days_remaining = (trial_limit - days_elapsed).max(0);
+        let is_expired = !is_licensed && (days_elapsed > trial_limit || is_clock_tampered);
+
+        let platform = if cfg!(target_os = "windows") || std::env::consts::OS == "windows" {
+            "windows".to_string()
+        } else if cfg!(target_os = "macos") || std::env::consts::OS == "macos" {
+            "macos".to_string()
+        } else {
+            "linux".to_string()
+        };
+
+        Ok(LicenseStatus {
+            is_licensed,
+            is_trial: !is_licensed,
+            is_expired,
+            days_elapsed,
+            days_remaining,
+            trial_days_limit: trial_limit,
+            first_run_date: first_run_str,
+            license_key: if is_licensed { Some(key_str) } else { None },
+            license_tier: if is_licensed { Some(tier_str) } else { None },
+            customer_email: if !email_str.is_empty() { Some(email_str) } else { None },
+            activated_at: if !act_at_str.is_empty() { Some(act_at_str) } else { None },
+            platform,
+        })
+    }
+
+    pub fn activate_license(&self, key: &str, email: Option<String>) -> std::result::Result<LicenseStatus, String> {
+        let (tier, valid_key) = verify_offline_license_key(key)?;
+        let now_str = chrono::Utc::now().to_rfc3339();
+        let customer_email = email.unwrap_or_default();
+
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE app_license SET is_licensed = 1, license_key = ?1, license_tier = ?2, customer_email = ?3, activated_at = ?4 WHERE id = 1",
+            params![valid_key, tier, customer_email, now_str],
+        ).map_err(|e| format!("Failed to record license in local database: {}", e))?;
+
+        let _ = conn.execute(
+            "INSERT INTO audit_logs (action, entity, entity_id, details, timestamp) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                "LICENSE_ACTIVATED",
+                "LICENSE",
+                "1",
+                format!("Commercial license activated offline: {}", valid_key),
+                now_str
+            ],
+        );
+
+        drop(conn);
+        self.get_license_status()
+    }
+
+    pub fn is_trial_expired(&self) -> bool {
+        match self.get_license_status() {
+            Ok(status) => status.is_expired,
+            Err(_) => false,
+        }
+    }
+
+    pub fn set_trial_start_days_ago(&self, days_ago: i64) -> std::result::Result<(), String> {
+        let target = chrono::Utc::now() - chrono::Duration::days(days_ago);
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE app_license SET first_run_date = ?1, last_run_date = ?1 WHERE id = 1",
+            params![target.to_rfc3339()],
+        ).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
 
     pub fn log_audit(
         conn: &Connection,

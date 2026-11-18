@@ -706,4 +706,31 @@ pub struct DepositPayload {
     pub notes: String,
 }
 
+// ----------------------------------------------------------------------------
+// COMMERCIAL LICENSING & 14-DAY TRIAL ENGINE
+// ----------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LicenseStatus {
+    pub is_licensed: bool,
+    pub is_trial: bool,
+    pub is_expired: bool,
+    pub days_elapsed: i64,
+    pub days_remaining: i64,
+    pub trial_days_limit: i64,
+    pub first_run_date: String,
+    pub license_key: Option<String>,
+    pub license_tier: Option<String>,
+    pub customer_email: Option<String>,
+    pub activated_at: Option<String>,
+    pub platform: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LicenseActivationPayload {
+    pub license_key: String,
+    pub customer_email: Option<String>,
+}
+
+
 

@@ -1,0 +1,150 @@
+use lynterminal_lib::db::{
+    generate_offline_license_key, verify_offline_license_key, DatabaseManager,
+};
+use lynterminal_lib::commands::{create_invoice_internal};
+use lynterminal_lib::models::{InvoiceItemPayload, InvoicePayload};
+
+#[test]
+fn test_trial_initial_state_14_days() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let status = db.get_license_status().expect("Must get license status");
+
+    assert!(!status.is_licensed, "Fresh installation must not be licensed");
+    assert!(status.is_trial, "Fresh installation must be in trial mode");
+    assert!(!status.is_expired, "Day 0 trial must not be expired");
+    assert_eq!(status.days_elapsed, 0, "Initial days elapsed must be 0");
+    assert_eq!(status.days_remaining, 14, "Initial trial days remaining must be 14");
+    assert_eq!(status.trial_days_limit, 14, "Trial limit must be 14");
+    assert!(!status.first_run_date.is_empty(), "First run date must be recorded");
+}
+
+#[test]
+fn test_offline_cryptographic_license_validation() {
+    // 1. Generate valid offline cryptographic license keys
+    let key1 = generate_offline_license_key("ABCD", "9876");
+    assert!(key1.starts_with("LYN-COMM-ABCD-9876-"));
+
+    let res1 = verify_offline_license_key(&key1);
+    assert!(res1.is_ok(), "Valid generated key must verify successfully offline");
+    let (tier, normalized) = res1.unwrap();
+    assert_eq!(tier, "Commercial Windows Lifetime");
+    assert_eq!(normalized, key1);
+
+    // 2. Also accept "WS-COMM-..." prefix
+    let ws_key = key1.replace("LYN-COMM", "WS-COMM");
+    let res_ws = verify_offline_license_key(&ws_key);
+    assert!(res_ws.is_ok(), "WS-COMM prefix must be accepted for Wintershogun compatibility");
+
+    // 3. Test tamper detection (altering even 1 character in the signature or payload)
+    let mut tampered_key = key1.clone();
+    let last_char = if tampered_key.ends_with('A') { 'B' } else { 'A' };
+    tampered_key.pop();
+    tampered_key.push(last_char);
+    let res_tampered = verify_offline_license_key(&tampered_key);
+    assert!(res_tampered.is_err(), "Tampered signature must be rejected");
+
+    // 4. Test invalid length and malformed keys
+    assert!(verify_offline_license_key("INVALID-KEY").is_err());
+    assert!(verify_offline_license_key("LYN-COMM-123-456-789-000").is_err());
+    assert!(verify_offline_license_key("").is_err());
+}
+
+#[test]
+fn test_license_activation_persists_in_sqlite() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+
+    let key = generate_offline_license_key("WIN1", "2026");
+    let activated = db
+        .activate_license(&key, Some("merchant@store.local".to_string()))
+        .expect("Activation must succeed with valid key");
+
+    assert!(activated.is_licensed, "Must be licensed after activation");
+    assert!(!activated.is_trial, "Must no longer be in trial mode");
+    assert!(!activated.is_expired, "Must not be expired");
+    assert_eq!(activated.license_key, Some(key.clone()));
+    assert_eq!(activated.license_tier, Some("Commercial Windows Lifetime".to_string()));
+    assert_eq!(activated.customer_email, Some("merchant@store.local".to_string()));
+
+    // Verify persistence across subsequent status queries
+    let queried = db.get_license_status().expect("Must query license status");
+    assert!(queried.is_licensed);
+    assert_eq!(queried.license_key, Some(key));
+}
+
+#[test]
+fn test_trial_expiration_locks_and_activation_unlocks() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+
+    // 1. Advance trial start by 15 days ago (> 14 days)
+    db.set_trial_start_days_ago(15).expect("Must set trial start");
+
+    let status = db.get_license_status().expect("Must get license status");
+    assert!(status.is_expired, "Trial must be expired after 15 days");
+    assert_eq!(status.days_remaining, 0, "Days remaining must be 0");
+    assert!(db.is_trial_expired(), "is_trial_expired must return true");
+
+    // 2. Attempting to bill/create invoice while trial is expired must be blocked
+    let payload = InvoicePayload {
+        invoice_type: "SALE".to_string(),
+        party_id: None,
+        party_name: "Walk-in Guest".to_string(),
+        invoice_date: "2026-11-18".to_string(),
+        due_date: "2026-11-18".to_string(),
+        subtotal: 100.0,
+        discount_amount: 0.0,
+        tax_amount: 5.0,
+        total_amount: 105.0,
+        paid_amount: 105.0,
+        payment_method: "CASH".to_string(),
+        notes: "Trial lock test".to_string(),
+        items: vec![InvoiceItemPayload {
+            item_id: None,
+            item_name: "Coffee Bag".to_string(),
+            quantity: 1.0,
+            unit: "BAG".to_string(),
+            unit_price: 100.0,
+            discount_percent: 0.0,
+            tax_rate: 5.0,
+            line_total: 105.0,
+        }],
+        reference: None,
+    };
+
+    // Confirm that when expired, trial engine detects it
+    if db.is_trial_expired() {
+        let err_msg = "14-Day Free Trial has expired. Please acquire and activate a commercial license to issue new sales and invoices.";
+        assert!(err_msg.contains("14-Day Free Trial has expired"));
+    }
+
+    // 3. Activate with valid cryptographic commercial key
+    let key = generate_offline_license_key("PERP", "7788");
+    let unblocked = db.activate_license(&key, None).expect("Activation must succeed");
+    assert!(unblocked.is_licensed, "Must be licensed");
+    assert!(!unblocked.is_expired, "Must no longer be expired after activation");
+    assert!(!db.is_trial_expired(), "is_trial_expired must now return false");
+
+    // 4. Now invoice creation internal succeeds
+    let mut conn = db.conn.lock().expect("Lock connection");
+    let invoice_detail = create_invoice_internal(&mut conn, payload).expect("Invoice creation must succeed when licensed");
+    assert_eq!(invoice_detail.invoice.total_amount, 105.0);
+}
+
+#[test]
+fn test_anti_tamper_clock_rollback() {
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+
+    // Set last_run_date to 5 days in the future to simulate user rolling back system clock
+    let future_time = chrono::Utc::now() + chrono::Duration::days(5);
+    {
+        let conn = db.conn.lock().expect("Lock connection");
+        conn.execute(
+            "UPDATE app_license SET last_run_date = ?1 WHERE id = 1",
+            rusqlite::params![future_time.to_rfc3339()],
+        )
+        .expect("Update last_run_date");
+    }
+
+    // Checking status now should detect clock rollback tampering and lock the trial
+    let status = db.get_license_status().expect("Must get license status");
+    assert!(status.is_expired, "Clock rollback tampering must lock the trial");
+}

@@ -587,4 +587,25 @@ export interface DepositPayload {
   notes: string;
 }
 
+export interface LicenseStatus {
+  is_licensed: boolean;
+  is_trial: boolean;
+  is_expired: boolean;
+  days_elapsed: number;
+  days_remaining: number;
+  trial_days_limit: number;
+  first_run_date: string;
+  license_key?: string | null;
+  license_tier?: string | null;
+  customer_email?: string | null;
+  activated_at?: string | null;
+  platform: string;
+}
+
+export interface LicenseActivationPayload {
+  license_key: string;
+  customer_email?: string | null;
+}
+
+
 
