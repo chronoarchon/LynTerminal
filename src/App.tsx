@@ -115,7 +115,10 @@ export function AppContent() {
         .then((info) => {
           if (info && info.has_update) {
             setUpdateInfo(info);
-            setIsUpdateModalOpen(true);
+            const dismissed = typeof window !== "undefined" ? sessionStorage.getItem("lyn_dismissed_update") : null;
+            if (dismissed !== info.latest_version) {
+              setIsUpdateModalOpen(true);
+            }
           }
         })
         .catch((err) => {

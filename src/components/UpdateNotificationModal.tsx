@@ -29,7 +29,7 @@ const renderFormattedText = (text: string) => {
     const token = match[0];
     if (token.startsWith("**") && token.endsWith("**")) {
       parts.push(
-        <strong key={match.index} className="font-semibold text-white">
+        <strong key={match.index} className="font-bold text-black">
           {token.slice(2, -2)}
         </strong>
       );
@@ -37,7 +37,7 @@ const renderFormattedText = (text: string) => {
       parts.push(
         <code
           key={match.index}
-          className="px-1.5 py-0.5 rounded-md bg-white/10 font-mono text-[11px] text-white font-medium"
+          className="px-1.5 py-0.5 rounded-md bg-black/5 border border-black/10 font-mono text-[11px] text-black font-semibold"
         >
           {token.slice(1, -1)}
         </code>
@@ -51,7 +51,7 @@ const renderFormattedText = (text: string) => {
             href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white hover:underline inline-flex items-center gap-0.5 font-medium"
+            className="text-black underline underline-offset-2 hover:opacity-80 inline-flex items-center gap-0.5 font-bold"
           >
             <span>{linkMatch[1]}</span>
             <ExternalLink className="w-2.5 h-2.5 inline" />
@@ -81,7 +81,7 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
         elements.push(
           <div
             key={`code-${i}`}
-            className="p-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-[11px] text-white overflow-x-auto my-2"
+            className="p-3 rounded-xl bg-black/5 border border-black/10 font-mono text-[11px] text-black overflow-x-auto my-2 select-text"
           >
             <pre>{codeBlockContent.join("\n")}</pre>
           </div>
@@ -105,7 +105,7 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <h5
           key={i}
-          className="text-xs font-semibold text-white mt-2 mb-1"
+          className="text-xs font-bold text-black mt-2 mb-1"
         >
           {trimmed.replace(/^####\s+/, "")}
         </h5>
@@ -114,9 +114,9 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <h4
           key={i}
-          className="text-xs font-bold text-white mt-3 mb-1.5 flex items-center gap-1.5"
+          className="text-xs font-bold text-black mt-3 mb-1.5 flex items-center gap-1.5"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-white" />
+          <span className="w-1.5 h-1.5 rounded-full bg-black shrink-0" />
           <span>{trimmed.replace(/^###\s+/, "")}</span>
         </h4>
       );
@@ -124,14 +124,14 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <h3
           key={i}
-          className="text-xs font-bold text-white uppercase tracking-wider mt-2.5 mb-1"
+          className="text-xs font-bold text-black uppercase tracking-wider mt-2.5 mb-1"
         >
           {trimmed.replace(/^##\s+/, "")}
         </h3>
       );
     } else if (trimmed.startsWith("# ")) {
       elements.push(
-        <h2 key={i} className="text-sm font-bold text-white mt-2 mb-1">
+        <h2 key={i} className="text-sm font-bold text-black mt-2 mb-1">
           {trimmed.replace(/^#\s+/, "")}
         </h2>
       );
@@ -139,7 +139,7 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <div
           key={i}
-          className="pl-3 py-1.5 my-1.5 border-l-2 border-white/30 bg-white/5 rounded-r-xl text-xs text-neutral-300 italic"
+          className="pl-3 py-1.5 my-1.5 border-l-2 border-black/30 bg-black/5 rounded-r-xl text-xs text-neutral-800 italic"
         >
           {renderFormattedText(trimmed.replace(/^>\s*/, ""))}
         </div>
@@ -150,9 +150,9 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
         elements.push(
           <div
             key={i}
-            className="flex items-start gap-2 text-xs text-neutral-300 leading-relaxed my-1 pl-1"
+            className="flex items-start gap-2 text-xs text-neutral-700 leading-relaxed my-1 pl-1"
           >
-            <span className="font-mono font-bold text-white text-xs shrink-0 w-4">
+            <span className="font-mono font-bold text-black text-xs shrink-0 w-4">
               {numMatch[1]}.
             </span>
             <div className="flex-1">{renderFormattedText(numMatch[2])}</div>
@@ -165,17 +165,17 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <div
           key={i}
-          className={`flex items-start gap-2 text-xs text-neutral-300 leading-relaxed my-1 ${
+          className={`flex items-start gap-2 text-xs text-neutral-700 leading-relaxed my-1 ${
             isIndented ? "pl-5" : "pl-1"
           }`}
         >
-          <span className="text-white font-bold text-sm leading-none mt-0.5">•</span>
+          <span className="text-black font-bold text-sm leading-none mt-0.5">•</span>
           <div className="flex-1">{renderFormattedText(itemText)}</div>
         </div>
       );
     } else {
       elements.push(
-        <p key={i} className="text-xs text-neutral-300 leading-relaxed my-1">
+        <p key={i} className="text-xs text-neutral-700 leading-relaxed my-1">
           {renderFormattedText(trimmed)}
         </p>
       );
@@ -197,6 +197,13 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
   const [progress, setProgress] = useState(0);
 
   if (!isOpen || !updateInfo) return null;
+
+  const handleDismiss = () => {
+    if (updateInfo?.latest_version && typeof window !== "undefined") {
+      sessionStorage.setItem("lyn_dismissed_update", updateInfo.latest_version);
+    }
+    onClose();
+  };
 
   const handleApplyUpdate = async () => {
     try {
@@ -225,7 +232,11 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
       setCurrentStep(4);
       setStatusMessage("Step 4/4: Applying update and relaunching...");
       setProgress(100);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("lyn_dismissed_update", updateInfo.latest_version);
+      }
       await api.applyUpdateAndRestart(updateInfo.latest_version);
+      onClose();
     } catch (err) {
       console.error("Update failed:", err);
       setErrorMessage(String(err));
@@ -263,7 +274,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleDismiss}
             disabled={isUpdating}
             className="p-1.5 rounded-full hover:bg-black/5 text-neutral-400 hover:text-black transition cursor-pointer disabled:opacity-40"
           >
@@ -391,7 +402,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleDismiss}
               disabled={isUpdating}
               className="px-4 py-2 rounded-full border border-black/10 bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700 transition cursor-pointer disabled:opacity-40"
             >

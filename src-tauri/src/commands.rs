@@ -6439,12 +6439,6 @@ pub fn download_update_binary(
     download_url: String,
     target_version: String,
 ) -> Result<String, String> {
-    let effective_url = if download_url.ends_with(".gz") || download_url.contains("/bin/") {
-        download_url
-    } else {
-        format!("https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/bin/lynterminal.gz")
-    };
-
     let temp_dir = std::env::temp_dir();
     let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
 
@@ -6452,18 +6446,36 @@ pub fn download_update_binary(
         let _ = std::fs::remove_file(&target_gz);
     }
 
-    let dl = std::process::Command::new("curl")
-        .args(&["-fSL", "--max-time", "90", &effective_url, "-o", &target_gz.to_string_lossy()])
-        .output()
-        .map_err(|e| format!("Failed to download update bundle: {}", e))?;
+    let candidate_urls = vec![
+        download_url.clone(),
+        format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}/lynterminal.gz", target_version),
+        format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}v/lynterminal.gz", target_version),
+        format!("https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/bin/lynterminal.gz"),
+    ];
 
-    if !dl.status.success() {
-        return Err("Failed to download update binary from GitHub".into());
+    let mut download_success = false;
+    for url in candidate_urls {
+        if url.is_empty() {
+            continue;
+        }
+        let dl = std::process::Command::new("curl")
+            .args(&["-fSL", "--max-time", "60", &url, "-o", &target_gz.to_string_lossy()])
+            .output();
+
+        if let Ok(out) = dl {
+            if out.status.success() {
+                if let Ok(meta) = std::fs::metadata(&target_gz) {
+                    if meta.len() >= 50 * 1024 {
+                        download_success = true;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
-    let meta = std::fs::metadata(&target_gz).map_err(|e| format!("Corrupted bundle: {}", e))?;
-    if meta.len() < 50 * 1024 {
-        return Err("Downloaded update bundle is incomplete or corrupted".into());
+    if !download_success {
+        return Err("Failed to download update binary from GitHub. Please check network connection.".into());
     }
 
     Ok(target_gz.to_string_lossy().to_string())
@@ -6515,6 +6527,7 @@ pub fn verify_update_binary(
     Ok(true)
 }
 
+#[allow(unreachable_code)]
 #[tauri::command]
 pub fn apply_update_and_restart(
     target_version: String,
@@ -6529,6 +6542,7 @@ pub fn apply_update_and_restart(
     }
 
     // Deploy to ~/.local/bin/lynterminal; unlinking target first to avoid ETXTBSY on running binary
+    let mut updated_user_bin: Option<std::path::PathBuf> = None;
     if let Ok(home) = std::env::var("HOME") {
         let user_bin_dir = std::path::PathBuf::from(&home).join(".local").join("bin");
         let user_bin = user_bin_dir.join("lynterminal");
@@ -6536,16 +6550,39 @@ pub fn apply_update_and_restart(
         let _ = std::fs::create_dir_all(&user_bin_dir);
         let _ = std::fs::remove_file(&user_bin);
         let _ = std::fs::remove_file(&legacy_bin);
-        let _ = std::fs::copy(&target_bin, &user_bin);
+        if std::fs::copy(&target_bin, &user_bin).is_ok() {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(meta) = std::fs::metadata(&user_bin) {
+                    let mut perms = meta.permissions();
+                    perms.set_mode(0o755);
+                    let _ = std::fs::set_permissions(&user_bin, perms);
+                }
+            }
+            updated_user_bin = Some(user_bin);
+        }
     }
 
     // Also update current_exe() location if different and writable
+    let mut current_updated = false;
     if let Ok(current_path) = std::env::current_exe() {
         if let Some(parent) = current_path.parent() {
             if let Ok(metadata) = std::fs::metadata(parent) {
                 if !metadata.permissions().readonly() {
                     let _ = std::fs::remove_file(&current_path);
-                    let _ = std::fs::copy(&target_bin, &current_path);
+                    if std::fs::copy(&target_bin, &current_path).is_ok() {
+                        #[cfg(unix)]
+                        {
+                            use std::os::unix::fs::PermissionsExt;
+                            if let Ok(meta) = std::fs::metadata(&current_path) {
+                                let mut perms = meta.permissions();
+                                perms.set_mode(0o755);
+                                let _ = std::fs::set_permissions(&current_path, perms);
+                            }
+                        }
+                        current_updated = true;
+                    }
                 }
             }
         }
@@ -6554,8 +6591,21 @@ pub fn apply_update_and_restart(
     let _ = std::fs::remove_file(&target_gz);
     let _ = std::fs::remove_file(&target_bin);
 
-    // Restart application
-    app_handle.restart();
+    // Launch the freshly updated binary and terminate current process cleanly
+    let launch_target = if current_updated {
+        std::env::current_exe().ok()
+    } else {
+        updated_user_bin.or_else(|| std::env::current_exe().ok())
+    };
+
+    if let Some(exe) = launch_target {
+        let _ = std::process::Command::new(&exe).spawn();
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        std::process::exit(0);
+    } else {
+        app_handle.restart();
+        Ok(())
+    }
 }
 
 #[tauri::command]
