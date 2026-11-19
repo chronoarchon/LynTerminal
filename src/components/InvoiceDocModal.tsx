@@ -143,103 +143,112 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white text-black rounded-3xl shadow-2xl w-full max-w-3xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150 lux-modal-card">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+      <div className="bg-white text-black rounded-3xl shadow-2xl w-full max-w-4xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-150 lux-modal-card">
         
         {/* Top Control Bar (Hidden when printing) */}
-        <div className="px-5 py-3.5 bg-[#F9FAFB] border-b border-black/[0.08] flex items-center justify-between no-print shrink-0 text-black">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-black">
-                  {invoice.invoice_number}
+        <div className="px-5 py-3.5 bg-[#F9FAFB] border-b border-black/[0.08] no-print shrink-0 text-black">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-black font-mono">
+                    {invoice.invoice_number}
+                  </span>
+                  <button
+                    onClick={handleCopyNumber}
+                    title="Copy Invoice Number"
+                    className="text-neutral-400 hover:text-black transition cursor-pointer p-0.5"
+                  >
+                    {copied ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/50 uppercase">
+                    {invoice.status}
+                  </span>
+                </div>
+                <span className="text-[11px] text-neutral-500 font-mono truncate block">
+                  {invoice.invoice_date} · {invoice.payment_method}
                 </span>
+              </div>
+            </div>
+
+            {/* Controls Toolbar (Always Aligned, Never Wrapping Close Button into Center) */}
+            <div className="flex items-center gap-2 shrink-0">
+              <select
+                value={copyType}
+                onChange={(e) => setCopyType(e.target.value as any)}
+                className="text-xs bg-white border border-black/[0.1] rounded-xl px-2.5 py-1.5 font-bold text-black focus:outline-none focus:border-black cursor-pointer shadow-2xs"
+              >
+                <option value="ORIGINAL FOR RECIPIENT">Original (Recipient)</option>
+                <option value="DUPLICATE FOR TRANSPORTER">Duplicate (Transporter)</option>
+                <option value="TRIPLICATE FOR SUPPLIER">Triplicate (Supplier)</option>
+              </select>
+
+              <div className="flex items-center p-0.5 rounded-xl bg-neutral-100 border border-black/[0.06] text-xs">
                 <button
-                  onClick={handleCopyNumber}
-                  title="Copy Invoice Number"
-                  className="text-neutral-400 hover:text-black transition cursor-pointer"
+                  onClick={() => setDocFormat("thermal")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "thermal"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-500 hover:text-black"
+                  }`}
                 >
-                  {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
+                  <ReceiptIcon className="w-3.5 h-3.5" />
+                  <span>80mm</span>
+                </button>
+                <button
+                  onClick={() => setDocFormat("standard")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "standard"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-500 hover:text-black"
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>A4</span>
                 </button>
               </div>
-              <span className="text-[11px] text-neutral-400 font-mono">
-                {invoice.invoice_date} · {invoice.payment_method}
-              </span>
-            </div>
-          </div>
 
-          {/* Copy Type & Format Selector */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={copyType}
-              onChange={(e) => setCopyType(e.target.value as any)}
-              className="text-xs bg-white border border-black/[0.08] rounded-xl px-2.5 py-1.5 font-semibold text-black focus:outline-none focus:border-black cursor-pointer"
-            >
-              <option value="ORIGINAL FOR RECIPIENT">Original for Recipient</option>
-              <option value="DUPLICATE FOR TRANSPORTER">Duplicate for Transporter</option>
-              <option value="TRIPLICATE FOR SUPPLIER">Triplicate for Supplier</option>
-            </select>
-
-            <div className="flex items-center p-0.5 rounded-xl bg-white border border-black/[0.08] text-xs">
               <button
-                onClick={() => setDocFormat("thermal")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  docFormat === "thermal"
-                    ? "bg-white text-black shadow-sm font-bold"
-                    : "text-neutral-400 hover:text-black"
-                }`}
+                onClick={handleExportPdf}
+                disabled={isExporting}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.1] bg-white hover:bg-neutral-50 text-black text-xs font-bold transition active:scale-95 cursor-pointer disabled:opacity-50 shadow-2xs"
               >
-                <ReceiptIcon className="w-3.5 h-3.5" />
-                <span>80mm Slip</span>
+                <FileDown className="w-3.5 h-3.5" />
+                <span>{isExporting ? "..." : "PDF"}</span>
               </button>
+
               <button
-                onClick={() => setDocFormat("standard")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  docFormat === "standard"
-                    ? "bg-white text-black shadow-sm font-bold"
-                    : "text-neutral-400 hover:text-black"
-                }`}
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer"
               >
-                <FileText className="w-3.5 h-3.5" />
-                <span>A4 Invoice</span>
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print</span>
               </button>
+
+              <div className="pl-1 border-l border-black/[0.1] ml-0.5">
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
+                  title="Close preview"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print</span>
-            </button>
-
-            <button
-              onClick={handleExportPdf}
-              disabled={isExporting}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] hover:bg-[#232733] text-black text-xs font-semibold transition active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              <span>{isExporting ? "Saving..." : "Save PDF"}</span>
-            </button>
-
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </div>
 
-        {/* Scrollable Document Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 bg-[#0c0d0e]">
+        {/* Scrollable Document Area with Clean Light Canvas */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-20 bg-[#F5F5F7]">
           
           {/* FORMAT 1: 80mm Thermal Receipt (Counter POS Slip) */}
           {docFormat === "thermal" && (
@@ -416,14 +425,14 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                   <div className="text-xl font-bold text-[#1D1D1F] tracking-tight">
                     TAX INVOICE
                   </div>
-                  <div className="text-xs font-mono font-semibold text-[#0071E3] mt-1">
+                  <div className="text-xs font-mono font-bold text-black mt-1">
                     {invoice.invoice_number}
                   </div>
                   <div className="text-xs text-[#86868B] mt-1">
                     Date: {invoice.invoice_date}
                   </div>
                   <div className="text-xs text-[#86868B] mt-0.5">
-                    Status: <span className="font-semibold text-[#34C759]">{invoice.status}</span>
+                    Status: <span className="font-bold text-emerald-600">{invoice.status}</span>
                   </div>
                 </div>
               </div>
@@ -502,7 +511,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                     </span>
                   </div>
                   {invoice.discount_amount > 0 && (
-                    <div className="flex justify-between text-[#34C759]">
+                    <div className="flex justify-between text-emerald-600 font-medium">
                       <span>Discount</span>
                       <span className="font-mono">
                         -{formatCurrency(invoice.discount_amount)}
@@ -517,7 +526,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                   </div>
                   <div className="flex justify-between items-baseline pt-2 border-t border-black/[0.08] text-sm font-bold text-[#1D1D1F]">
                     <span>Grand Total</span>
-                    <span className="text-xl font-mono text-[#0071E3]">
+                    <span className="text-xl font-mono font-extrabold text-black">
                       {formatCurrency(invoice.total_amount)}
                     </span>
                   </div>

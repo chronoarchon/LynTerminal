@@ -305,7 +305,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Product</span>
@@ -322,7 +322,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             placeholder="Search products by name, SKU, or barcode..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-[#0071E3]"
+            className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-black"
           />
         </div>
 
@@ -426,7 +426,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => openEditModal(item)}
                         title="Edit Item"
-                        className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#0071E3] hover:bg-black/[0.05] transition"
+                        className="p-1.5 rounded-lg text-[#6E6E73] hover:text-black hover:bg-black/[0.05] transition"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -491,7 +491,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </button>
                   <button
                     onClick={() => openEditModal(item)}
-                    className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#0071E3]"
+                    className="p-1.5 rounded-lg text-[#6E6E73] hover:text-black"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>

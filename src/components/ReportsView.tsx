@@ -171,7 +171,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
         <div className="flex items-center gap-2">
           <button
             onClick={handleOpenClosingModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press"
           >
             <ClipboardCheck className="w-3.5 h-3.5" />
             <span>Shift Close (Z-Report)</span>
@@ -239,7 +239,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-3 py-1 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="px-3 py-1 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
         )}
@@ -372,7 +372,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
               </div>
               <span
                 className={`font-mono text-2xl font-bold ${
-                  netProfit >= 0 ? "text-[#0071E3]" : "text-[#FF3B30]"
+                  netProfit >= 0 ? "text-black" : "text-rose-600"
                 }`}
               >
                 {formatCurrency(netProfit)}
@@ -394,7 +394,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
             </div>
             <div className="apple-card p-4 rounded-2xl">
               <div className="text-[11px] font-medium text-[#86868B]">Asset Valuation (Cost)</div>
-              <div className="text-xl font-bold font-mono text-[#0071E3] mt-0.5">
+              <div className="text-xl font-bold font-mono text-black mt-0.5">
                 {formatCurrency(totalCostValuation)}
               </div>
             </div>
@@ -406,7 +406,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
             </div>
             <div className="apple-card p-4 rounded-2xl">
               <div className="text-[11px] font-medium text-[#86868B]">Unrealized Markup</div>
-              <div className="text-xl font-bold font-mono text-[#34C759] mt-0.5">
+              <div className="text-xl font-bold font-mono text-emerald-600 mt-0.5">
                 +{formatCurrency(unrealizedProfit)}
               </div>
             </div>
@@ -436,7 +436,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
                     <td className="py-3 px-3 font-mono">{i.stock_quantity} {i.unit}</td>
                     <td className="py-3 px-3 text-right font-mono text-[#6E6E73]">{formatCurrency(i.purchase_price)}</td>
                     <td className="py-3 px-3 text-right font-mono text-[#1D1D1F]">{formatCurrency(i.sale_price)}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-[#0071E3]">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-black">
                       {formatCurrency(i.stock_quantity * i.purchase_price)}
                     </td>
                   </tr>
@@ -479,10 +479,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
                     <span
                       className={`px-2 py-0.5 rounded-md ${
                         c.variance === 0
-                          ? "bg-[#34C759]/10 text-[#34C759]"
+                          ? "bg-emerald-50 text-emerald-700"
                           : c.variance > 0
-                          ? "bg-[#0071E3]/10 text-[#0071E3]"
-                          : "bg-[#FF3B30]/10 text-[#FF3B30]"
+                          ? "bg-black/5 text-black"
+                          : "bg-rose-50 text-rose-700"
                       }`}
                     >
                       {c.variance > 0 ? `+${formatCurrency(c.variance)}` : formatCurrency(c.variance)}

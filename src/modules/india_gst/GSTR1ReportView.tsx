@@ -146,7 +146,7 @@ export const GSTR1ReportView: React.FC = () => {
           <button
             onClick={handleDownloadJson}
             disabled={!reportData || loading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
             <span>GSTN JSON</span>
@@ -183,7 +183,7 @@ export const GSTR1ReportView: React.FC = () => {
 
           <div className="p-3.5 rounded-2xl bg-white border border-black/[0.06] shadow-xs">
             <div className="text-[11px] font-medium text-neutral-500">Taxable Value</div>
-            <div className="text-base font-bold font-mono text-[#0071E3] mt-0.5">
+            <div className="text-base font-bold font-mono text-black mt-0.5">
               ₹{reportData.total_taxable.toFixed(2)}
             </div>
           </div>
@@ -224,7 +224,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("b2b")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "b2b"
-              ? "bg-[#0071E3] text-white shadow-xs"
+              ? "bg-black text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -236,7 +236,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("b2cs")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "b2cs"
-              ? "bg-[#0071E3] text-white shadow-xs"
+              ? "bg-black text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -248,7 +248,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("b2cl")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "b2cl"
-              ? "bg-[#0071E3] text-white shadow-xs"
+              ? "bg-black text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -260,7 +260,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("hsn")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "hsn"
-              ? "bg-[#0071E3] text-white shadow-xs"
+              ? "bg-black text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -272,7 +272,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("docs")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "docs"
-              ? "bg-[#0071E3] text-white shadow-xs"
+              ? "bg-black text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -285,7 +285,7 @@ export const GSTR1ReportView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-xs text-neutral-400">
-            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0071E3]" />
+            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-black" />
             Compiling GSTR-1 audit registers...
           </div>
         ) : !reportData ? (
@@ -321,7 +321,7 @@ export const GSTR1ReportView: React.FC = () => {
                   ) : (
                     reportData.b2b.map((inv, idx) => (
                       <tr key={idx} className="hover:bg-neutral-50/60 font-mono">
-                        <td className="py-2 px-3 font-bold text-[#0071E3]">{inv.customer_gstin}</td>
+                        <td className="py-2 px-3 font-bold text-black">{inv.customer_gstin}</td>
                         <td className="py-2 px-3 font-sans font-medium text-black">{inv.customer_name}</td>
                         <td className="py-2 px-2 font-bold">{inv.invoice_number}</td>
                         <td className="py-2 px-2 text-neutral-600 font-sans">{inv.invoice_date}</td>
@@ -362,7 +362,7 @@ export const GSTR1ReportView: React.FC = () => {
                     reportData.b2cs.map((item, idx) => (
                       <tr key={idx} className="hover:bg-neutral-50/60 font-mono">
                         <td className="py-2.5 px-4 font-sans font-semibold text-black">{item.place_of_supply}</td>
-                        <td className="py-2.5 px-3 text-center font-bold text-[#0071E3]">{item.tax_rate}%</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-black">{item.tax_rate}%</td>
                         <td className="py-2.5 px-3 text-right font-bold">₹{item.taxable_value.toFixed(2)}</td>
                         <td className="py-2.5 px-3 text-right text-[#FF9500]">₹{item.igst_amount.toFixed(2)}</td>
                         <td className="py-2.5 px-3 text-right text-[#34C759]">₹{item.cgst_amount.toFixed(2)}</td>
@@ -438,7 +438,7 @@ export const GSTR1ReportView: React.FC = () => {
                   ) : (
                     reportData.hsn_summary.map((hsn, idx) => (
                       <tr key={idx} className="hover:bg-neutral-50/60 font-mono">
-                        <td className="py-2.5 px-3 font-bold text-[#0071E3]">{hsn.hsn_code}</td>
+                        <td className="py-2.5 px-3 font-bold text-black">{hsn.hsn_code}</td>
                         <td className="py-2.5 px-3 font-sans font-medium text-black">{hsn.description}</td>
                         <td className="py-2.5 px-2 text-center text-neutral-500 font-bold">{hsn.uqc}</td>
                         <td className="py-2.5 px-2 text-right">{hsn.total_quantity}</td>

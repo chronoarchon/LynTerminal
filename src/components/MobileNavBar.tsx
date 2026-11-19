@@ -148,7 +148,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                   setIsMoreSheetOpen(false);
                 }}
                 className={`flex flex-col items-center justify-center flex-1 py-1 transition apple-press relative ${
-                  isActive ? "text-[#0071E3]" : "text-[#86868B]"
+                  isActive ? "text-black font-bold" : "text-[#86868B]"
                 }`}
               >
                 <div className="relative">
@@ -178,7 +178,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
           <button
             onClick={() => setIsMoreSheetOpen(!isMoreSheetOpen)}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition apple-press relative ${
-              isMoreActive ? "text-[#0071E3]" : "text-[#86868B]"
+              isMoreActive ? "text-black font-bold" : "text-[#86868B]"
             }`}
           >
             <Grid

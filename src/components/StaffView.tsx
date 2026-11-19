@@ -307,7 +307,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
           {subTab === "employees" && (
             <button
               onClick={handleOpenAddEmployee}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>+ New Employee</span>
@@ -349,7 +349,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
         <div className="apple-card p-4 rounded-2xl">
           <div className="text-[11px] font-medium text-[#86868B]">Vouchers Issued</div>
-          <div className="text-xl font-bold font-mono text-[#0071E3] mt-0.5">
+          <div className="text-xl font-bold font-mono text-[#1D1D1F] mt-0.5">
             {vouchers.length}
           </div>
         </div>
@@ -397,7 +397,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-3 py-1 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="px-3 py-1 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
         )}
@@ -411,7 +411,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 placeholder="Search staff..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-8 pr-2.5 py-1 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-[#0071E3]"
+                className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-8 pr-2.5 py-1 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-black"
               />
             </div>
             <AppleSelect
@@ -573,7 +573,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                       </button>
                       <button
                         onClick={() => handleOpenEditEmployee(emp)}
-                        className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#0071E3]"
+                        className="p-1.5 rounded-lg text-[#6E6E73] hover:text-black"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>

@@ -64,7 +64,7 @@ export const TallyAccountingHub: React.FC<TallyAccountingHubProps> = ({
       <div className="p-6 bg-gradient-to-r from-[#1D1D1F] to-[#2C2C2E] rounded-3xl text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-[#0071E3] text-white">
+            <span className="text-xs font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-black text-white">
               Tally ERP / Prime Accounting Mode
             </span>
             <span className="text-xs text-neutral-400 font-mono">
@@ -90,9 +90,9 @@ export const TallyAccountingHub: React.FC<TallyAccountingHubProps> = ({
           </button>
           <button
             onClick={() => onNavigateTab("gst_pos")}
-            className="px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-md transition apple-press cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-100 text-black text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center gap-2"
           >
-            <Zap className="w-4 h-4" />
+            <Zap className="w-4 h-4 text-black" />
             <span>Launch GST POS</span>
           </button>
         </div>
@@ -104,14 +104,14 @@ export const TallyAccountingHub: React.FC<TallyAccountingHubProps> = ({
           <div
             key={v.key}
             onClick={v.action}
-            className="p-4 rounded-2xl bg-white border border-black/[0.08] hover:border-[#0071E3] hover:shadow-md transition apple-press cursor-pointer flex flex-col justify-between group"
+            className="p-4 rounded-2xl bg-white border border-black/[0.08] hover:border-black hover:shadow-md transition apple-press cursor-pointer flex flex-col justify-between group"
           >
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black font-mono px-2 py-0.5 rounded-md bg-neutral-100 group-hover:bg-[#0071E3] group-hover:text-white transition">
+                <span className="text-xs font-black font-mono px-2 py-0.5 rounded-md bg-neutral-100 group-hover:bg-black group-hover:text-white transition">
                   {v.key}
                 </span>
-                <ArrowRight className="w-4 h-4 text-neutral-300 group-hover:text-[#0071E3] group-hover:translate-x-0.5 transition" />
+                <ArrowRight className="w-4 h-4 text-neutral-300 group-hover:text-black group-hover:translate-x-0.5 transition" />
               </div>
               <h4 className="font-bold text-sm text-black mt-2 leading-tight">
                 {v.label}
@@ -129,7 +129,7 @@ export const TallyAccountingHub: React.FC<TallyAccountingHubProps> = ({
         <div className="bg-white rounded-3xl border border-black/[0.08] p-6 shadow-xs space-y-4">
           <div className="flex justify-between items-center border-b border-black/[0.06] pb-3">
             <div className="flex items-center gap-2">
-              <Scale className="w-5 h-5 text-[#0071E3]" />
+              <Scale className="w-5 h-5 text-black" />
               <h3 className="font-bold text-base text-black">
                 GST Duties & Taxes Ledger Position (Current Month)
               </h3>
@@ -191,15 +191,15 @@ export const TallyAccountingHub: React.FC<TallyAccountingHubProps> = ({
             </div>
 
             {/* Net Tax Payable in Cash */}
-            <div className="p-4 rounded-2xl bg-[#0071E3]/5 border border-[#0071E3]/20 space-y-2">
-              <div className="text-xs font-bold text-[#0071E3] flex justify-between items-center">
+            <div className="p-4 rounded-2xl bg-neutral-50 border border-black/10 space-y-2">
+              <div className="text-xs font-bold text-black flex justify-between items-center">
                 <span>Net Cash Tax Payable</span>
-                <ShieldCheck className="w-4 h-4 text-[#0071E3]" />
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
               </div>
-              <div className="text-2xl font-black font-mono text-[#0071E3]">
+              <div className="text-2xl font-black font-mono text-black">
                 ₹{gstr3b.net_cash_payable.toFixed(2)}
               </div>
-              <div className="text-[11px] font-mono text-neutral-600 space-y-0.5 pt-1 border-t border-[#0071E3]/10">
+              <div className="text-[11px] font-mono text-neutral-600 space-y-0.5 pt-1 border-t border-black/10">
                 <div className="flex justify-between">
                   <span>Net IGST Cash:</span>
                   <span>₹{gstr3b.net_igst_payable.toFixed(2)}</span>

@@ -254,7 +254,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
         <button
           onClick={openCreateParty}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>New Contact</span>
@@ -268,11 +268,11 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
             <div className="text-[11px] font-medium text-[#86868B]">
               Total Receivables (Customers Owe You)
             </div>
-            <div className="text-xl sm:text-2xl font-bold font-mono text-[#0071E3] mt-0.5">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-black mt-0.5">
               {formatCurrency(totalReceivable)}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/10">
             <ArrowDownRight className="w-5 h-5" />
           </div>
         </div>
@@ -301,7 +301,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
             placeholder="Search contacts by name, phone or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-[#0071E3]"
+            className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-black"
           />
         </div>
 
@@ -354,8 +354,8 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                         isCust
-                          ? "bg-[#0071E3]/10 text-[#0071E3]"
-                          : "bg-[#FF9500]/10 text-[#FF9500]"
+                          ? "bg-black/5 text-black border border-black/10"
+                          : "bg-neutral-100 text-neutral-800 border border-neutral-200"
                       }`}
                     >
                       {isCust ? "Customer" : "Supplier"}
@@ -373,11 +373,11 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                         className={
                           isCust
                             ? party.current_balance > 0
-                              ? "text-[#0071E3]"
-                              : "text-[#34C759]"
+                              ? "text-black"
+                              : "text-emerald-700"
                             : party.current_balance < 0
-                            ? "text-[#FF3B30]"
-                            : "text-[#34C759]"
+                            ? "text-rose-600"
+                            : "text-emerald-700"
                         }
                       >
                         {formatCurrency(Math.abs(party.current_balance))}
@@ -399,10 +399,10 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                         onClick={() => openReminderModal(aging, party)}
                         className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition ${
                           aging.over_90 > 0
-                            ? "bg-[#FF3B30]/10 text-[#FF3B30]"
+                            ? "bg-rose-50 text-rose-700"
                             : aging.days_60 > 0
-                            ? "bg-[#FF9500]/10 text-[#FF9500]"
-                            : "bg-[#0071E3]/10 text-[#0071E3]"
+                            ? "bg-amber-50 text-amber-800"
+                            : "bg-black/5 text-black"
                         }`}
                       >
                         {aging.over_90 > 0 ? "90d+ Overdue" : aging.days_60 > 0 ? "60d Due" : "Current"}
@@ -431,7 +431,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                       <button
                         onClick={() => openEditParty(party)}
                         title="Edit Contact"
-                        className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#0071E3] hover:bg-black/[0.05]"
+                        className="p-1.5 rounded-lg text-[#6E6E73] hover:text-black hover:bg-black/[0.05]"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -469,7 +469,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 </div>
                 <span
                   className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
-                    isCust ? "bg-[#0071E3]/10 text-[#0071E3]" : "bg-[#FF9500]/10 text-[#FF9500]"
+                    isCust ? "bg-black/5 text-black border border-black/10" : "bg-neutral-100 text-neutral-800 border border-neutral-200"
                   }`}
                 >
                   {isCust ? "Customer" : "Supplier"}

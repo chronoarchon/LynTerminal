@@ -242,7 +242,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
             <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
               Credit & Outstanding Management
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3] uppercase tracking-wide">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/5 text-black uppercase tracking-wide">
               Tally Bill-by-Bill
             </span>
           </div>
@@ -356,7 +356,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search party, phone, GSTIN..."
-            className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] focus:outline-hidden focus:border-[#0071E3] transition"
+            className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] focus:outline-hidden focus:border-black transition"
           />
         </div>
       </div>
@@ -402,7 +402,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                       </div>
                       <div className="text-[10px] text-neutral-400 font-mono flex items-center gap-2 mt-0.5">
                         {party.gstin ? (
-                          <span className="font-bold text-[#0071E3]">{party.gstin}</span>
+                          <span className="font-bold text-neutral-800">{party.gstin}</span>
                         ) : (
                           <span>Unregistered</span>
                         )}
@@ -454,7 +454,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => openSettleModal(party)}
-                          className="px-2.5 py-1 rounded-lg bg-[#0071E3] text-black hover:bg-[#0077ED] text-[11px] font-semibold transition apple-press cursor-pointer shadow-xs"
+                          className="px-2.5 py-1 rounded-lg bg-black text-white hover:bg-neutral-800 text-[11px] font-semibold transition apple-press cursor-pointer shadow-xs"
                         >
                           {activeTab === "debtors" ? "Receive Payment" : "Pay Supplier"}
                         </button>

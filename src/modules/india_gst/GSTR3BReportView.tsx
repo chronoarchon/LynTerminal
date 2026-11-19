@@ -85,7 +85,7 @@ export const GSTR3BReportView: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
               GSTR-3B Monthly Self-Declaration Return
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3] uppercase tracking-wide">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/5 text-black uppercase tracking-wide">
               Rule 61(5) CGST Act
             </span>
           </div>
@@ -173,9 +173,9 @@ export const GSTR3BReportView: React.FC = () => {
           <div className="p-4 rounded-2xl bg-white border border-black/[0.06] shadow-xs">
             <div className="flex items-center justify-between text-neutral-500 mb-1">
               <span className="text-xs font-medium">3. Net Tax Payable in Cash</span>
-              <Scale className="w-4 h-4 text-[#0071E3]" />
+              <Scale className="w-4 h-4 text-black" />
             </div>
-            <div className="text-2xl font-bold font-mono text-[#0071E3]">
+            <div className="text-2xl font-bold font-mono text-black">
               ₹{reportData.net_cash_payable.toFixed(2)}
             </div>
             <div className="text-[10px] text-neutral-400 mt-1">
@@ -323,7 +323,7 @@ export const GSTR3BReportView: React.FC = () => {
                   <th className="py-2.5 px-4 text-left">Description</th>
                   <th className="py-2.5 px-3 text-right">Total Tax Payable (3.1)</th>
                   <th className="py-2.5 px-3 text-right">ITC Utilized (4)</th>
-                  <th className="py-2.5 px-4 text-right font-bold text-[#0071E3]">Tax Payable in Cash</th>
+                  <th className="py-2.5 px-4 text-right font-bold text-black">Tax Payable in Cash</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/[0.04] font-mono">
@@ -333,25 +333,25 @@ export const GSTR3BReportView: React.FC = () => {
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Integrated Tax (IGST)</td>
                       <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_igst.toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.table4_itc.itc_igst.toFixed(2)}</td>
-                      <td className="py-2.5 px-4 text-right font-bold text-[#0071E3]">₹{reportData.net_igst_payable.toFixed(2)}</td>
+                      <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_igst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Central Tax (CGST)</td>
                       <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_cgst.toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.table4_itc.itc_cgst.toFixed(2)}</td>
-                      <td className="py-2.5 px-4 text-right font-bold text-[#0071E3]">₹{reportData.net_cgst_payable.toFixed(2)}</td>
+                      <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_cgst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">State/UT Tax (SGST)</td>
                       <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_sgst.toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.table4_itc.itc_sgst.toFixed(2)}</td>
-                      <td className="py-2.5 px-4 text-right font-bold text-[#0071E3]">₹{reportData.net_sgst_payable.toFixed(2)}</td>
+                      <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_sgst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="bg-neutral-50 font-bold border-t-2 border-black">
                       <td className="py-3 px-4 font-sans text-black">TOTAL NET PAYABLE IN CASH</td>
                       <td className="py-3 px-3 text-right">₹{reportData.total_tax_payable.toFixed(2)}</td>
                       <td className="py-3 px-3 text-right text-[#34C759]">₹{reportData.total_itc_available.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right text-base text-[#0071E3]">₹{reportData.net_cash_payable.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right text-base text-black">₹{reportData.net_cash_payable.toFixed(2)}</td>
                     </tr>
                   </>
                 )}

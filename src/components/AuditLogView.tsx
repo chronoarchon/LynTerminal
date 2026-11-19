@@ -129,7 +129,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
           <button
             onClick={handleSeedDemoData}
             disabled={seeding}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-50 text-black text-xs font-semibold shadow-xs transition apple-press"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
           >
             <Sparkles className={`w-3.5 h-3.5 ${seeding ? "animate-spin" : ""}`} />
             <span>{seeding ? "Simulating..." : "Generate Demo Data"}</span>
@@ -180,12 +180,12 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
         <div className="apple-card p-4 rounded-2xl space-y-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center">
               <HardDrive className="w-4 h-4" />
             </div>
             <div>
               <h3 className="font-semibold text-xs text-[#1D1D1F]">SQLite WAL Storage</h3>
-              <div className="text-[10px] text-[#0071E3] font-medium font-mono">ACID Guaranteed</div>
+              <div className="text-[10px] text-neutral-600 font-medium font-mono">ACID Guaranteed</div>
             </div>
           </div>
           <p className="text-[11px] text-[#86868B] leading-relaxed font-mono truncate">
@@ -229,7 +229,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
               placeholder="Search audit trail..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 border border-black/[0.08] bg-[#F5F5F7] rounded-xl text-xs focus:outline-none focus:border-[#0071E3]"
+              className="w-full pl-9 pr-3 py-1.5 border border-black/[0.08] bg-[#F5F5F7] rounded-xl text-xs focus:outline-none focus:border-black"
             />
           </div>
         </div>
@@ -259,7 +259,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                           ? "bg-[#34C759]/10 text-[#34C759]"
                           : log.action === "DELETE" || log.action === "RESET"
                           ? "bg-[#FF3B30]/10 text-[#FF3B30]"
-                          : "bg-[#0071E3]/10 text-[#0071E3]"
+                          : "bg-black/10 text-black"
                       }`}
                     >
                       {log.action}

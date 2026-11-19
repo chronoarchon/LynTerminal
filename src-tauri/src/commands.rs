@@ -6336,13 +6336,14 @@ fn compare_semver(remote: &str, current: &str) -> bool {
 
 #[tauri::command]
 pub fn check_app_update() -> Result<AppUpdateInfo, String> {
-    let current_version = "1.5.1v".to_string();
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
 
+    let user_agent = format!("LynTerminal-App/{}", current_version);
     let output = std::process::Command::new("curl")
         .args(&[
             "-s",
             "--max-time", "6",
-            "-H", "User-Agent: LynTerminal-App/1.5.1",
+            "-H", &user_agent,
             "https://api.github.com/repos/chronoarchon/LynTerminal/releases/latest",
         ])
         .output()

@@ -290,7 +290,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
           {activeSubTab === "EXPENSES" ? (
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Record Expense</span>
@@ -298,7 +298,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
           ) : (
             <button
               onClick={() => setIsAddBillModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Monthly Bill</span>
@@ -354,7 +354,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 placeholder="Search expenses by title or note..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-[#0071E3]"
+                className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-black"
               />
             </div>
 
@@ -384,7 +384,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-[#86868B]">
-                      <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0071E3]" />
+                      <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-black" />
                       Loading expenses...
                     </td>
                   </tr>
@@ -421,7 +421,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenEdit(exp)}
-                            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#0071E3] hover:bg-black/[0.05]"
+                            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-black hover:bg-black/[0.05]"
                             title="Edit"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -463,7 +463,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleOpenEdit(exp)}
-                      className="text-[#0071E3] font-medium"
+                      className="text-black font-semibold"
                     >
                       Edit
                     </button>
@@ -492,7 +492,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center shrink-0">
                       <Repeat className="w-4 h-4" />
                     </div>
                     <div>

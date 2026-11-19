@@ -336,7 +336,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const totalValue = catItems.reduce((sum, it) => sum + it.stock_quantity * it.sale_price, 0);
     const totalStock = catItems.reduce((sum, it) => sum + it.stock_quantity, 0);
     const colors = [
-      { bg: "bg-[#0071E3]", text: "text-[#0071E3]", light: "bg-[#0071E3]/10", border: "border-[#0071E3]/20" },
+      { bg: "bg-black", text: "text-black", light: "bg-black/5", border: "border-black/10" },
       { bg: "bg-[#34C759]", text: "text-[#34C759]", light: "bg-[#34C759]/10", border: "border-[#34C759]/20" },
       { bg: "bg-[#FF9500]", text: "text-[#FF9500]", light: "bg-[#FF9500]/10", border: "border-[#FF9500]/20" },
       { bg: "bg-[#AF52DE]", text: "text-[#AF52DE]", light: "bg-[#AF52DE]/10", border: "border-[#AF52DE]/20" },
@@ -378,8 +378,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1D1D1F]">
               Executive Overview
             </h1>
-            <span className="text-[11px] font-semibold text-[#0071E3] bg-[#0071E3]/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#0071E3]" />
+            <span className="text-[11px] font-bold text-black bg-black/5 border border-black/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-black" />
               Live Operations
             </span>
           </div>
@@ -388,11 +388,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Action Dock with vibrant Apple color buttons */}
+        {/* Action Dock with Luxury Monochrome Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => onNavigate("pos")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Sale (F2)</span>
@@ -400,7 +400,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => handleOpenPaySupplier()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-[#FF3B30] border border-[#FF3B30]/20 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-black border border-black/10 text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
           >
             <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Pay Supplier</span>
@@ -408,7 +408,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => onNavigate("expenses")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-[#AF52DE] border border-[#AF52DE]/20 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-black border border-black/10 text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
           >
             <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Record Expense</span>
@@ -416,17 +416,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => handleOpenManageMoney("deposit")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-[#0071E3] border border-[#0071E3]/25 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F5F7] text-black border border-black/10 text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
           >
-            <Coins className="w-3.5 h-3.5 stroke-[2.5] text-[#0071E3]" />
+            <Coins className="w-3.5 h-3.5 stroke-[2.5] text-black" />
             <span>Manage Money</span>
           </button>
 
           <button
             onClick={() => onNavigate("reports")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-black text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5 text-[#0071E3]" />
+            <FileText className="w-3.5 h-3.5 text-black" />
             <span>Daybook</span>
           </button>
         </div>
@@ -523,10 +523,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         
         {/* KPI 1: Today's Revenue */}
         <div className="apple-card p-4 sm:p-5 rounded-2xl apple-card-hover relative overflow-hidden group">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-[#0071E3]" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-black" />
           <div className="flex items-center justify-between text-[#86868B] text-xs font-medium mb-1.5">
             <span>Today's Revenue</span>
-            <div className="w-7 h-7 rounded-full bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-7 h-7 rounded-full bg-black/5 text-black flex items-center justify-center group-hover:scale-110 transition-transform border border-black/10">
               <TrendingUp className="w-4 h-4 stroke-[2.5]" />
             </div>
           </div>
@@ -534,7 +534,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {formatCurrency(summary?.total_sales ?? 0)}
           </div>
           <div className="flex items-center justify-between text-[11px] text-[#86868B] mt-2 pt-2 border-t border-black/[0.05]">
-            <span className="flex items-center gap-1 text-[#0071E3] font-semibold">
+            <span className="flex items-center gap-1 text-black font-semibold">
               <Receipt className="w-3 h-3" />
               {summary?.sales_count ?? 0} settled
             </span>
@@ -546,10 +546,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* KPI 2: Physical Cash Drawer */}
         <div className="apple-card p-4 sm:p-5 rounded-2xl apple-card-hover relative overflow-hidden group">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-[#34C759]" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-600" />
           <div className="flex items-center justify-between text-[#86868B] text-xs font-medium mb-1.5">
             <span>Register Drawer</span>
-            <div className="w-7 h-7 rounded-full bg-[#34C759]/10 text-[#34C759] flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform border border-emerald-200/50">
               <Wallet className="w-4 h-4 stroke-[2.5]" />
             </div>
           </div>
@@ -557,13 +557,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {formatCurrency(summary?.cash_in_hand ?? 0)}
           </div>
           <div className="flex items-center justify-between text-[11px] mt-2 pt-2 border-t border-black/[0.05]">
-            <span className="text-[#34C759] font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
+            <span className="text-emerald-700 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
               Physical cash float
             </span>
             <button
               onClick={() => handleOpenManageMoney("deposit", "CASH")}
-              className="text-[#0071E3] hover:underline cursor-pointer font-medium"
+              className="text-black font-bold hover:underline cursor-pointer"
             >
               Deposit
             </button>
@@ -589,7 +589,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
             <button
               onClick={() => handleOpenManageMoney("transfer")}
-              className="text-[#0071E3] hover:underline cursor-pointer font-medium"
+              className="text-black hover:underline cursor-pointer font-bold"
             >
               Transfer
             </button>
@@ -598,10 +598,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* KPI 4: Stock Valuation */}
         <div className="apple-card p-4 sm:p-5 rounded-2xl apple-card-hover relative overflow-hidden group">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF9500]" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-black" />
           <div className="flex items-center justify-between text-[#86868B] text-xs font-medium mb-1.5">
             <span>Stock Valuation</span>
-            <div className="w-7 h-7 rounded-full bg-[#FF9500]/10 text-[#FF9500] flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-7 h-7 rounded-full bg-black/5 text-black flex items-center justify-center group-hover:scale-110 transition-transform border border-black/10">
               <Boxes className="w-4 h-4 stroke-[2.5]" />
             </div>
           </div>
@@ -615,14 +615,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {summary?.low_stock_count} low alerts
               </span>
             ) : (
-              <span className="text-[#34C759] font-semibold flex items-center gap-1">
+              <span className="text-emerald-700 font-semibold flex items-center gap-1">
                 <PackageCheck className="w-3 h-3" />
                 Catalog optimal
               </span>
             )}
             <button
               onClick={() => onNavigate("inventory")}
-              className="text-[#0071E3] hover:underline cursor-pointer"
+              className="text-black hover:underline cursor-pointer font-bold"
             >
               Manage
             </button>
@@ -637,7 +637,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-2 apple-card p-5 sm:p-6 rounded-3xl space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/10">
                 <TrendingUp className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div>
@@ -652,7 +652,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div className="text-right">
               <span className="text-xs text-[#86868B]">7-Day Volume:</span>
-              <div className="text-sm font-bold font-mono text-[#0071E3]">
+              <div className="text-sm font-bold font-mono text-black">
                 {formatCurrency(total7DaySales)}
               </div>
             </div>
@@ -677,14 +677,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       style={{ height: `${heightPercent}%` }}
                       className={`w-full max-w-[42px] rounded-t-xl transition-all duration-300 relative group-hover:brightness-110 ${
                         isToday
-                          ? "bg-gradient-to-t from-[#0071E3] to-[#409CFF] shadow-xs"
+                          ? "bg-black shadow-xs"
                           : d.daySales > avgDailySales
-                          ? "bg-gradient-to-t from-[#34C759] to-[#60D87E]"
-                          : "bg-gradient-to-t from-[#D2D2D7] to-[#E5E5EA]"
+                          ? "bg-neutral-800"
+                          : "bg-neutral-200"
                       }`}
                     >
                       {isToday && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#0071E3] ring-4 ring-white" />
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-black ring-4 ring-white" />
                       )}
                     </div>
                   </div>
@@ -696,7 +696,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex justify-between gap-2 sm:gap-3 px-2 pt-2 text-[11px] text-[#86868B] font-medium">
               {last7Days.map((d, idx) => (
                 <div key={d.dateStr} className="flex-1 text-center">
-                  <span className={idx === 6 ? "font-bold text-[#0071E3]" : ""}>
+                  <span className={idx === 6 ? "font-bold text-black" : ""}>
                     {d.dayName}
                   </span>
                 </div>
@@ -707,10 +707,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center justify-between text-xs pt-2 border-t border-black/[0.05]">
             <div className="flex items-center gap-4 text-[#86868B]">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#0071E3]" /> Today
+                <span className="w-2.5 h-2.5 rounded-sm bg-black" /> Today
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#34C759]" /> Above Avg
+                <span className="w-2.5 h-2.5 rounded-sm bg-neutral-800" /> Above Avg
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm bg-[#D2D2D7]" /> Base
@@ -811,7 +811,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={() => onNavigate("inventory")}
-              className="text-xs font-semibold text-[#0071E3] hover:underline cursor-pointer"
+              className="text-xs font-bold text-black hover:underline cursor-pointer"
             >
               View All
             </button>
@@ -847,7 +847,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="font-mono font-bold text-xs text-[#1D1D1F]">
                       {formatCurrency(p.sale_price)}
                     </div>
-                    <span className={`text-[10px] font-semibold ${isLowStock ? "text-[#FF9500]" : "text-[#34C759]"}`}>
+                    <span className={`text-[10px] font-semibold ${isLowStock ? "text-amber-700" : "text-emerald-700"}`}>
                       {isLowStock ? "Low Stock" : "In Stock"}
                     </span>
                   </div>
@@ -861,7 +861,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-3.5">
           <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#34C759]/10 text-[#34C759] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/50">
                 <Receipt className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div>
@@ -876,7 +876,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={() => onNavigate("invoices")}
-              className="text-xs font-semibold text-[#0071E3] hover:underline cursor-pointer"
+              className="text-xs font-bold text-black hover:underline cursor-pointer"
             >
               All Invoices
             </button>
@@ -902,10 +902,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className="font-mono font-bold text-xs text-[#0071E3]">
+                  <div className="font-mono font-bold text-xs text-black">
                     +{formatCurrency(inv.total_amount)}
                   </div>
-                  <span className="text-[10px] font-semibold text-[#34C759]">
+                  <span className="text-[10px] font-semibold text-emerald-700">
                     {inv.status}
                   </span>
                 </div>
@@ -1113,12 +1113,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <Scale className="w-4 h-4 text-[#0071E3]" />
+            <Scale className="w-4 h-4 text-black" />
             <h2 className="text-sm sm:text-base font-semibold text-[#1D1D1F] tracking-tight">
               Balance Sheet & Working Capital
             </h2>
           </div>
-          <span className="text-[11px] font-semibold text-[#34C759] bg-[#34C759]/10 px-2.5 py-0.5 rounded-full flex items-center gap-1 self-start sm:self-auto">
+          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full flex items-center gap-1 self-start sm:self-auto border border-emerald-200/50">
             <ShieldCheck className="w-3.5 h-3.5" />
             Accounting Reconciled
           </span>
@@ -1129,7 +1129,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] space-y-3">
             <div className="flex items-center justify-between text-xs font-semibold text-[#6E6E73] uppercase tracking-wider">
               <span>Total Assets</span>
-              <span className="w-2 h-2 rounded-full bg-[#34C759]" />
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
             </div>
             <div className="text-2xl font-bold font-mono text-[#1D1D1F]">
               {formatCurrency(totalAssets)}
@@ -1149,7 +1149,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div className="flex justify-between text-[#6E6E73]">
                 <span>Receivables (Customers)</span>
-                <span className="font-mono font-medium text-[#FF9500]">
+                <span className="font-mono font-medium text-amber-700">
                   {formatCurrency(summary?.total_receivables ?? 0)}
                 </span>
               </div>
@@ -1166,15 +1166,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] space-y-3">
             <div className="flex items-center justify-between text-xs font-semibold text-[#6E6E73] uppercase tracking-wider">
               <span>Total Liabilities</span>
-              <span className="w-2 h-2 rounded-full bg-[#FF3B30]" />
+              <span className="w-2 h-2 rounded-full bg-rose-600" />
             </div>
-            <div className="text-2xl font-bold font-mono text-[#FF3B30]">
+            <div className="text-2xl font-bold font-mono text-rose-600">
               {formatCurrency(totalLiabilities)}
             </div>
             <div className="space-y-1.5 pt-2 border-t border-black/[0.06] text-xs">
               <div className="flex justify-between text-[#6E6E73]">
                 <span>Payables to Suppliers</span>
-                <span className="font-mono font-medium text-[#FF3B30]">
+                <span className="font-mono font-medium text-rose-600">
                   {formatCurrency(summary?.total_payables ?? 0)}
                 </span>
               </div>
@@ -1190,9 +1190,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider">
                 <span>Net Equity / Capital</span>
-                <span className="w-2 h-2 rounded-full bg-[#0071E3]" />
+                <span className="w-2 h-2 rounded-full bg-black" />
               </div>
-              <div className="text-2xl font-bold font-mono text-[#0071E3] mt-2">
+              <div className="text-2xl font-bold font-mono text-black mt-2">
                 {formatCurrency(netWorth)}
               </div>
               <p className="text-[11px] text-[#86868B] mt-2 leading-relaxed">
@@ -1215,7 +1215,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-3.5 rounded-2xl bg-[#F5F5F7]/80 border border-black/[0.04] space-y-2">
             <div className="flex items-center justify-between text-xs font-semibold text-[#1D1D1F]">
               <span className="flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-[#34C759]" />
+                <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                 Opening Balance Allocation
               </span>
               <span className="font-mono text-xs font-bold text-[#1D1D1F]">
@@ -1231,7 +1231,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div className="bg-white p-2 rounded-xl border border-black/[0.04]">
                 <span className="text-[#86868B] block">Bank Account</span>
-                <span className="font-mono font-bold text-[#0071E3]">
+                <span className="font-mono font-bold text-black">
                   {formatCurrency(summary?.opening_bank ?? 0)}
                 </span>
               </div>
@@ -1241,7 +1241,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-3.5 rounded-2xl bg-[#F5F5F7]/80 border border-black/[0.04] space-y-2">
             <div className="flex items-center justify-between text-xs font-semibold text-[#1D1D1F]">
               <span className="flex items-center gap-1.5">
-                <Landmark className="w-3.5 h-3.5 text-[#0071E3]" />
+                <Landmark className="w-3.5 h-3.5 text-black" />
                 Capital Position Allocation
               </span>
               <span className="font-mono text-xs font-bold text-[#1D1D1F]">
@@ -1257,7 +1257,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div className="bg-white p-2 rounded-xl border border-black/[0.04]">
                 <span className="text-[#86868B] block">Capital Bank</span>
-                <span className="font-mono font-bold text-[#0071E3]">
+                <span className="font-mono font-bold text-black">
                   {formatCurrency(summary?.capital_bank ?? 0)}
                 </span>
               </div>

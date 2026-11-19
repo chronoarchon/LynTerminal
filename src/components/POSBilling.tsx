@@ -593,7 +593,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>Ticket ({totalCartCount})</span>
             {totalCartCount > 0 && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0071E3]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-black" />
             )}
           </button>
         </div>
@@ -615,7 +615,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               placeholder="Search product, SKU, or scan barcode [Enter]..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.06] text-xs font-medium text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0071E3]/20 focus:border-[#0071E3] transition"
+              className="w-full pl-10 pr-10 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.06] text-xs font-medium text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black transition"
             />
             <Barcode className="w-4 h-4 text-[#86868B] absolute right-3.5 top-1/2 -translate-y-1/2" />
           </form>
@@ -663,7 +663,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 onClick={() => addToCart(item)}
                 className={`group relative p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between h-[135px] sm:h-[148px] apple-press ${
                   inCart
-                    ? "bg-[#0071E3]/[0.04] border-[#0071E3] shadow-xs"
+                    ? "bg-black/[0.04] border-black shadow-xs"
                     : "bg-white hover:bg-[#FBFBFC] border-black/[0.07] hover:border-black/[0.14] shadow-2xs"
                 }`}
               >
@@ -676,7 +676,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       )}
                     </span>
                     {inCart && (
-                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#0071E3] text-white text-[10px] font-bold">
+                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-bold">
                         {inCart.quantity}
                       </span>
                     )}
@@ -729,7 +729,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               className="w-full py-3 px-4 rounded-2xl bg-[#1D1D1F] text-white shadow-xl flex items-center justify-between border border-white/10 apple-press"
             >
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[#0071E3] text-white text-xs font-bold flex items-center justify-center">
+                <span className="w-6 h-6 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center">
                   {totalCartCount}
                 </span>
                 <span className="text-xs font-semibold">View Active Ticket</span>
@@ -868,7 +868,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                         }}
                         className={`w-full text-left px-3 py-2 text-xs rounded-xl hover:bg-[#F5F5F7] flex justify-between items-center cursor-pointer ${
                           selectedPartyId === p.id
-                            ? "bg-[#0071E3]/10 text-[#0071E3] font-semibold"
+                            ? "bg-black/5 text-black font-bold"
                             : "text-[#1D1D1F]"
                         }`}
                       >
@@ -890,7 +890,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               className="h-8 px-2.5 rounded-xl bg-[#F5F5F7] hover:bg-[#EBEBED] text-[#1D1D1F] border border-black/[0.06] text-xs font-semibold flex items-center gap-1.5 transition apple-press shrink-0 cursor-pointer"
               title={billMode === "PURCHASE" ? "Add New Supplier" : "Add New Customer"}
             >
-              <UserPlus className="w-3.5 h-3.5 text-[#0071E3]" />
+              <UserPlus className="w-3.5 h-3.5 text-black" />
               <span className="text-[11px] font-medium hidden sm:inline">
                 {billMode === "PURCHASE" ? "+ Supplier" : "+ Customer"}
               </span>
@@ -1109,7 +1109,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       placeholder="Tendered cash..."
                       value={tenderedAmount}
                       onChange={(e) => setTenderedAmount(e.target.value)}
-                      className="flex-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-[#0071E3]"
+                      className="flex-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-black"
                     />
                     <div className="flex gap-1 shrink-0">
                       {(currency === "₹" || currency.includes("₹")
@@ -1128,7 +1128,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       <button
                         type="button"
                         onClick={() => setTenderedAmount(totalAmount.toFixed(2))}
-                        className="px-2 py-1 rounded-lg bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[10px] font-semibold text-[#0071E3] transition apple-press cursor-pointer"
+                        className="px-2 py-1 rounded-lg bg-black/5 hover:bg-black/10 text-[10px] font-semibold text-black transition apple-press cursor-pointer border border-black/10"
                       >
                         Exact
                       </button>
@@ -1136,7 +1136,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   </div>
 
                   {tenderedAmount && parseFloat(tenderedAmount) > 0 && (
-                    <div className="flex justify-between items-center px-3 py-1.5 rounded-xl bg-[#34C759]/10 text-[#34C759] text-xs font-semibold">
+                    <div className="flex justify-between items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200/50">
                       <span>Change Due:</span>
                       <span className="font-mono text-sm font-bold">
                         {currency}
@@ -1154,7 +1154,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="Card auth code or transaction ref (optional)..."
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
                 />
               )}
 
@@ -1261,7 +1261,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                         <button
                           type="button"
                           onClick={() => setShowAddCustomerModal(true)}
-                          className="px-2.5 py-1 rounded-lg bg-[#0071E3] hover:bg-[#0077ED] text-white text-[10px] font-semibold transition shrink-0 cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-black hover:bg-neutral-800 text-white text-[10px] font-bold transition shrink-0 cursor-pointer shadow-xs"
                         >
                           + New Customer
                         </button>
@@ -1280,7 +1280,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                               const found = parties.find((p) => p.id === e.target.value);
                               if (found) setCustomCustomerName(found.name);
                             }}
-                            className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-[#1D1D1F] focus:outline-none focus:border-[#FF9500]"
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-[#1D1D1F] focus:outline-none focus:border-black"
                           >
                             <option value="">-- Select Customer for Credit Bill --</option>
                             {parties
@@ -1295,9 +1295,9 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-white border border-[#FF9500]/20">
+                    <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-white border border-black/10">
                       <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-[#FF9500]" />
+                        <Users className="w-3.5 h-3.5 text-black" />
                         <span className="text-[#86868B] text-[11px]">Ledger Account:</span>
                         <span className="font-bold text-[#1D1D1F]">
                           {parties.find((p) => p.id === selectedPartyId)?.name}
@@ -1311,7 +1311,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedPartyId("")}
-                        className="text-[10px] text-[#0071E3] hover:underline cursor-pointer"
+                        className="text-[10px] text-black font-bold hover:underline cursor-pointer"
                       >
                         Change
                       </button>

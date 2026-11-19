@@ -472,7 +472,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => handleSubmit()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto disabled:opacity-50"
         >
           <Save className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>{saving ? "Saving..." : "Save Preferences"}</span>
@@ -480,7 +480,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {saveSuccess && (
-        <div className="p-3.5 rounded-2xl bg-[#34C759]/10 border border-[#34C759]/20 flex items-center gap-2 text-xs text-[#34C759] font-semibold animate-in fade-in duration-150">
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center gap-2 text-xs text-emerald-700 font-semibold animate-in fade-in duration-150">
           <CheckCircle className="w-4 h-4" />
           <span>Preferences successfully saved to local SQLite database</span>
         </div>
@@ -489,7 +489,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* SECTION 1: Store Branding & Identification */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center gap-2 border-b border-black/[0.06] pb-3">
-          <Building className="w-4 h-4 text-[#0071E3]" />
+          <Building className="w-4 h-4 text-black" />
           <h2 className="text-sm font-semibold text-[#1D1D1F]">
             Store Profile & Branding
           </h2>
@@ -505,7 +505,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               required
               value={formData.business_name}
               onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
 
@@ -517,7 +517,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               value={formData.tagline}
               onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
         </div>
@@ -531,7 +531,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
 
@@ -543,7 +543,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
 
@@ -555,7 +555,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               value={formData.tax_id}
               onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-black"
             />
           </div>
         </div>
@@ -564,7 +564,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* SECTION 2: Currency & International Tax Presets */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center gap-2 border-b border-black/[0.06] pb-3">
-          <Globe className="w-4 h-4 text-[#0071E3]" />
+          <Globe className="w-4 h-4 text-black" />
           <h2 className="text-sm font-semibold text-[#1D1D1F]">
             Operating Currency & Tax Engine
           </h2>
@@ -611,7 +611,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               value={formData.tax_name}
               onChange={(e) => setFormData({ ...formData, tax_name: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>
 
@@ -624,7 +624,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               step="0.01"
               value={formData.default_tax_rate}
               onChange={(e) => setFormData({ ...formData, default_tax_rate: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-bold focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-bold focus:outline-none focus:border-black"
             />
           </div>
 
@@ -876,7 +876,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/10">
               <Receipt className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
@@ -888,7 +888,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/5 text-black border border-black/10">
             POS Gateways
           </span>
         </div>
@@ -912,7 +912,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           <div className="p-3.5 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-xs">
+              <span className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center font-bold text-xs">
                 💳
               </span>
               <div>
@@ -920,7 +920,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <span className="text-[10px] text-[#86868B]">Swipe, chip &amp; contactless terminal</span>
               </div>
             </div>
-            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/40">
+            <span className="text-[10px] font-semibold text-black bg-black/5 px-2 py-0.5 rounded-full border border-black/10">
               Default (Always On)
             </span>
           </div>
@@ -956,7 +956,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0071E3]"></div>
+                  <div className="w-9 h-5 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black"></div>
                 </label>
               </div>
 
@@ -974,7 +974,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       custom_payment_1_name: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-black"
                 />
               </div>
             </div>
@@ -1002,7 +1002,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0071E3]"></div>
+                  <div className="w-9 h-5 bg-black/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black"></div>
                 </label>
               </div>
 
@@ -1020,7 +1020,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       custom_payment_2_name: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-black"
                 />
               </div>
             </div>
@@ -1031,7 +1031,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* SECTION 3: Receipt Formatting & Register Defaults */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center gap-2 border-b border-black/[0.06] pb-3">
-          <Receipt className="w-4 h-4 text-[#0071E3]" />
+          <Receipt className="w-4 h-4 text-black" />
           <h2 className="text-sm font-semibold text-[#1D1D1F]">
             Thermal Receipt & Register Defaults
           </h2>
@@ -1046,7 +1046,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               value={formData.invoice_prefix}
               onChange={(e) => setFormData({ ...formData, invoice_prefix: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-black"
             />
           </div>
 
@@ -1060,7 +1060,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             rows={2}
             value={formData.terms_and_conditions}
             onChange={(e) => setFormData({ ...formData, terms_and_conditions: e.target.value })}
-            className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+            className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
           />
         </div>
       </div>
@@ -1069,7 +1069,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-6">
         <div className="flex flex-wrap items-center justify-between border-b border-black/[0.06] pb-3 gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center shrink-0 border border-black/10">
               <Coins className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
@@ -1085,7 +1085,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="button"
               onClick={() => setIsManageMoneyOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
             >
               <Coins className="w-3.5 h-3.5 stroke-[2.2]" />
               <span>Manage Money</span>
@@ -1108,7 +1108,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   Initial register float or starting bank funds on Day 1.
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold text-[#0071E3] bg-[#0071E3]/10 px-2 py-0.5 rounded-lg">
+              <span className="text-xs font-mono font-bold text-black bg-black/5 px-2 py-0.5 rounded-lg border border-black/10">
                 Total: {currencySymbol}{(Number(formData.opening_cash || 0) + Number(formData.opening_bank || 0)).toFixed(2)}
               </span>
             </div>
@@ -1189,7 +1189,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     min="0"
                     value={formData.opening_cash ?? 0}
                     onChange={(e) => setFormData({ ...formData, opening_cash: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-black"
                   />
                 </div>
               )}
@@ -1205,7 +1205,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     min="0"
                     value={formData.opening_bank ?? 0}
                     onChange={(e) => setFormData({ ...formData, opening_bank: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-black"
                   />
                 </div>
               )}
@@ -1304,7 +1304,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     min="0"
                     value={formData.capital_cash ?? 0}
                     onChange={(e) => setFormData({ ...formData, capital_cash: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-black"
                   />
                 </div>
               )}
@@ -1320,7 +1320,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     min="0"
                     value={formData.capital_bank ?? 0}
                     onChange={(e) => setFormData({ ...formData, capital_bank: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium focus:outline-none focus:border-black"
                   />
                 </div>
               )}
@@ -1344,7 +1344,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[#86868B]">Total Initial Capital Equity:</span>
-            <span className="font-mono font-bold text-[#0071E3]">
+            <span className="font-mono font-bold text-black">
               {currencySymbol}{(
                 Number(formData.opening_cash || 0) +
                 Number(formData.opening_bank || 0) +
@@ -1360,7 +1360,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-[#0071E3]" />
+            <Lock className="w-4 h-4 text-black" />
             <h2 className="text-sm font-semibold text-[#1D1D1F]">
               Workstation Security & Local Master Account
             </h2>
@@ -1382,7 +1382,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div>
               <div className="flex items-center justify-between">
                 <div className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-1.5">
-                  <Lock className="w-4 h-4 text-[#0071E3]" />
+                  <Lock className="w-4 h-4 text-black" />
                   <span>Lock Workstation</span>
                 </div>
                 {authState?.has_account ? (
@@ -1458,12 +1458,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         {revealedRecoveryKey && (
-          <div className="p-4 rounded-2xl bg-neutral-900 text-black flex items-center justify-between gap-3 animate-in fade-in duration-150">
+          <div className="p-4 rounded-2xl bg-neutral-900 text-white flex items-center justify-between gap-3 animate-in fade-in duration-150">
             <div>
               <div className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
                 SOVEREIGN RECOVERY KEY
               </div>
-              <div className="font-mono text-sm sm:text-base font-bold text-[#0071E3] tracking-widest select-all mt-0.5">
+              <div className="font-mono text-sm sm:text-base font-bold text-white tracking-widest select-all mt-0.5">
                 {revealedRecoveryKey}
               </div>
             </div>
@@ -1482,14 +1482,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <div className="pt-2 border-t border-black/[0.06] flex items-center justify-between text-xs text-[#6E6E73]">
           <div className="flex items-center gap-1.5">
-            <ServerOff className="w-3.5 h-3.5 text-[#0071E3]" />
+            <ServerOff className="w-3.5 h-3.5 text-black" />
             <span>Zero Inbound / Outbound Telemetry · DPDPA 2023 & GDPR Aligned</span>
           </div>
 
           <button
             type="button"
             onClick={() => setIsCharterOpen(true)}
-            className="text-[#0071E3] font-semibold hover:underline cursor-pointer"
+            className="text-black font-semibold hover:underline cursor-pointer"
           >
             Read Privacy Charter & Terms →
           </button>
@@ -1500,7 +1500,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <HardDrive className="w-4 h-4 text-[#0071E3]" />
+            <HardDrive className="w-4 h-4 text-black" />
             <h2 className="text-sm font-semibold text-[#1D1D1F]">
               Safe Vault & Database Backups
             </h2>
@@ -1511,7 +1511,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             disabled={creatingBackup}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press"
           >
-            <Shield className="w-3.5 h-3.5 text-[#34C759]" />
+            <Shield className="w-3.5 h-3.5 text-emerald-600" />
             <span>{creatingBackup ? "Backing up..." : "Create Snapshot"}</span>
           </button>
         </div>
@@ -1632,14 +1632,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </h2>
           </div>
           <span className="text-[11px] font-mono font-semibold text-neutral-700 bg-neutral-100 px-2.5 py-0.5 rounded-full border border-neutral-200">
-            v1.5.1v
+            v1.5.2
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div>
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>LynTerminal v1.5.1v</span>
+              <span>LynTerminal v1.5.2</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
                 Current
               </span>
@@ -1653,7 +1653,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             type="button"
             onClick={handleCheckUpdate}
             disabled={checkingUpdate}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer shrink-0 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer shrink-0 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdate ? "animate-spin" : ""}`} />
             <span>{checkingUpdate ? "Checking Releases..." : "Check for Updates"}</span>

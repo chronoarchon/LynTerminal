@@ -31,9 +31,8 @@ export const Logo: React.FC<LogoProps> = ({
         >
           <defs>
             <linearGradient id="lynterminalLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#2997FF" />
-              <stop offset="60%" stopColor="#0071E3" />
-              <stop offset="100%" stopColor="#00C7BE" />
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="100%" stopColor="#D4D4D8" />
             </linearGradient>
           </defs>
           <path
@@ -64,7 +63,7 @@ export const Logo: React.FC<LogoProps> = ({
                   : "bg-white/[0.1] text-[#A1A1A6]"
               }`}
             >
-              v1.5.1v
+              v1.5.2
             </span>
           </div>
           <span

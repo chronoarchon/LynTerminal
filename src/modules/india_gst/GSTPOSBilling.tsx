@@ -411,7 +411,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search items by name, SKU or barcode..."
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-white border border-black/[0.08] focus:outline-hidden focus:border-[#0071E3] transition"
+              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-white border border-black/[0.08] focus:outline-hidden focus:border-black transition"
             />
           </div>
 
@@ -438,18 +438,18 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             <div
               key={item.id}
               onClick={() => addToCart(item)}
-              className="p-3 rounded-2xl border border-black/[0.08] hover:border-[#0071E3] hover:shadow-md transition apple-press cursor-pointer flex flex-col justify-between bg-white group"
+              className="p-3 rounded-2xl border border-black/[0.08] hover:border-black hover:shadow-md transition apple-press cursor-pointer flex flex-col justify-between bg-white group"
             >
               <div>
                 <div className="flex justify-between items-start gap-1">
                   <span className="text-[10px] font-mono text-neutral-400 uppercase">
                     {item.category}
                   </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-[#0071E3]/10 text-[#0071E3]">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-black/5 text-black border border-black/10">
                     {item.tax_rate ?? 18}% GST
                   </span>
                 </div>
-                <h4 className="font-semibold text-xs text-black mt-1 leading-snug line-clamp-2 group-hover:text-[#0071E3] transition">
+                <h4 className="font-semibold text-xs text-black mt-1 leading-snug line-clamp-2 group-hover:text-black transition">
                   {item.name}
                 </h4>
               </div>
@@ -477,7 +477,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         <div className="p-3.5 bg-[#FAFAFA] border-b border-black/[0.06] space-y-2 shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-1.5 font-bold text-xs text-black">
-              <Receipt className="w-4 h-4 text-[#0071E3]" />
+              <Receipt className="w-4 h-4 text-black" />
               <span>GST Tax Bill Register</span>
             </div>
             <div className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#34C759]/10 text-[#34C759]">
@@ -585,7 +585,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                         onClick={() => updateTaxRate(idx, slab)}
                         className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition ${
                           line.tax_rate === slab
-                            ? "bg-[#0071E3] text-white"
+                            ? "bg-black text-white"
                             : "text-neutral-500 hover:text-black"
                         }`}
                       >
@@ -655,7 +655,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 onClick={() => setPaymentType("UPI")}
                 className={`py-1.5 rounded-lg font-bold flex flex-col items-center gap-0.5 transition cursor-pointer ${
                   paymentType === "UPI"
-                    ? "bg-[#0071E3] text-white shadow-xs"
+                    ? "bg-black text-white shadow-xs"
                     : "bg-white border border-black/[0.08] text-neutral-600 hover:bg-neutral-100"
                 }`}
               >
@@ -823,7 +823,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
                 licenseStatus?.is_expired
                   ? "bg-rose-600 hover:bg-rose-700"
-                  : "bg-[#0071E3] hover:bg-[#0077ED]"
+                  : "bg-black hover:bg-neutral-800"
               }`}
             >
               {licenseStatus?.is_expired ? (
