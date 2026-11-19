@@ -85,14 +85,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectTab(item.id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
                   isActive
-                    ? "bg-[#0071E3] text-white shadow-xs font-semibold"
+                    ? "bg-white text-black shadow-md font-bold"
                     : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon
                     className={`w-4 h-4 transition-colors ${
-                      isActive ? "text-white stroke-[2.2]" : "text-[#86868B]"
+                      isActive ? "text-black stroke-[2.5]" : "text-[#86868B]"
                     }`}
                   />
                   <span>{item.label}</span>
@@ -100,14 +100,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="flex items-center gap-1.5">
                   {item.count !== undefined && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF3B30] text-white">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white">
                       {item.count}
                     </span>
                   )}
                   <kbd
                     className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
                       isActive
-                        ? "bg-white/20 text-white"
+                        ? "bg-black/10 text-black font-bold"
                         : "bg-white/[0.06] text-[#86868B]"
                     }`}
                   >
@@ -125,8 +125,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868B]">
                   India GST & Tally
                 </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FF9500]/20 text-[#FF9500]">
-                  CGST/SGST
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white border border-white/10">
+                  GST
                 </span>
               </div>
 
@@ -140,14 +140,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => onSelectTab(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
                       isActive
-                        ? "bg-[#FF9500] text-white shadow-xs font-semibold"
+                        ? "bg-white text-black shadow-md font-bold"
                         : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <Icon
                         className={`w-4 h-4 transition-colors ${
-                          isActive ? "text-white stroke-[2.2]" : "text-[#FF9500]"
+                          isActive ? "text-black stroke-[2.5]" : "text-[#86868B]"
                         }`}
                       />
                       <span>{item.label}</span>
@@ -156,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <kbd
                       className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
                         isActive
-                          ? "bg-white/20 text-white"
+                          ? "bg-black/10 text-black font-bold"
                           : "bg-white/[0.06] text-[#86868B]"
                       }`}
                     >
@@ -179,29 +179,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
               licenseStatus.is_licensed
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
                 : licenseStatus.is_expired
-                ? "bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25 animate-pulse"
-                : "bg-blue-500/10 text-sky-400 border-blue-500/20 hover:bg-blue-500/20"
+                ? "bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25 animate-pulse"
+                : "bg-white/10 text-white border-white/15 hover:bg-white/20"
             }`}
           >
             <div className="flex items-center gap-1.5 truncate">
               {licenseStatus.is_licensed ? (
                 <>
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="truncate">Commercial License</span>
+                  <span className="truncate">Licensed</span>
                 </>
               ) : licenseStatus.is_expired ? (
                 <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                  <span className="truncate">Trial Expired</span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                  <span className="truncate">Expired</span>
                 </>
               ) : (
                 <>
-                  <Key className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                  <span className="truncate">14-Day Free Trial</span>
+                  <Key className="w-3.5 h-3.5 text-white shrink-0" />
+                  <span className="truncate">Trial</span>
                 </>
               )}
             </div>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 shrink-0">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 shrink-0">
               {licenseStatus.is_licensed ? "ACTIVE" : `${licenseStatus.days_remaining}d`}
             </span>
           </button>
@@ -215,8 +215,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-xs font-medium text-[#F5F5F7] truncate">
               Local SQLite Engine
             </span>
-            <span className="text-[10px] text-[#34C759] font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] inline-block animate-pulse" />
+            <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
               100% Offline & Private
             </span>
           </div>

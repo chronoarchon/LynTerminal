@@ -293,18 +293,18 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
       {/* INSPECT LOG MODAL */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Audit Entry Details
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Audit Entry
                 </h3>
-                <p className="text-[11px] text-[#86868B]">ID #{selectedLog.id}</p>
+                <p className="text-[11px] text-neutral-400 font-mono">ID #{selectedLog.id}</p>
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -312,20 +312,20 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
             <div className="p-5 space-y-3 select-text font-mono text-xs">
               <div>
-                <span className="text-[#86868B] block text-[10px] uppercase">Timestamp:</span>
-                <span className="text-[#1D1D1F]">{selectedLog.timestamp}</span>
+                <span className="text-neutral-400 block text-[10px] uppercase">Timestamp</span>
+                <span className="text-white">{selectedLog.timestamp}</span>
               </div>
               <div>
-                <span className="text-[#86868B] block text-[10px] uppercase">Action & Entity:</span>
-                <span className="text-[#1D1D1F] font-bold">{selectedLog.action} · {selectedLog.entity}</span>
+                <span className="text-neutral-400 block text-[10px] uppercase">Action</span>
+                <span className="text-white font-bold">{selectedLog.action} · {selectedLog.entity}</span>
               </div>
               <div>
-                <span className="text-[#86868B] block text-[10px] uppercase">Entity Identifier:</span>
-                <span className="text-[#1D1D1F]">{selectedLog.entity_id}</span>
+                <span className="text-neutral-400 block text-[10px] uppercase">Entity ID</span>
+                <span className="text-white">{selectedLog.entity_id}</span>
               </div>
               <div>
-                <span className="text-[#86868B] block text-[10px] uppercase">Details:</span>
-                <p className="text-[#1D1D1F] font-sans leading-relaxed mt-1 p-3 rounded-xl bg-[#F5F5F7]">
+                <span className="text-neutral-400 block text-[10px] uppercase">Details</span>
+                <p className="text-white font-sans leading-relaxed mt-1 p-3 rounded-xl bg-[#0e1015] border border-white/10">
                   {selectedLog.details}
                 </p>
               </div>
@@ -334,7 +334,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedLog(null)}
-                  className="w-full py-2.5 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold"
+                  className="w-full py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Close
                 </button>

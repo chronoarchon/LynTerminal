@@ -477,20 +477,20 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
 
       {/* Settle Bill Modal */}
       {settleParty && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-black/[0.07] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-base font-bold text-[#1D1D1F]">
-                  {activeTab === "debtors" ? "Record Customer Receipt" : "Record Supplier Payment"}
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  {activeTab === "debtors" ? "Settle Receipt" : "Settle Payment"}
                 </h3>
-                <p className="text-xs text-neutral-500">
-                  Party: <span className="font-semibold text-black">{settleParty.party_name}</span> (Outstanding: ₹{settleParty.total_outstanding.toFixed(2)})
+                <p className="text-xs text-neutral-400">
+                  {settleParty.party_name} · Due: ₹{settleParty.total_outstanding.toFixed(2)}
                 </p>
               </div>
               <button
                 onClick={() => setSettleParty(null)}
-                className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition cursor-pointer"
+                className="w-8 h-8 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -499,8 +499,8 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
             <form onSubmit={handleExecuteSettlement} className="p-6 space-y-4 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                    Amount to Settle (₹)
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Amount (₹) *
                   </label>
                   <input
                     type="number"
@@ -508,62 +508,62 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                     value={settlementAmount}
                     onChange={(e) => handleAmountChange(e.target.value)}
                     required
-                    className="w-full text-sm font-mono font-bold px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] focus:outline-hidden focus:border-[#0071E3]"
+                    className="w-full text-sm font-mono font-bold px-3.5 py-2.5 rounded-xl bg-[#0e1015] border border-white/10 text-white focus:outline-none focus:border-white/40"
                   />
-                  <div className="text-[10px] text-neutral-400 mt-1 font-sans">
+                  <div className="text-[10px] text-neutral-500 mt-1 font-sans">
                     {amountToIndianWords(parseFloat(settlementAmount) || 0)}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
                     Payment Method
                   </label>
                   <select
                     value={settlementMethod}
                     onChange={(e) => setSettlementMethod(e.target.value)}
-                    className="w-full text-xs font-semibold px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] focus:outline-hidden"
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-[#0e1015] border border-white/10 text-white focus:outline-none focus:border-white/40"
                   >
-                    <option value="UPI">UPI (PhonePe / GPay / Paytm)</option>
+                    <option value="UPI">UPI</option>
                     <option value="Cash">Cash</option>
-                    <option value="Bank NEFT">Bank NEFT / RTGS</option>
+                    <option value="Bank NEFT">Bank Transfer</option>
                     <option value="Cheque">Cheque</option>
-                    <option value="Card">Debit / Credit Card</option>
+                    <option value="Card">Card</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
                     Settlement Date
                   </label>
                   <input
                     type="date"
                     value={settlementDate}
                     onChange={(e) => setSettlementDate(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] focus:outline-hidden"
+                    className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#0e1015] border border-white/10 text-white focus:outline-none focus:border-white/40"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                    Transaction / Cheque Ref
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Reference / UTR
                   </label>
                   <input
                     type="text"
                     value={settlementRef}
                     onChange={(e) => setSettlementRef(e.target.value)}
                     placeholder="e.g. UTR-9821374"
-                    className="w-full text-xs font-mono px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] focus:outline-hidden"
+                    className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl bg-[#0e1015] border border-white/10 text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
 
               {/* Pending Bills Allocation Table */}
               <div className="space-y-1.5 pt-2">
-                <div className="text-xs font-bold text-neutral-700 flex justify-between items-center">
-                  <span>Bill-by-Bill Allocation</span>
-                  <span className="text-[11px] text-[#0071E3] font-normal">
-                    {pendingBills.length} pending bill(s) found
+                <div className="text-xs font-bold text-neutral-300 flex justify-between items-center">
+                  <span>Bill Allocation</span>
+                  <span className="text-[11px] text-neutral-400 font-normal">
+                    {pendingBills.length} pending bill(s)
                   </span>
                 </div>
 
@@ -572,33 +572,33 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                     Loading pending invoices...
                   </div>
                 ) : pendingBills.length === 0 ? (
-                  <div className="p-4 bg-neutral-50 rounded-xl text-center text-xs text-neutral-400">
-                    No specific pending bills found. Payment will be credited on-account.
+                  <div className="p-4 bg-[#0e1015] rounded-xl text-center text-xs text-neutral-400 border border-white/10">
+                    No pending bills found. Payment credited on-account.
                   </div>
                 ) : (
-                  <div className="border border-black/[0.08] rounded-xl overflow-hidden max-h-52 overflow-y-auto">
+                  <div className="border border-white/10 rounded-xl overflow-hidden max-h-52 overflow-y-auto bg-[#0e1015]">
                     <table className="w-full text-xs">
-                      <thead className="bg-neutral-100 text-neutral-600 font-semibold text-[10px]">
+                      <thead className="bg-[#181a21] text-neutral-400 font-semibold text-[10px]">
                         <tr>
-                          <th className="py-2 px-3 text-left">Bill # & Date</th>
+                          <th className="py-2 px-3 text-left">Bill &amp; Date</th>
                           <th className="py-2 px-2 text-right">Total</th>
-                          <th className="py-2 px-2 text-right">Balance Due</th>
+                          <th className="py-2 px-2 text-right">Balance</th>
                           <th className="py-2 px-3 text-right">Allocated (₹)</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-black/[0.04]">
+                      <tbody className="divide-y divide-white/10 text-neutral-300">
                         {pendingBills.map((b) => (
-                          <tr key={b.invoice_id} className="hover:bg-neutral-50">
+                          <tr key={b.invoice_id} className="hover:bg-white/5">
                             <td className="py-2 px-3">
-                              <div className="font-mono font-semibold">{b.invoice_number}</div>
-                              <div className="text-[10px] text-neutral-400">
+                              <div className="font-mono font-semibold text-white">{b.invoice_number}</div>
+                              <div className="text-[10px] text-neutral-500">
                                 {b.invoice_date} {b.overdue_days > 0 ? `(${b.overdue_days}d overdue)` : ""}
                               </div>
                             </td>
-                            <td className="py-2 px-2 text-right font-mono">
+                            <td className="py-2 px-2 text-right font-mono text-neutral-400">
                               ₹{b.total_amount.toFixed(2)}
                             </td>
-                            <td className="py-2 px-2 text-right font-mono font-bold text-[#FF3B30]">
+                            <td className="py-2 px-2 text-right font-mono font-bold text-red-400">
                               ₹{b.balance_due.toFixed(2)}
                             </td>
                             <td className="py-2 px-3 text-right font-mono">
@@ -619,7 +619,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                                     return updated;
                                   });
                                 }}
-                                className="w-24 text-right font-mono text-xs px-2 py-1 rounded bg-neutral-100 border border-black/10 focus:outline-hidden"
+                                className="w-24 text-right font-mono text-xs px-2 py-1 rounded bg-[#181a21] border border-white/10 text-white focus:outline-none"
                               />
                             </td>
                           </tr>
@@ -630,20 +630,20 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-black/[0.08]">
+              <div className="flex justify-end gap-2 pt-4 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setSettleParty(null)}
-                  className="px-4 py-2 rounded-xl border border-black/[0.08] text-xs font-semibold text-neutral-600 hover:bg-neutral-50 transition cursor-pointer"
+                  className="px-4 py-2 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingSettlement}
-                  className="px-5 py-2 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ED] text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmittingSettlement ? "Processing Voucher..." : "Confirm & Settle Voucher"}
+                  {isSubmittingSettlement ? "Processing..." : "Confirm Settle"}
                 </button>
               </div>
             </form>
@@ -653,50 +653,50 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
 
       {/* Statement of Account Modal */}
       {statementParty && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-black/[0.08] pb-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-2xl border border-white/10 p-6 space-y-4 max-h-[90vh] overflow-y-auto text-white">
+            <div className="flex justify-between items-start border-b border-white/10 pb-4">
               <div>
-                <h3 className="text-lg font-bold text-[#1D1D1F]">
-                  {settings.business_name || "Business"} · Statement of Account
+                <h3 className="text-lg font-bold text-white tracking-tight">
+                  {settings.business_name || "Store"} · Statement
                 </h3>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-400">
                   {statementParty.tally_ledger_group} · {statementParty.party_name}
                 </p>
-                <div className="text-[11px] font-mono text-neutral-600 mt-1">
+                <div className="text-[11px] font-mono text-neutral-500 mt-1">
                   GSTIN: {statementParty.gstin || "Unregistered"} · State: {statementParty.state_name}
                 </div>
               </div>
               <button
                 onClick={() => setStatementParty(null)}
-                className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition cursor-pointer"
+                className="w-8 h-8 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 bg-neutral-50 rounded-2xl border border-black/[0.06] flex justify-between items-center">
+            <div className="p-4 bg-[#0e1015] rounded-2xl border border-white/10 flex justify-between items-center">
               <div>
-                <span className="text-xs text-neutral-500 font-medium">Net Closing Balance</span>
-                <div className="text-xl font-bold font-mono text-black mt-0.5">
+                <span className="text-xs text-neutral-400 font-medium">Net Balance Due</span>
+                <div className="text-xl font-bold font-mono text-white mt-0.5">
                   ₹{statementParty.total_outstanding.toFixed(2)}
                 </div>
               </div>
               <div className="text-right text-xs">
-                <span className="text-neutral-500">Credit Terms:</span>
-                <div className="font-semibold text-neutral-800">
+                <span className="text-neutral-400">Credit Terms:</span>
+                <div className="font-semibold text-white">
                   {statementParty.credit_period_days} Days
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <div className="text-xs font-bold text-neutral-700">
-                Pending Ledger Vouchers
+              <div className="text-xs font-bold text-neutral-300">
+                Pending Vouchers
               </div>
-              <div className="border border-black/[0.08] rounded-xl overflow-hidden">
+              <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0e1015]">
                 <table className="w-full text-xs">
-                  <thead className="bg-neutral-100 text-neutral-600 font-semibold text-[10px]">
+                  <thead className="bg-[#181a21] text-neutral-400 font-semibold text-[10px]">
                     <tr>
                       <th className="py-2 px-3 text-left">Date</th>
                       <th className="py-2 px-2 text-left">Voucher #</th>
@@ -705,18 +705,18 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                       <th className="py-2 px-3 text-right">Due Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-black/[0.04]">
+                  <tbody className="divide-y divide-white/10 text-neutral-300">
                     {partyBillsForStatement.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-6 text-center text-neutral-400">
-                          All bills are reconciled. Zero pending vouchers.
+                        <td colSpan={5} className="py-6 text-center text-neutral-500">
+                          Zero pending vouchers.
                         </td>
                       </tr>
                     ) : (
                       partyBillsForStatement.map((b) => (
-                        <tr key={b.invoice_id}>
+                        <tr key={b.invoice_id} className="hover:bg-white/5">
                           <td className="py-2 px-3">{b.invoice_date}</td>
-                          <td className="py-2 px-2 font-mono font-semibold">{b.invoice_number}</td>
+                          <td className="py-2 px-2 font-mono font-semibold text-white">{b.invoice_number}</td>
                           <td className="py-2 px-2 text-right font-mono">
                             {b.invoice_type === "SALE" ? `₹${b.total_amount.toFixed(2)}` : "-"}
                           </td>
@@ -732,13 +732,13 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-3 border-t border-black/[0.08]">
-              <span className="text-[10px] text-neutral-400 font-mono">
-                Computer Generated Ledger Extract · LynTerminal Tally Engine
+            <div className="flex justify-between items-center pt-3 border-t border-white/10">
+              <span className="text-[10px] text-neutral-500 font-mono">
+                LynTerminal Statement
               </span>
               <button
                 onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1D1D1F] text-white hover:bg-black text-xs font-semibold transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Print Statement</span>

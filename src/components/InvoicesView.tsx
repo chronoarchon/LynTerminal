@@ -769,45 +769,46 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
       {/* VOID / RETURN MODAL */}
       {voidTarget && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Process Return / Refund
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Refund Sale
                 </h3>
-                <p className="text-[11px] text-[#86868B]">{voidTarget.invoice_number}</p>
+                <p className="text-[11px] text-neutral-400 font-mono">#{voidTarget.invoice_number}</p>
               </div>
               <button
                 onClick={() => setVoidTarget(null)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-3.5">
-              <div className="p-3 rounded-xl bg-[#F5F5F7] text-xs space-y-1">
-                <div className="flex justify-between text-[#6E6E73]">
-                  <span>Amount to Refund:</span>
-                  <span className="font-mono font-bold text-[#FF3B30]">
+              <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 text-xs space-y-1">
+                <div className="flex justify-between text-neutral-400">
+                  <span>Refund Total:</span>
+                  <span className="font-mono font-bold text-red-400">
                     {formatCurrency(voidTarget.total_amount)}
                   </span>
                 </div>
-                <div className="text-[10px] text-[#86868B]">
-                  Stock items will be restored to inventory and audit entry recorded.
+                <div className="text-[10px] text-neutral-500">
+                  Inventory restored to stock. Audit log created.
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Return Reason
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Reason
                 </label>
                 <input
                   type="text"
+                  placeholder="Optional return reason"
                   value={voidReason}
                   onChange={(e) => setVoidReason(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -815,7 +816,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setVoidTarget(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7]"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -823,9 +824,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   type="button"
                   onClick={handleExecuteVoid}
                   disabled={isProcessingVoid}
-                  className="flex-1 py-2.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-white text-xs font-semibold shadow-xs transition apple-press"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {isProcessingVoid ? "Processing..." : "Confirm Refund"}
+                  {isProcessingVoid ? "Processing..." : "Refund"}
                 </button>
               </div>
             </div>
@@ -835,20 +836,20 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
       {/* CREATE QUOTATION MODAL */}
       {isCreateQuoteOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-lg border border-white/10 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Issue Price Quotation
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Price Quotation
                 </h3>
-                <p className="text-[11px] text-[#86868B]">
-                  Formal price estimate for customer approval
+                <p className="text-[11px] text-neutral-400">
+                  Estimate for customer
                 </p>
               </div>
               <button
                 onClick={() => setIsCreateQuoteOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -857,8 +858,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             <form onSubmit={handleCreateQuote} className="p-5 space-y-3.5 flex-1 overflow-y-auto">
               {parties.length > 0 && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Select Existing Contact
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Select Contact
                   </label>
                   <AppleSelect
                     value={quotePartyId}
@@ -869,9 +870,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                         setQuotePartyName(p.name);
                       }
                     }}
-                    placeholder="-- Choose Contact (or enter below) --"
+                    placeholder="-- Select Contact --"
                     options={[
-                      { value: "", label: "-- Choose Contact (or enter below) --" },
+                      { value: "", label: "-- Select Contact --" },
                       ...parties.map((p) => ({
                         value: p.id,
                         label: `${p.name} (${p.party_type})`,
@@ -883,7 +884,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Customer Name *
                   </label>
                   <input
@@ -892,34 +893,34 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     placeholder="e.g. John Doe"
                     value={quotePartyName}
                     onChange={(e) => setQuotePartyName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Valid Until
                   </label>
                   <input
                     type="date"
                     value={quoteExpiry}
                     onChange={(e) => setQuoteExpiry(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Add Item from Catalog
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Add Catalog Item
                 </label>
                 <AppleSelect
                   value=""
                   onChange={(val) => {
                     if (val) handleAddQuoteItem(val);
                   }}
-                  placeholder="-- Tap to Select Product --"
+                  placeholder="-- Select Product --"
                   options={[
-                    { value: "", label: "-- Tap to Select Product --" },
+                    { value: "", label: "-- Select Product --" },
                     ...items.map((i) => ({
                       value: i.id,
                       label: `${i.name} (${formatCurrency(i.sale_price)})`,
@@ -929,24 +930,24 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               </div>
 
               {quoteItems.length > 0 && (
-                <div className="space-y-2 pt-1 border-t border-black/[0.06]">
+                <div className="space-y-2 pt-1 border-t border-white/10">
                   {quoteItems.map((qi, idx) => (
                     <div
                       key={idx}
-                      className="p-2.5 rounded-xl bg-[#F5F5F7] flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl bg-[#0e1015] border border-white/10 flex items-center justify-between text-xs"
                     >
-                      <div className="font-medium text-[#1D1D1F]">{qi.item_name}</div>
+                      <div className="font-medium text-white">{qi.item_name}</div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[#6E6E73]">
+                        <span className="font-mono text-neutral-400">
                           {qi.quantity} {qi.unit} × {formatCurrency(qi.unit_price)}
                         </span>
-                        <span className="font-mono font-bold text-[#1D1D1F]">
+                        <span className="font-mono font-bold text-white">
                           {formatCurrency(qi.line_total)}
                         </span>
                         <button
                           type="button"
                           onClick={() => setQuoteItems(quoteItems.filter((_, i) => i !== idx))}
-                          className="text-[#86868B] hover:text-[#FF3B30] ml-1"
+                          className="text-neutral-400 hover:text-red-400 ml-1 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -957,31 +958,31 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               )}
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Quotation Notes
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Notes
                 </label>
                 <input
                   type="text"
                   value={quoteNotes}
                   onChange={(e) => setQuoteNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
-              <div className="flex gap-2 pt-3 border-t border-black/[0.06]">
+              <div className="flex gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsCreateQuoteOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7]"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingQuote || quoteItems.length === 0}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmittingQuote ? "Creating..." : "Issue Quotation"}
+                  {isSubmittingQuote ? "Creating..." : "Issue Quote"}
                 </button>
               </div>
             </form>
@@ -991,20 +992,20 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
       {/* RECORD PURCHASE RETURN MODAL */}
       {isCreateReturnOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-lg border border-white/10 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Record Purchase Return (Debit Note)
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Debit Note
                 </h3>
-                <p className="text-[11px] text-[#86868B]">
-                  Return defective inventory to vendor
+                <p className="text-[11px] text-neutral-400">
+                  Return inventory to vendor
                 </p>
               </div>
               <button
                 onClick={() => setIsCreateReturnOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1013,8 +1014,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             <form onSubmit={handleCreateReturn} className="p-5 space-y-3.5 flex-1 overflow-y-auto">
               {parties.filter((p) => p.party_type === "VENDOR").length > 0 && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Select Supplier
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Supplier
                   </label>
                   <AppleSelect
                     value={returnPartyId}
@@ -1025,9 +1026,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                         setReturnPartyName(p.name);
                       }
                     }}
-                    placeholder="-- Choose Supplier (or enter below) --"
+                    placeholder="-- Select Supplier --"
                     options={[
-                      { value: "", label: "-- Choose Supplier (or enter below) --" },
+                      { value: "", label: "-- Select Supplier --" },
                       ...parties
                         .filter((p) => p.party_type === "VENDOR")
                         .map((p) => ({
@@ -1041,7 +1042,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Supplier Name *
                   </label>
                   <input
@@ -1050,34 +1051,34 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     placeholder="e.g. Acme Supplies"
                     value={returnPartyName}
                     onChange={(e) => setReturnPartyName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Return Reason
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Reason
                   </label>
                   <input
                     type="text"
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Add Item from Catalog
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Add Catalog Item
                 </label>
                 <AppleSelect
                   value=""
                   onChange={(val) => {
                     if (val) handleAddReturnItem(val);
                   }}
-                  placeholder="-- Tap to Select Product to Return --"
+                  placeholder="-- Select Item --"
                   options={[
-                    { value: "", label: "-- Tap to Select Product to Return --" },
+                    { value: "", label: "-- Select Item --" },
                     ...items.map((i) => ({
                       value: i.id,
                       label: `${i.name} (${formatCurrency(i.purchase_price ? i.purchase_price : i.sale_price)})`,
@@ -1087,24 +1088,24 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               </div>
 
               {returnItems.length > 0 && (
-                <div className="space-y-2 pt-1 border-t border-black/[0.06]">
+                <div className="space-y-2 pt-1 border-t border-white/10">
                   {returnItems.map((ri, idx) => (
                     <div
                       key={idx}
-                      className="p-2.5 rounded-xl bg-[#F5F5F7] flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl bg-[#0e1015] border border-white/10 flex items-center justify-between text-xs"
                     >
-                      <div className="font-medium text-[#1D1D1F]">{ri.item_name}</div>
+                      <div className="font-medium text-white">{ri.item_name}</div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[#6E6E73]">
+                        <span className="font-mono text-neutral-400">
                           {ri.quantity} {ri.unit} × {formatCurrency(ri.unit_price)}
                         </span>
-                        <span className="font-mono font-bold text-[#FF3B30]">
+                        <span className="font-mono font-bold text-red-400">
                           {formatCurrency(ri.line_total)}
                         </span>
                         <button
                           type="button"
                           onClick={() => setReturnItems(returnItems.filter((_, i) => i !== idx))}
-                          className="text-[#86868B] hover:text-[#FF3B30] ml-1"
+                          className="text-neutral-400 hover:text-red-400 ml-1 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -1115,29 +1116,29 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               )}
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                   Notes
                 </label>
                 <input
                   type="text"
                   value={returnNotes}
                   onChange={(e) => setReturnNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
-              <div className="flex gap-2 pt-3 border-t border-black/[0.06]">
+              <div className="flex gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsCreateReturnOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7]"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingReturn || returnItems.length === 0}
-                  className="flex-1 py-2.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-white text-xs font-semibold shadow-xs transition apple-press"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
                   {isSubmittingReturn ? "Recording..." : "Issue Debit Note"}
                 </button>
@@ -1168,26 +1169,26 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
       {/* Credit Bill Settlement Modal */}
       {creditPayTarget && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#34C759]/10 text-[#34C759] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <DollarSign className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">
-                    Settle Credit Bill
+                  <h3 className="text-sm font-bold text-white tracking-tight">
+                    Settle Credit
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">
-                    Record payment received from customer
+                  <p className="text-[11px] text-neutral-400">
+                    Record customer payment
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setCreditPayTarget(null)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer transition"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1195,34 +1196,34 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
             {/* Bill Summary Card */}
             <div className="p-5 space-y-4">
-              <div className="p-3.5 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Invoice Number:</span>
-                  <span className="font-mono font-bold text-[#1D1D1F]">
+              <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Invoice:</span>
+                  <span className="font-mono font-bold text-white">
                     #{creditPayTarget.invoice_number}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Customer Name:</span>
-                  <span className="font-semibold text-[#1D1D1F]">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Customer:</span>
+                  <span className="font-semibold text-white">
                     {creditPayTarget.party_name || "Walk-in Customer"}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Total Bill Amount:</span>
-                  <span className="font-mono font-semibold text-[#1D1D1F]">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Total:</span>
+                  <span className="font-mono font-semibold text-white">
                     {formatCurrency(creditPayTarget.total_amount)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Already Paid:</span>
-                  <span className="font-mono font-semibold text-[#34C759]">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Paid:</span>
+                  <span className="font-mono font-semibold text-emerald-400">
                     {formatCurrency(creditPayTarget.paid_amount || 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-black/[0.06] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#FF3B30]">Remaining Balance Due:</span>
-                  <span className="font-mono font-bold text-sm text-[#FF3B30]">
+                <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                  <span className="font-bold text-red-400">Balance Due:</span>
+                  <span className="font-mono font-bold text-sm text-red-400">
                     {formatCurrency(
                       Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0))
                     )}
@@ -1232,11 +1233,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
               {/* Custom Money Entry Input with 100% and 50% quick buttons */}
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  How much did they pay? *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Payment Amount *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#86868B]">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-neutral-500">
                     {settings.currency_symbol || "$"}
                   </span>
                   <input
@@ -1246,8 +1247,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     required
                     value={creditPayAmount}
                     onChange={(e) => setCreditPayAmount(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-sm font-mono font-bold text-[#1D1D1F] focus:outline-none focus:border-[#0071E3]"
-                    placeholder="Enter amount..."
+                    className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-sm font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    placeholder="0.00"
                   />
                 </div>
 
@@ -1258,9 +1259,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                       const rem = Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0));
                       setCreditPayAmount(rem.toFixed(2));
                     }}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[#0071E3] text-xs font-bold transition apple-press cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer"
                   >
-                    100% (Full Pay)
+                    100% Full
                   </button>
                   <button
                     type="button"
@@ -1268,26 +1269,26 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                       const rem = Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0));
                       setCreditPayAmount((rem / 2).toFixed(2));
                     }}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-black/[0.05] hover:bg-black/[0.08] text-[#1D1D1F] text-xs font-semibold transition apple-press cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-full bg-[#181a21] hover:bg-[#20232c] text-neutral-300 text-xs font-semibold border border-white/10 transition cursor-pointer"
                   >
-                    50% (Half Pay)
+                    50% Half
                   </button>
                 </div>
               </div>
 
-              {/* Payment Method Selector: Cash, Card, Bank, Custom */}
+              {/* Payment Method Selector */}
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Paid In
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Method
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setCreditPayMethod("CASH")}
-                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       creditPayMethod === "CASH"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Cash
@@ -1295,10 +1296,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setCreditPayMethod("CARD")}
-                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       creditPayMethod === "CARD"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Card
@@ -1306,49 +1307,23 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setCreditPayMethod("BANK")}
-                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       creditPayMethod === "BANK"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Bank
                   </button>
-                  {settings.custom_payment_1_enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setCreditPayMethod(settings.custom_payment_1_name || "CUSTOM_1")}
-                      className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer truncate ${
-                        creditPayMethod === (settings.custom_payment_1_name || "CUSTOM_1")
-                          ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
-                          : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
-                      }`}
-                    >
-                      {settings.custom_payment_1_name || "Custom 1"}
-                    </button>
-                  )}
-                  {settings.custom_payment_2_enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setCreditPayMethod(settings.custom_payment_2_name || "CUSTOM_2")}
-                      className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer truncate ${
-                        creditPayMethod === (settings.custom_payment_2_name || "CUSTOM_2")
-                          ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
-                          : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
-                      }`}
-                    >
-                      {settings.custom_payment_2_name || "Custom 2"}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {/* Action Buttons: Cancel and OK */}
-              <div className="flex gap-2 pt-2 border-t border-black/[0.06]">
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setCreditPayTarget(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1356,9 +1331,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   type="button"
                   disabled={isSubmittingCreditPay}
                   onClick={() => handleExecuteCreditPay()}
-                  className="flex-1 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#2DB34E] text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {isSubmittingCreditPay ? "Recording..." : "OK (Confirm Pay)"}
+                  {isSubmittingCreditPay ? "Saving..." : "Confirm Pay"}
                 </button>
               </div>
             </div>

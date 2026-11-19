@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Sparkles,
   Download,
   AlertCircle,
   X,
@@ -30,7 +29,7 @@ const renderFormattedText = (text: string) => {
     const token = match[0];
     if (token.startsWith("**") && token.endsWith("**")) {
       parts.push(
-        <strong key={match.index} className="font-semibold text-[#1D1D1F]">
+        <strong key={match.index} className="font-semibold text-white">
           {token.slice(2, -2)}
         </strong>
       );
@@ -38,7 +37,7 @@ const renderFormattedText = (text: string) => {
       parts.push(
         <code
           key={match.index}
-          className="px-1.5 py-0.5 rounded-md bg-black/[0.05] font-mono text-[11px] text-[#0071E3] font-medium"
+          className="px-1.5 py-0.5 rounded-md bg-white/10 font-mono text-[11px] text-white font-medium"
         >
           {token.slice(1, -1)}
         </code>
@@ -52,7 +51,7 @@ const renderFormattedText = (text: string) => {
             href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0071E3] hover:underline inline-flex items-center gap-0.5 font-medium"
+            className="text-white hover:underline inline-flex items-center gap-0.5 font-medium"
           >
             <span>{linkMatch[1]}</span>
             <ExternalLink className="w-2.5 h-2.5 inline" />
@@ -82,7 +81,7 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
         elements.push(
           <div
             key={`code-${i}`}
-            className="p-2.5 rounded-xl bg-black/[0.04] border border-black/[0.06] font-mono text-[11px] text-[#1D1D1F] overflow-x-auto my-2"
+            className="p-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-[11px] text-white overflow-x-auto my-2"
           >
             <pre>{codeBlockContent.join("\n")}</pre>
           </div>
@@ -106,7 +105,7 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <h5
           key={i}
-          className="text-xs font-semibold text-[#1D1D1F] mt-2 mb-1"
+          className="text-xs font-semibold text-white mt-2 mb-1"
         >
           {trimmed.replace(/^####\s+/, "")}
         </h5>
@@ -115,9 +114,9 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <h4
           key={i}
-          className="text-xs font-bold text-[#1D1D1F] mt-3 mb-1.5 flex items-center gap-1.5"
+          className="text-xs font-bold text-white mt-3 mb-1.5 flex items-center gap-1.5"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0071E3]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-white" />
           <span>{trimmed.replace(/^###\s+/, "")}</span>
         </h4>
       );
@@ -125,14 +124,14 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <h3
           key={i}
-          className="text-xs font-bold text-[#0071E3] uppercase tracking-wider mt-2.5 mb-1"
+          className="text-xs font-bold text-white uppercase tracking-wider mt-2.5 mb-1"
         >
           {trimmed.replace(/^##\s+/, "")}
         </h3>
       );
     } else if (trimmed.startsWith("# ")) {
       elements.push(
-        <h2 key={i} className="text-sm font-bold text-[#1D1D1F] mt-2 mb-1">
+        <h2 key={i} className="text-sm font-bold text-white mt-2 mb-1">
           {trimmed.replace(/^#\s+/, "")}
         </h2>
       );
@@ -140,7 +139,7 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <div
           key={i}
-          className="pl-3 py-1.5 my-1.5 border-l-2 border-[#0071E3] bg-[#0071E3]/5 rounded-r-xl text-xs text-[#515154] italic"
+          className="pl-3 py-1.5 my-1.5 border-l-2 border-white/30 bg-white/5 rounded-r-xl text-xs text-neutral-300 italic"
         >
           {renderFormattedText(trimmed.replace(/^>\s*/, ""))}
         </div>
@@ -151,9 +150,9 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
         elements.push(
           <div
             key={i}
-            className="flex items-start gap-2 text-xs text-[#515154] leading-relaxed my-1 pl-1"
+            className="flex items-start gap-2 text-xs text-neutral-300 leading-relaxed my-1 pl-1"
           >
-            <span className="font-mono font-bold text-[#0071E3] text-xs shrink-0 w-4">
+            <span className="font-mono font-bold text-white text-xs shrink-0 w-4">
               {numMatch[1]}.
             </span>
             <div className="flex-1">{renderFormattedText(numMatch[2])}</div>
@@ -166,17 +165,17 @@ const FormattedReleaseNotes: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <div
           key={i}
-          className={`flex items-start gap-2 text-xs text-[#515154] leading-relaxed my-1 ${
+          className={`flex items-start gap-2 text-xs text-neutral-300 leading-relaxed my-1 ${
             isIndented ? "pl-5" : "pl-1"
           }`}
         >
-          <span className="text-[#0071E3] font-bold text-sm leading-none mt-0.5">•</span>
+          <span className="text-white font-bold text-sm leading-none mt-0.5">•</span>
           <div className="flex-1">{renderFormattedText(itemText)}</div>
         </div>
       );
     } else {
       elements.push(
-        <p key={i} className="text-xs text-[#515154] leading-relaxed my-1">
+        <p key={i} className="text-xs text-neutral-300 leading-relaxed my-1">
           {renderFormattedText(trimmed)}
         </p>
       );
@@ -244,29 +243,29 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-black/[0.08] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#13151a] rounded-3xl max-w-lg w-full shadow-2xl border border-white/10 overflow-hidden flex flex-col text-white">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-start justify-between border-b border-black/[0.06]">
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between border-b border-white/10 bg-[#181a21]/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#0071E3]/10 border border-[#0071E3]/20 flex items-center justify-center text-[#0071E3] shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+              <Download className="w-5 h-5" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50 mb-1">
-                <span>Update Available</span>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold tracking-wider uppercase border border-white/15 mb-1">
+                <span>Update Ready</span>
                 <span>•</span>
                 <span className="font-mono">v{updateInfo.latest_version}</span>
               </div>
-              <h2 className="text-base font-bold text-[#1D1D1F]">
-                LynTerminal Software Update
+              <h2 className="text-base font-bold text-white tracking-tight">
+                Software Update
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
             disabled={isUpdating}
-            className="p-1.5 rounded-full hover:bg-neutral-100 text-[#86868B] hover:text-[#1D1D1F] transition cursor-pointer disabled:opacity-40"
+            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition cursor-pointer disabled:opacity-40"
           >
             <X className="w-4 h-4" />
           </button>
@@ -274,30 +273,30 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
         {/* Content Body */}
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-          {/* Zero Data Loss Guarantee Card */}
-          <div className="p-3.5 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/20 flex items-start gap-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+          {/* Safe Data Guarantee Card */}
+          <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
             <div className="text-xs">
-              <span className="font-bold text-emerald-800 block">
-                Zero Data Loss Guaranteed
+              <span className="font-bold text-white block">
+                Zero Data Loss
               </span>
-              <p className="text-emerald-700/90 text-[11px] mt-0.5 leading-relaxed">
-                Your store records, catalog SKUs, receipts, and accounting ledgers live in your persistent user directory (~/.local/share/com.lynterminal.app) and are never overwritten by application upgrades. An automated snapshot backup is created before applying.
+              <p className="text-neutral-400 text-[11px] mt-0.5 leading-relaxed">
+                Persistent database isolated. Auto backup snapshot created before upgrade.
               </p>
             </div>
           </div>
 
           {/* Version Comparison */}
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
-              <span className="text-[11px] text-[#86868B] block">Current Version</span>
-              <span className="font-mono font-bold text-[#1D1D1F] text-sm">
+            <div className="p-3 rounded-2xl bg-[#0e1015] border border-white/10">
+              <span className="text-[11px] text-neutral-400 block">Current</span>
+              <span className="font-mono font-bold text-white text-sm">
                 v{updateInfo.current_version}
               </span>
             </div>
-            <div className="p-3 rounded-2xl bg-[#0071E3]/5 border border-[#0071E3]/15">
-              <span className="text-[11px] text-[#0071E3] font-semibold block">New Release</span>
-              <span className="font-mono font-bold text-[#0071E3] text-sm">
+            <div className="p-3 rounded-2xl bg-[#181a21] border border-white/15">
+              <span className="text-[11px] text-neutral-300 font-semibold block">Target</span>
+              <span className="font-mono font-bold text-white text-sm">
                 v{updateInfo.latest_version}
               </span>
             </div>
@@ -306,11 +305,11 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           {/* Release Notes with Styled Typography */}
           {updateInfo.release_notes && (
             <div>
-              <h4 className="text-xs font-semibold text-[#1D1D1F] mb-1.5 flex items-center justify-between">
-                <span>Release Notes &amp; Changelog</span>
-                <span className="text-[10px] text-[#86868B] font-mono">v{updateInfo.latest_version}</span>
+              <h4 className="text-xs font-bold text-white mb-1.5 flex items-center justify-between uppercase tracking-wider">
+                <span>Changelog</span>
+                <span className="text-[10px] text-neutral-400 font-mono">v{updateInfo.latest_version}</span>
               </h4>
-              <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] max-h-52 overflow-y-auto select-text scrollbar-thin">
+              <div className="p-4 rounded-2xl bg-[#0e1015] border border-white/10 max-h-52 overflow-y-auto select-text scrollbar-thin">
                 <FormattedReleaseNotes content={updateInfo.release_notes} />
               </div>
             </div>
@@ -318,7 +317,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
           {/* Step-by-Step Progress Feedback */}
           {isUpdating && (
-            <div className="p-4 rounded-2xl bg-[#0071E3]/5 border border-[#0071E3]/20 space-y-3">
+            <div className="p-4 rounded-2xl bg-[#0e1015] border border-white/10 space-y-3">
               {/* Step indicator pills */}
               <div className="grid grid-cols-4 gap-1.5">
                 {stepsList.map((step) => {
@@ -327,16 +326,16 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
                   return (
                     <div
                       key={step.num}
-                      className={`px-2 py-1.5 rounded-xl text-[10px] font-semibold flex items-center justify-center gap-1 transition-all ${
+                      className={`px-2 py-1.5 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
                         isDone
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200/50"
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                           : isCurrent
-                          ? "bg-[#0071E3] text-white shadow-xs"
-                          : "bg-black/[0.04] text-[#86868B]"
+                          ? "bg-white text-black shadow-xs font-black"
+                          : "bg-white/5 text-neutral-500 border border-white/5"
                       }`}
                     >
                       {isDone ? (
-                        <CheckCircle2 className="w-3 h-3" />
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                       ) : (
                         <span>{step.num}</span>
                       )}
@@ -347,18 +346,18 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               </div>
 
               {/* Status Message and Percent */}
-              <div className="flex items-center justify-between text-xs font-semibold text-[#0071E3]">
+              <div className="flex items-center justify-between text-xs font-bold text-white">
                 <span className="flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-white" />
                   <span>{statusMessage}</span>
                 </span>
-                <span className="font-mono">{progress}%</span>
+                <span className="font-mono text-neutral-300">{progress}%</span>
               </div>
 
               {/* Smooth Progress Bar */}
-              <div className="w-full bg-black/10 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-[#0071E3] h-full transition-all duration-300 rounded-full"
+                  className="bg-white h-full transition-all duration-300 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -367,10 +366,10 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
           {/* Error Banner */}
           {errorMessage && (
-            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-red-950/40 border border-red-500/30 text-xs text-red-200 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold block">Update Error</span>
+                <span className="font-bold text-red-400 block">Update Failed</span>
                 <p className="text-[11px] mt-0.5 leading-relaxed">{errorMessage}</p>
               </div>
             </div>
@@ -378,14 +377,14 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 bg-[#FAFAFC] border-t border-black/[0.06] flex items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-[#181a21]/60 border-t border-white/10 flex items-center justify-between gap-3">
           <a
             href={updateInfo.html_url}
             target="_blank"
             rel="noreferrer"
-            className="text-[11px] text-[#86868B] hover:text-[#0071E3] flex items-center gap-1 transition"
+            className="text-[11px] text-neutral-400 hover:text-white flex items-center gap-1 transition"
           >
-            <span>View Release on GitHub</span>
+            <span>GitHub Release</span>
             <ExternalLink className="w-3 h-3" />
           </a>
 
@@ -394,7 +393,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               type="button"
               onClick={onClose}
               disabled={isUpdating}
-              className="px-4 py-2 rounded-xl border border-black/[0.1] bg-white hover:bg-neutral-50 text-xs font-semibold text-[#1D1D1F] transition cursor-pointer disabled:opacity-40"
+              className="px-4 py-2 rounded-full border border-white/10 bg-[#181a21] hover:bg-[#20232c] text-xs font-bold text-neutral-300 transition cursor-pointer disabled:opacity-40"
             >
               Later
             </button>
@@ -402,17 +401,17 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               type="button"
               onClick={handleApplyUpdate}
               disabled={isUpdating}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
             >
               {isUpdating ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{statusMessage.split(":")[0]}...</span>
+                  <span>Installing...</span>
                 </>
               ) : (
                 <>
                   <Download className="w-3.5 h-3.5" />
-                  <span>Apply Update Now</span>
+                  <span>Install Update</span>
                 </>
               )}
             </button>

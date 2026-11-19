@@ -90,7 +90,7 @@ export const AppleSelect: React.FC<AppleSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#FAFAFC] hover:bg-[#F2F2F5] text-[#1D1D1F] border border-black/[0.1] text-xs font-medium transition cursor-pointer select-none focus:outline-none focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/20 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${buttonClassName}`}
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#0e1015] hover:bg-[#13151a] text-white border border-white/10 text-xs font-medium transition cursor-pointer select-none focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed shadow-md ${buttonClassName}`}
       >
         <div className="flex items-center gap-2 truncate pr-1">
           {selectedOption?.icon && <span className="shrink-0">{selectedOption.icon}</span>}
@@ -99,7 +99,7 @@ export const AppleSelect: React.FC<AppleSelectProps> = ({
           </span>
         </div>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-[#86868B] shrink-0 ml-1.5 transition-transform duration-150 ${
+          className={`w-3.5 h-3.5 text-neutral-400 shrink-0 ml-1.5 transition-transform duration-150 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -109,11 +109,11 @@ export const AppleSelect: React.FC<AppleSelectProps> = ({
         <div
           className={`absolute left-0 right-0 ${
             openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5"
-          } bg-white rounded-2xl shadow-2xl border border-black/[0.08] p-1.5 z-[100] max-h-60 overflow-y-auto ${menuClassName}`}
+          } bg-[#13151a] text-white rounded-2xl shadow-2xl border border-white/10 p-1.5 z-[100] max-h-60 overflow-y-auto ${menuClassName}`}
           style={{ minWidth: "100%" }}
         >
           {normalizedOptions.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-[#86868B] text-center">No options</div>
+            <div className="px-3 py-2 text-xs text-neutral-400 text-center">No options</div>
           ) : (
             normalizedOptions.map((option) => {
               const isSelected = option.value === value;
@@ -127,8 +127,8 @@ export const AppleSelect: React.FC<AppleSelectProps> = ({
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between transition cursor-pointer select-none ${
                     isSelected
-                      ? "bg-[#0071E3]/10 text-[#0071E3] font-semibold"
-                      : "text-[#1D1D1F] hover:bg-[#F5F5F7]"
+                      ? "bg-white text-black font-bold"
+                      : "text-neutral-300 hover:bg-[#181a21] hover:text-white"
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate pr-2">
@@ -136,14 +136,14 @@ export const AppleSelect: React.FC<AppleSelectProps> = ({
                     <div className="flex flex-col truncate">
                       <span className="truncate">{option.label}</span>
                       {option.sublabel && (
-                        <span className="text-[10px] text-[#86868B] truncate">
+                        <span className={`text-[10px] truncate ${isSelected ? "text-neutral-700" : "text-neutral-400"}`}>
                           {option.sublabel}
                         </span>
                       )}
                     </div>
                   </div>
                   {isSelected && (
-                    <Check className="w-3.5 h-3.5 text-[#0071E3] shrink-0 ml-2" />
+                    <Check className="w-3.5 h-3.5 text-black shrink-0 ml-2 stroke-[2.5]" />
                   )}
                 </button>
               );

@@ -66,49 +66,48 @@ export const Header: React.FC<HeaderProps> = ({
         {licenseStatus && (
           <button
             onClick={onOpenLicenseModal}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition apple-press cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold border transition apple-press cursor-pointer ${
               licenseStatus.is_licensed
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                ? "bg-[#13151a] text-emerald-400 border-emerald-500/30 hover:bg-[#181a21]"
                 : licenseStatus.is_expired
-                ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
-                : "bg-blue-50 text-[#0071E3] border-blue-200"
+                ? "bg-[#181a21] text-red-400 border-red-500/40 animate-pulse"
+                : "bg-[#13151a] text-white border-white/20 hover:bg-[#181a21]"
             }`}
-            title="Commercial License Status"
+            title="Commercial License"
           >
             {licenseStatus.is_licensed ? (
               <>
-                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span className="hidden sm:inline">Commercial Licensed</span>
-                <span className="sm:hidden">Licensed</span>
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                <span>Licensed</span>
               </>
             ) : licenseStatus.is_expired ? (
               <>
-                <AlertTriangle className="w-3 h-3 text-rose-600" />
-                <span>Trial Expired • Activate</span>
+                <AlertTriangle className="w-3 h-3 text-red-400" />
+                <span>Trial Expired</span>
               </>
             ) : (
               <>
-                <Key className="w-3 h-3 text-[#0071E3]" />
-                <span>14-Day Trial ({licenseStatus.days_remaining}d left)</span>
+                <Key className="w-3 h-3 text-neutral-400" />
+                <span>Trial · {licenseStatus.days_remaining}d Left</span>
               </>
             )}
           </button>
         )}
 
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#86868B] font-medium">
-          <CheckCircle2 className="w-3.5 h-3.5 text-[#34C759]" />
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs text-neutral-500 font-medium">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           <span>Offline & Private</span>
         </div>
 
         {onLockApp && (
           <button
             onClick={onLockApp}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
             title="Lock Workstation (Ctrl+L)"
           >
-            <Lock className="w-3.5 h-3.5 text-[#6E6E73]" />
+            <Lock className="w-3.5 h-3.5 text-neutral-600" />
             <span className="hidden sm:inline">Lock</span>
-            <kbd className="hidden md:inline-block ml-0.5 px-1 py-0.5 bg-black/[0.05] rounded text-[9px] font-mono text-[#86868B]">
+            <kbd className="hidden md:inline-block ml-0.5 px-1 py-0.5 bg-black/[0.05] rounded text-[9px] font-mono text-neutral-500">
               Ctrl+L
             </kbd>
           </button>
@@ -116,12 +115,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onOpenQuickSale}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer"
           title="Open Register (F2)"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>New Sale</span>
-          <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px] font-mono text-white">
+          <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono text-black">
             F2
           </kbd>
         </button>

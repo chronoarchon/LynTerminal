@@ -8,7 +8,6 @@ import {
   X,
   Lock,
   ArrowRight,
-  Sparkles,
   Copy,
   Check,
 } from "lucide-react";
@@ -98,12 +97,12 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-black/[0.08] text-[#1D1D1F] overflow-hidden max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl rounded-3xl bg-[#13151a] p-6 sm:p-8 shadow-2xl border border-white/10 text-white overflow-hidden max-h-[92vh] flex flex-col lux-modal-card">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-[#86868B] hover:text-[#1D1D1F] rounded-full bg-black/[0.04] hover:bg-black/[0.08] transition-colors cursor-pointer"
+          className="absolute top-5 right-5 p-2 text-neutral-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
           title="Close"
           aria-label="Close"
         >
@@ -116,10 +115,10 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
             <div
               className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
                 isLicensed
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                   : isExpired
-                  ? "bg-rose-50 text-rose-600 border-rose-200"
-                  : "bg-blue-50 text-[#0071E3] border-blue-200"
+                  ? "bg-red-500/10 text-red-400 border-red-500/20"
+                  : "bg-white/10 text-white border-white/10"
               }`}
             >
               {isLicensed ? (
@@ -135,113 +134,113 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
               <span
                 className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                   isLicensed
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                     : isExpired
-                    ? "bg-rose-50 text-rose-700 border-rose-200"
-                    : "bg-blue-50 text-[#0071E3] border-blue-200"
+                    ? "bg-red-500/10 text-red-400 border-red-500/20"
+                    : "bg-white/10 text-white border-white/10"
                 }`}
               >
                 {isLicensed
-                  ? "Active Commercial License"
+                  ? "COMMERCIAL LICENSE ACTIVE"
                   : isExpired
-                  ? "14-Day Trial Expired"
-                  : `14-Day Free Trial • ${daysRemaining} Days Left`}
+                  ? "TRIAL EXPIRED"
+                  : `14-DAY TRIAL • ${daysRemaining} DAYS LEFT`}
               </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-[#1D1D1F] tracking-tight mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mt-0.5">
                 {isLicensed
                   ? "Commercial License Active"
                   : isExpired
-                  ? "Trial Expired — Activate License"
-                  : "LynTerminal Evaluation Period"}
+                  ? "Trial Expired"
+                  : "14-Day Free Trial"}
               </h2>
             </div>
           </div>
 
           {/* Description */}
-          <p className="text-xs sm:text-sm text-[#515154] leading-relaxed mb-5">
+          <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed mb-5">
             {isLicensed
-              ? "Your perpetual commercial license is registered locally in SQLite WAL on this workstation. Enjoy unrestricted offline billing, inventory management, and reports with zero monthly rent forever."
+              ? "Perpetual commercial license active on this workstation. Unlimited offline access."
               : isExpired
-              ? "Your 14-day free trial has concluded. In order to continue issuing sales receipts, creating invoices, and managing inventory, please activate your perpetual commercial license below."
-              : `You are currently on day ${daysElapsed + 1} of your 14-day unrestricted evaluation trial. All POS features, GST invoices, and reports are fully unlocked. You may activate your permanent license key at any time.`}
+              ? "Trial expired. Enter license key to unlock billing."
+              : `Day ${daysElapsed + 1} of 14. All features unlocked.`}
           </p>
 
           {/* Notice Banner */}
           {isExpired && !isLicensed && (
-            <div className="mb-5 rounded-2xl bg-rose-50/80 border border-rose-200 p-4 text-xs text-rose-900 flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div className="mb-5 rounded-2xl bg-red-500/10 border border-red-500/20 p-3.5 text-xs text-red-300 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <strong>New Counter Billing Locked:</strong> Past receipts and financial reports remain completely accessible and safe. To unlock instant register billing, enter your offline key below.
+                <strong className="font-semibold text-white">Billing Locked:</strong> Enter license key below to resume. Past invoices remain safe.
               </div>
             </div>
           )}
 
           {/* Already Licensed Info Box */}
           {isLicensed ? (
-            <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.08] p-4 sm:p-5 mb-5 space-y-3 font-mono text-xs">
+            <div className="rounded-2xl bg-[#181a21] border border-white/10 p-4 sm:p-5 mb-5 space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[#86868B] text-[11px]">LICENSE TIER:</span>
-                <span className="font-bold text-[#1D1D1F] text-[11px]">
-                  {licenseStatus?.license_tier || "Commercial Windows Lifetime"}
+                <span className="text-neutral-400 text-[11px]">TIER:</span>
+                <span className="font-bold text-white text-[11px]">
+                  {licenseStatus?.license_tier || "Commercial Lifetime"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#86868B] text-[11px]">LICENSE KEY:</span>
-                <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+                <span className="text-neutral-400 text-[11px]">LICENSE KEY:</span>
+                <div className="flex items-center gap-1.5 font-bold text-white">
                   <span>{licenseStatus?.license_key || "LYN-COMM-XXXX-XXXX-XXXX-XXXX"}</span>
                   <button
                     onClick={handleCopyExistingKey}
-                    className="p-1 rounded bg-white hover:bg-black/[0.05] border border-black/[0.06] text-[#515154] cursor-pointer"
+                    className="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-neutral-300 cursor-pointer"
                     title="Copy Key"
                   >
-                    {copiedKey ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    {copiedKey ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-[#86868B]">
+              <div className="flex items-center justify-between text-[10px] text-neutral-400">
                 <span>VERIFICATION:</span>
-                <span className="text-emerald-600 font-semibold">100% Offline Cryptographic SHA256</span>
+                <span className="text-emerald-400 font-semibold">100% Offline SHA-256</span>
               </div>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Option A: Buy License on Website */}
-              <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.08] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="rounded-2xl bg-[#181a21] border border-white/10 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0071E3] block mb-0.5">
-                    Need a License Key?
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400 block mb-0.5">
+                    COMMERCIAL LICENSE
                   </span>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">
-                    Acquire Commercial License (₹1,800 / $20)
+                  <h3 className="text-sm font-bold text-white">
+                    Buy License (₹1,800 / $20)
                   </h3>
-                  <p className="text-[11px] text-[#6E6E73] mt-0.5">
-                    One-time payment • Pay once, own forever • Instant key sent to your email.
+                  <p className="text-[11px] text-neutral-400 mt-0.5">
+                    One-time payment. Instant key sent to your email.
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleOpenStore}
-                  className="w-full sm:w-auto h-10 px-5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white font-semibold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
+                  className="w-full sm:w-auto h-10 px-5 rounded-full bg-white hover:bg-neutral-200 text-black font-bold uppercase tracking-wider text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
                 >
-                  <span>Buy on Website</span>
+                  <span>Buy Online</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Option B: Enter Existing Key */}
-              <div className="rounded-2xl border border-black/[0.08] p-4 sm:p-5 bg-white">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#1D1D1F] block mb-1">
-                  Activate with Existing Key
+              <div className="rounded-2xl border border-white/10 p-4 sm:p-5 bg-[#181a21]">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-white block mb-1">
+                  Activate License
                 </span>
-                <p className="text-[11px] text-[#6E6E73] mb-3">
-                  Enter the key you received after checkout on wintershogun.tech. It verifies mathematically without cloud connectivity.
+                <p className="text-[11px] text-neutral-400 mb-3">
+                  Enter the key from your purchase receipt.
                 </p>
 
                 <form onSubmit={handleActivate} className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-[#1D1D1F] mb-1">
-                      Commercial License Key <span className="text-[#0071E3]">*</span>
+                    <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
+                      License Key *
                     </label>
                     <input
                       type="text"
@@ -252,33 +251,33 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                         setLicenseKeyInput(e.target.value.toUpperCase());
                         setErrorMessage(null);
                       }}
-                      className="w-full rounded-xl border border-black/[0.12] px-3.5 py-2.5 text-xs font-mono text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:border-[#0071E3] bg-[#FBFBFD] transition-colors uppercase tracking-wider"
+                      className="w-full rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-mono text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 bg-[#0e1015] transition-colors uppercase tracking-wider"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-[#1D1D1F] mb-1">
-                      Registered Owner Email <span className="text-[#86868B] font-normal">(Optional)</span>
+                    <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
+                      Owner Email <span className="text-neutral-500 font-normal">(Optional)</span>
                     </label>
                     <input
                       type="email"
                       placeholder="store@business.com"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full rounded-xl border border-black/[0.12] px-3.5 py-2 text-xs text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:border-[#0071E3] bg-[#FBFBFD] transition-colors"
+                      className="w-full rounded-xl border border-white/10 px-3.5 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 bg-[#0e1015] transition-colors"
                     />
                   </div>
 
                   {errorMessage && (
-                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                       <span>{errorMessage}</span>
                     </div>
                   )}
 
                   {successMessage && (
-                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-medium">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 font-medium">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                       <span>{successMessage}</span>
                     </div>
                   )}
@@ -286,14 +285,13 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 rounded-full bg-[#1D1D1F] hover:bg-[#2D2D2F] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shadow-xs mt-2"
+                    className="w-full h-11 rounded-full bg-white hover:bg-neutral-200 text-black font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shadow-md mt-2"
                   >
                     {isSubmitting ? (
-                      <span>Verifying Cryptographic Signature...</span>
+                      <span>Verifying Key...</span>
                     ) : (
                       <>
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Activate Perpetual License Offline</span>
+                        <span>Activate License</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}
@@ -305,13 +303,13 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className="mt-4 pt-3 border-t border-black/[0.06] flex items-center justify-between text-[11px] text-[#86868B]">
+        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-neutral-400">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Air-Gapped Cryptographic Assurance</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Offline SHA-256 Verification</span>
           </div>
           <div>
-            Support: <a href="mailto:support@wintershogun.tech" className="text-[#0071E3] hover:underline">support@wintershogun.tech</a>
+            Support: <a href="mailto:support@wintershogun.tech" className="text-neutral-300 hover:text-white underline">support@wintershogun.tech</a>
           </div>
         </div>
       </div>

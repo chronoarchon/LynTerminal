@@ -197,31 +197,31 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
         </div>
       </nav>
 
-      {/* iOS Apple-style Bottom Sheet for "More" Navigation */}
+      {/* Obsidian Luxury Bottom Sheet for "More" Navigation */}
       {isMoreSheetOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-end"
+          className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end"
           onClick={() => setIsMoreSheetOpen(false)}
         >
           <div
-            className="bg-[#F5F5F7] rounded-t-3xl max-h-[80vh] overflow-y-auto border-t border-black/[0.08] shadow-2xl p-5 pb-8 safe-bottom animate-in slide-in-from-bottom duration-200"
+            className="bg-[#13151a] rounded-t-3xl max-h-[80vh] overflow-y-auto border-t border-white/10 shadow-2xl p-5 pb-8 safe-bottom animate-in slide-in-from-bottom duration-200 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sheet Handle */}
-            <div className="w-10 h-1 rounded-full bg-black/20 mx-auto mb-4" />
+            <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
 
             <div className="flex items-center justify-between mb-4 px-1">
               <div>
-                <h3 className="text-base font-semibold text-[#1D1D1F] tracking-tight">
-                  Store Modules
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Modules
                 </h3>
-                <p className="text-xs text-[#86868B]">
-                  Access all business operations & records
+                <p className="text-xs text-neutral-400">
+                  Store sections
                 </p>
               </div>
               <button
                 onClick={() => setIsMoreSheetOpen(false)}
-                className="w-8 h-8 rounded-full bg-black/[0.06] flex items-center justify-center text-[#1D1D1F] hover:bg-black/[0.1] transition apple-press"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -239,17 +239,17 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                       onSelectTab(mod.id);
                       setIsMoreSheetOpen(false);
                     }}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl text-left border transition-all apple-press ${
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl text-left border transition cursor-pointer ${
                       isActive
-                        ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
-                        : "bg-white text-[#1D1D1F] border-black/[0.06] hover:border-black/[0.12]"
+                        ? "bg-white text-black border-white shadow-md font-bold"
+                        : "bg-[#0e1015] text-white border-white/10 hover:border-white/30"
                     }`}
                   >
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                         isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-[#F5F5F7] text-[#1D1D1F]"
+                          ? "bg-black text-white"
+                          : "bg-[#181a21] text-white"
                       }`}
                     >
                       <Icon className="w-4 h-4 stroke-[2]" />
@@ -260,7 +260,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                       </div>
                       <div
                         className={`text-[11px] mt-0.5 line-clamp-1 ${
-                          isActive ? "text-white/80" : "text-[#86868B]"
+                          isActive ? "text-neutral-700" : "text-neutral-400"
                         }`}
                       >
                         {mod.description}

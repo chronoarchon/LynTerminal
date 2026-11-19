@@ -45,7 +45,7 @@
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: dark light;
     --apple-canvas: #F5F5F7;
     --apple-surface: #FFFFFF;
     --apple-border: rgba(0, 0, 0, 0.08);
@@ -58,6 +58,21 @@
     --apple-green: #34C759;
     --apple-orange: #FF9500;
     --apple-red: #FF3B30;
+
+    /* Obsidian Luxury Black & White Theme System */
+    --lux-bg: #0c0d0e;
+    --lux-card: #13151a;
+    --lux-card-elevated: #181a21;
+    --lux-card-hover: #1f232d;
+    --lux-input: #0e1015;
+    --lux-border: rgba(255, 255, 255, 0.08);
+    --lux-border-strong: rgba(255, 255, 255, 0.16);
+    --lux-text: #FFFFFF;
+    --lux-text-muted: #8e929b;
+    --lux-text-subtle: #636875;
+    --lux-success: #10B981;
+    --lux-danger: #EF4444;
+
     --font-sans: "LynSans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", "Helvetica Neue", Roboto, Arial, sans-serif;
     --font-mono: "LynMono", ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
   }
@@ -87,25 +102,46 @@
     text-rendering: optimizeLegibility;
     image-rendering: -webkit-optimize-contrast;
     scrollbar-width: thin;
-    scrollbar-color: #D2D2D7 transparent;
+    scrollbar-color: #3f4350 transparent;
   }
 
 
   input, textarea, select {
     user-select: text;
     font-family: inherit;
-    color-scheme: light;
   }
 
+  /* Luxury Obsidian Input System */
+  .lux-input,
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
   select {
-    background-color: #FFFFFF;
-    color: #1D1D1F;
-    border-color: rgba(0, 0, 0, 0.08);
+    background-color: #0e1015 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #FFFFFF !important;
+    border-radius: 0.75rem;
+    transition: all 0.15s ease;
   }
 
-  select option, select optgroup {
-    background-color: #FFFFFF !important;
-    color: #1D1D1F !important;
+  .lux-input::placeholder,
+  input:not([type="checkbox"]):not([type="radio"])::placeholder,
+  textarea::placeholder {
+    color: #717684 !important;
+  }
+
+  .lux-input:focus,
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: none !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  }
+
+  select option,
+  select optgroup {
+    background-color: #13151a !important;
+    color: #FFFFFF !important;
   }
 }
 
@@ -164,11 +200,77 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D2D2D7;
+  background: #2a2d36;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #86868B;
+  background: #474b59;
+}
+
+/* ============================================================================
+   OBSIDIAN LUXURY MONOCHROME SYSTEM (Wintershogun Luxury Standard)
+   Strict high-contrast black/white palette with subtle borders.
+   ============================================================================ */
+
+.lux-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.lux-modal-card {
+  background-color: #13151a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+}
+
+.lux-card-elevated {
+  background-color: #181a21;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lux-btn-primary {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+.lux-btn-primary:hover {
+  background-color: #E5E5E5 !important;
+}
+.lux-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.lux-btn-secondary {
+  background-color: #181a21 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #D1D5DB !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease !important;
+}
+.lux-btn-secondary:hover {
+  background-color: #232733 !important;
+  color: #FFFFFF !important;
+}
+.lux-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.lux-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: #181a21;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #8e929b;
 }
 
 /* Hide scrollbar utility */

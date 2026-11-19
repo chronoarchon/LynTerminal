@@ -49,8 +49,8 @@ function ViewFallback() {
   return (
     <div className="flex-1 flex items-center justify-center min-h-[360px]">
       <div className="flex flex-col items-center gap-2.5">
-        <div className="w-6 h-6 border-2 border-[#0071E3] border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-semibold text-[#86868B] tracking-tight">Loading view...</span>
+        <div className="w-6 h-6 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold text-neutral-400 tracking-tight">Loading</span>
       </div>
     </div>
   );

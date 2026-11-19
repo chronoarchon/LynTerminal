@@ -1294,25 +1294,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Pay Supplier Modal */}
       {isPaySupplierOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC] rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-[#FF3B30]/10 text-[#FF3B30] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                    Settle Supplier Payable
+                  <h3 className="text-sm font-bold text-white tracking-tight">
+                    Settle Supplier
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">
-                    Records settlement and deducts from cash or bank balance
+                  <p className="text-[11px] text-neutral-400">
+                    Disburse supplier payment
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsPaySupplierOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1320,8 +1320,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <form onSubmit={handleExecutePaySupplier} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Select Vendor / Supplier *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Supplier *
                 </label>
                 <AppleSelect
                   value={supplierId}
@@ -1330,9 +1330,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     const v = vendors.find((p) => p.id === val);
                     if (v) setSupplierAmount(Math.abs(v.current_balance).toString());
                   }}
-                  placeholder="-- Choose Supplier --"
+                  placeholder="-- Select Supplier --"
                   options={[
-                    { value: "", label: "-- Choose Supplier --" },
+                    { value: "", label: "-- Select Supplier --" },
                     ...vendors.map((v) => ({
                       value: v.id,
                       label: `${v.name} (Due: ${formatCurrency(Math.abs(v.current_balance))})`,
@@ -1342,8 +1342,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Settlement Amount ({currency}) *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Amount ({currency}) *
                 </label>
                 <input
                   type="number"
@@ -1351,44 +1351,44 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   required
                   value={supplierAmount}
                   onChange={(e) => setSupplierAmount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Payment Source
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Source
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setSupplierMethod("CASH")}
-                    className={`py-2 rounded-xl border text-xs font-medium transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       supplierMethod === "CASH"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
-                    Cash Register
+                    Cash Drawer
                   </button>
                   <button
                     type="button"
                     onClick={() => setSupplierMethod("BANK")}
-                    className={`py-2 rounded-xl border text-xs font-medium transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       supplierMethod === "BANK"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
-                    Bank Account
+                    Bank
                   </button>
                 </div>
               </div>
 
               {supplierMethod === "BANK" && bankAccounts.length > 0 && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Debit Bank Account
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Debit Bank
                   </label>
                   <AppleSelect
                     value={supplierBankId}
@@ -1402,28 +1402,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               )}
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Reference / Cheque #
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Reference
                 </label>
                 <input
                   type="text"
-                  placeholder="Optional reference code..."
+                  placeholder="Optional reference"
                   value={supplierRef}
                   onChange={(e) => setSupplierRef(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Payment Note
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Note
                 </label>
                 <input
                   type="text"
-                  placeholder="Settlement of vendor balance"
+                  placeholder="Settlement note"
                   value={supplierNotes}
                   onChange={(e) => setSupplierNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -1431,14 +1431,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPaySupplierOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingPay}
-                  className="flex-1 py-2.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingPay ? "Recording..." : "Pay Supplier"}
                 </button>
@@ -1450,26 +1450,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Credit Bill Settlement Modal */}
       {dashboardPayTarget && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#34C759]/10 text-[#34C759] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <DollarSign className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">
-                    Settle Customer Credit
+                  <h3 className="text-sm font-bold text-white tracking-tight">
+                    Settle Credit
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">
-                    Collect payment and credit ledger account
+                  <p className="text-[11px] text-neutral-400">
+                    Collect customer payment
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setDashboardPayTarget(null)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer transition"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1477,34 +1477,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Bill Summary Card */}
             <div className="p-5 space-y-4">
-              <div className="p-3.5 rounded-2xl bg-[#F5F5F7] border border-black/[0.05] space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Invoice Number:</span>
-                  <span className="font-mono font-bold text-[#1D1D1F]">
+              <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Invoice:</span>
+                  <span className="font-mono font-bold text-white">
                     #{dashboardPayTarget.invoice_number}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Customer Name:</span>
-                  <span className="font-semibold text-[#1D1D1F]">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Customer:</span>
+                  <span className="font-semibold text-white">
                     {dashboardPayTarget.party_name || "Walk-in Customer"}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Total Bill Amount:</span>
-                  <span className="font-mono font-semibold text-[#1D1D1F]">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Total:</span>
+                  <span className="font-mono font-semibold text-white">
                     {formatCurrency(dashboardPayTarget.total_amount)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#86868B]">Already Paid:</span>
-                  <span className="font-mono font-semibold text-[#34C759]">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Paid:</span>
+                  <span className="font-mono font-semibold text-emerald-400">
                     {formatCurrency(dashboardPayTarget.paid_amount || 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-black/[0.06] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#FF3B30]">Remaining Balance Due:</span>
-                  <span className="font-mono font-bold text-sm text-[#FF3B30]">
+                <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                  <span className="font-bold text-red-400">Balance Due:</span>
+                  <span className="font-mono font-bold text-sm text-red-400">
                     {formatCurrency(
                       Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0))
                     )}
@@ -1514,11 +1514,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {/* Custom Money Entry Input with 100% and 50% quick buttons */}
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  How much did they pay? *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Payment Amount *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#86868B]">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-neutral-500">
                     {settings.currency_symbol || "$"}
                   </span>
                   <input
@@ -1528,8 +1528,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     required
                     value={dashboardPayAmount}
                     onChange={(e) => setDashboardPayAmount(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-sm font-mono font-bold text-[#1D1D1F] focus:outline-none focus:border-[#0071E3]"
-                    placeholder="Enter amount..."
+                    className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-sm font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    placeholder="0.00"
                   />
                 </div>
 
@@ -1540,9 +1540,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       const rem = Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0));
                       setDashboardPayAmount(rem.toFixed(2));
                     }}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[#0071E3] text-xs font-bold transition apple-press cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer"
                   >
-                    100% (Full Pay)
+                    100% Full
                   </button>
                   <button
                     type="button"
@@ -1550,26 +1550,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       const rem = Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0));
                       setDashboardPayAmount((rem / 2).toFixed(2));
                     }}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-black/[0.05] hover:bg-black/[0.08] text-[#1D1D1F] text-xs font-semibold transition apple-press cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-full bg-[#181a21] hover:bg-[#20232c] text-neutral-300 text-xs font-semibold border border-white/10 transition cursor-pointer"
                   >
-                    50% (Half Pay)
+                    50% Half
                   </button>
                 </div>
               </div>
 
-              {/* Payment Method Selector: Cash, Card, Bank, Custom */}
+              {/* Payment Method Selector */}
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Paid In
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Method
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setDashboardPayMethod("CASH")}
-                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       dashboardPayMethod === "CASH"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Cash
@@ -1577,10 +1577,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setDashboardPayMethod("CARD")}
-                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       dashboardPayMethod === "CARD"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Card
@@ -1588,49 +1588,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setDashboardPayMethod("BANK")}
-                    className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       dashboardPayMethod === "BANK"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Bank
                   </button>
-                  {settings.custom_payment_1_enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setDashboardPayMethod(settings.custom_payment_1_name || "CUSTOM_1")}
-                      className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer truncate ${
-                        dashboardPayMethod === (settings.custom_payment_1_name || "CUSTOM_1")
-                          ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
-                          : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
-                      }`}
-                    >
-                      {settings.custom_payment_1_name || "Custom 1"}
-                    </button>
-                  )}
-                  {settings.custom_payment_2_enabled && (
-                    <button
-                      type="button"
-                      onClick={() => setDashboardPayMethod(settings.custom_payment_2_name || "CUSTOM_2")}
-                      className={`py-2 rounded-xl border text-xs font-semibold transition cursor-pointer truncate ${
-                        dashboardPayMethod === (settings.custom_payment_2_name || "CUSTOM_2")
-                          ? "bg-[#0071E3] text-white border-[#0071E3] shadow-xs"
-                          : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06] hover:text-[#1D1D1F]"
-                      }`}
-                    >
-                      {settings.custom_payment_2_name || "Custom 2"}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {/* Action Buttons: Cancel and OK */}
-              <div className="flex gap-2 pt-2 border-t border-black/[0.06]">
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setDashboardPayTarget(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1638,9 +1612,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   type="button"
                   disabled={isSubmittingDashboardPay}
                   onClick={() => handleExecuteDashboardCreditPay()}
-                  className="flex-1 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#2DB34E] text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {isSubmittingDashboardPay ? "Recording..." : "OK (Confirm Pay)"}
+                  {isSubmittingDashboardPay ? "Saving..." : "Confirm Pay"}
                 </button>
               </div>
             </div>

@@ -544,18 +544,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
       {/* RECORD / EDIT EXPENSE MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC] rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  {editingExpense ? "Edit Expense" : "Record Expense"}
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  {editingExpense ? "Edit Expense" : "New Expense"}
                 </h3>
-                <p className="text-[11px] text-[#86868B]">Store operating payment</p>
+                <p className="text-[11px] text-neutral-400">Store operational expense</p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -563,22 +563,22 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
             <form onSubmit={handleSaveExpense} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                   Title / Reason *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Office electricity bill"
+                  placeholder="e.g. Electricity Bill"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Category
                   </label>
                   <AppleSelect
@@ -588,7 +588,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Amount ({currency}) *
                   </label>
                   <input
@@ -599,14 +599,14 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Date
                   </label>
                   <input
@@ -616,11 +616,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, expense_date: e.target.value })
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Payment Method
                   </label>
                   <AppleSelect
@@ -634,15 +634,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Notes / Receipt Reference
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Notes
                 </label>
                 <input
                   type="text"
-                  placeholder="Optional memo, receipt #, vendor name..."
+                  placeholder="Optional memo..."
                   value={formData.notes || ""}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -650,15 +650,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {editingExpense ? "Save Changes" : "Record Expense"}
+                  {editingExpense ? "Save Expense" : "Record Expense"}
                 </button>
               </div>
             </form>
@@ -668,18 +668,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
       {/* PAY RECURRING BILL MODAL */}
       {isPayBillModalOpen && selectedBillToPay && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Pay Monthly Bill
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Pay Bill
                 </h3>
-                <p className="text-[11px] text-[#86868B]">{selectedBillToPay.title}</p>
+                <p className="text-[11px] text-neutral-400">{selectedBillToPay.title}</p>
               </div>
               <button
                 onClick={() => setIsPayBillModalOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -687,8 +687,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
             <form onSubmit={handleExecutePayBill} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Payment Amount ({currency}) *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Amount ({currency}) *
                 </label>
                 <input
                   type="number"
@@ -697,76 +697,76 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   placeholder="0.00"
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                   Payment Source
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setPaySource("CASH")}
-                    className={`py-2 rounded-xl border text-xs font-medium transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       paySource === "CASH"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
-                    Cash Register
+                    Cash Drawer
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaySource("BANK")}
-                    className={`py-2 rounded-xl border text-xs font-medium transition cursor-pointer ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       paySource === "BANK"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
-                    Bank Account
+                    Bank
                   </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Payment Date
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Date
                   </label>
                   <input
                     type="date"
                     required
                     value={payDate}
                     onChange={(e) => setPayDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Cheque / Ref #
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Ref #
                   </label>
                   <input
                     type="text"
                     placeholder="Optional"
                     value={payRef}
                     onChange={(e) => setPayRef(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Settlement Note
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Notes
                 </label>
                 <input
                   type="text"
                   value={payNotes}
                   onChange={(e) => setPayNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -774,14 +774,14 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPayBillModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingPayment}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingPayment ? "Paying..." : "Record Payment"}
                 </button>
@@ -793,18 +793,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
       {/* CREATE RECURRING BILL MODAL */}
       {isAddBillModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC] rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Add Recurring Bill
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  New Recurring Bill
                 </h3>
-                <p className="text-[11px] text-[#86868B]">Monthly schedule</p>
+                <p className="text-[11px] text-neutral-400">Monthly schedule</p>
               </div>
               <button
                 onClick={() => setIsAddBillModalOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -812,21 +812,21 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
             <form onSubmit={handleCreateRecurringBill} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Bill Title *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Title *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Shop Premises Rent"
+                  placeholder="e.g. Shop Rent"
                   value={newBillTitle}
                   onChange={(e) => setNewBillTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                   Category
                 </label>
                 <AppleSelect
@@ -838,8 +838,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Due Day of Month
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Due Day
                   </label>
                   <input
                     type="number"
@@ -848,34 +848,34 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                     required
                     value={newBillDueDay}
                     onChange={(e) => setNewBillDueDay(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Est. Amount ({currency})
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Amount ({currency})
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="Leave blank if variable"
+                    placeholder="Estimated"
                     value={newBillEstimated}
                     onChange={(e) => setNewBillEstimated(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                   Notes
                 </label>
                 <input
                   type="text"
-                  placeholder="Optional billing note..."
+                  placeholder="Optional memo..."
                   value={newBillNotes}
                   onChange={(e) => setNewBillNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -883,15 +883,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddBillModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  Create Bill
+                  Save Bill
                 </button>
               </div>
             </form>

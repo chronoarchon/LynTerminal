@@ -526,20 +526,20 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
       {/* CREATE / EDIT CONTACT MODAL */}
       {isPartyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  {activeParty ? "Edit Contact" : "New Account"}
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  {activeParty ? "Edit Party" : "New Party"}
                 </h3>
-                <p className="text-[11px] text-[#86868B]">
-                  Customer receivables or supplier payable details
+                <p className="text-[11px] text-neutral-400">
+                  Customer or supplier record
                 </p>
               </div>
               <button
                 onClick={() => setIsPartyModalOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -547,17 +547,17 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
             <form onSubmit={handleSaveParty} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Contact Type
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Party Type
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFormType("CUSTOMER")}
-                    className={`py-2 rounded-xl border text-xs font-medium transition ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       formType === "CUSTOMER"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
                     Customer
@@ -565,20 +565,20 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setFormType("VENDOR")}
-                    className={`py-2 rounded-xl border text-xs font-medium transition ${
+                    className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       formType === "VENDOR"
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
-                        : "bg-[#F5F5F7] text-[#6E6E73] border-black/[0.06]"
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
                     }`}
                   >
-                    Supplier / Vendor
+                    Supplier
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Contact / Business Name *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Name *
                 </label>
                 <input
                   type="text"
@@ -586,53 +586,53 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   placeholder="e.g. Acme Coffee Roasters"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Phone Number
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Phone
                   </label>
                   <input
                     type="text"
-                    placeholder="+1 (555) 012-3456"
+                    placeholder="+91 98765 43210"
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                    Tax / VAT Number
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                    Tax / GSTIN
                   </label>
                   <input
                     type="text"
-                    placeholder="TAX-12345"
+                    placeholder="27AABCU9603R1ZM"
                     value={formTaxNumber}
                     onChange={(e) => setFormTaxNumber(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 uppercase"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Email Address
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Email
                 </label>
                 <input
                   type="email"
                   placeholder="billing@company.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               {!activeParty && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Opening Balance ({currency})
                   </label>
                   <input
@@ -641,7 +641,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                     placeholder="0.00"
                     value={formOpeningBalance}
                     onChange={(e) => setFormOpeningBalance(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               )}
@@ -650,15 +650,15 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPartyModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7]"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  Save Contact
+                  Save Party
                 </button>
               </div>
             </form>
@@ -668,34 +668,34 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
       {/* RECORD PAYMENT MODAL */}
       {isPaymentModalOpen && activeParty && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC] rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
+                <h3 className="text-sm font-bold text-white tracking-tight">
                   {activeParty.party_type === "CUSTOMER" ? "Receive Payment" : "Settle Supplier"}
                 </h3>
-                <p className="text-[11px] text-[#86868B]">{activeParty.name}</p>
+                <p className="text-[11px] text-neutral-400">{activeParty.name}</p>
               </div>
               <button
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleRecordPayment} className="p-5 space-y-3.5">
-              <div className="p-3 rounded-xl bg-[#F5F5F7] text-xs flex justify-between items-center">
-                <span className="text-[#6E6E73]">Current Balance:</span>
-                <span className="font-mono font-bold text-[#1D1D1F]">
+              <div className="p-3 rounded-xl bg-[#0e1015] border border-white/10 text-xs flex justify-between items-center">
+                <span className="text-neutral-400">Balance:</span>
+                <span className="font-mono font-bold text-white">
                   {formatCurrency(Math.abs(activeParty.current_balance))}
                 </span>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Payment Amount ({currency}) *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Amount ({currency}) *
                 </label>
                 <input
                   type="number"
@@ -703,13 +703,13 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   required
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-bold focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Payment Method
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Method
                 </label>
                 <AppleSelect
                   value={paymentMethod}
@@ -724,15 +724,15 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Reference / Note
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Reference
                 </label>
                 <input
                   type="text"
-                  placeholder="Optional reference code..."
+                  placeholder="Optional note"
                   value={paymentRef}
                   onChange={(e) => setPaymentRef(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -740,16 +740,16 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7]"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingPayment}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {isSubmittingPayment ? "Recording..." : "Record Payment"}
+                  {isSubmittingPayment ? "Recording..." : "Save Payment"}
                 </button>
               </div>
             </form>
@@ -759,25 +759,25 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
       {/* ACCOUNT STATEMENT LEDGER MODAL */}
       {isLedgerModalOpen && activeParty && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-lg border border-white/10 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Account Statement
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Statement
                 </h3>
-                <p className="text-[11px] text-[#86868B]">{activeParty.name}</p>
+                <p className="text-[11px] text-neutral-400">{activeParty.name}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F]"
+                  className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsLedgerModalOpen(false)}
-                  className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                  className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -788,19 +788,19 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
               {partyPayments.map((pmt) => (
                 <div
                   key={pmt.id}
-                  className="p-3 rounded-xl border border-black/[0.06] bg-[#FBFBFC] flex items-center justify-between text-xs"
+                  className="p-3 rounded-xl border border-white/10 bg-[#0e1015] flex items-center justify-between text-xs"
                 >
                   <div>
-                    <div className="font-semibold text-[#1D1D1F]">
+                    <div className="font-semibold text-white">
                       {pmt.payment_type === "IN" ? "Payment Received" : "Payment Disbursed"} · {pmt.payment_method}
                     </div>
-                    <div className="text-[10px] text-[#86868B] mt-0.5">
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
                       {pmt.payment_date} · {pmt.notes}
                     </div>
                   </div>
                   <span
                     className={`font-mono font-bold text-xs ${
-                      pmt.payment_type === "IN" ? "text-[#34C759]" : "text-[#FF3B30]"
+                      pmt.payment_type === "IN" ? "text-emerald-400" : "text-red-400"
                     }`}
                   >
                     {pmt.payment_type === "IN" ? "+" : "-"}{formatCurrency(pmt.amount)}
@@ -809,8 +809,8 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
               ))}
 
               {partyPayments.length === 0 && (
-                <div className="text-center py-12 text-[#86868B] text-xs">
-                  No payment records found for this account.
+                <div className="text-center py-12 text-neutral-400 text-xs">
+                  No payment records found.
                 </div>
               )}
             </div>
@@ -820,33 +820,33 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
       {/* FRIENDLY OVERDUE REMINDER MODAL */}
       {isReminderModalOpen && activeParty && selectedAging && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div>
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Balance Statement Notice
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Statement Notice
                 </h3>
-                <p className="text-[11px] text-[#86868B]">{activeParty.name}</p>
+                <p className="text-[11px] text-neutral-400">{activeParty.name}</p>
               </div>
               <button
                 onClick={() => setIsReminderModalOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-3.5">
-              <div className="p-3.5 rounded-2xl bg-[#F5F5F7] space-y-1 text-xs">
-                <div className="flex justify-between text-[#6E6E73]">
+              <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 space-y-1 text-xs">
+                <div className="flex justify-between text-neutral-400">
                   <span>Total Outstanding:</span>
-                  <span className="font-mono font-bold text-[#0071E3]">
+                  <span className="font-mono font-bold text-white">
                     {formatCurrency(selectedAging.total_due)}
                   </span>
                 </div>
                 {selectedAging.over_90 > 0 && (
-                  <div className="flex justify-between text-[#FF3B30]">
+                  <div className="flex justify-between text-red-400">
                     <span>Overdue &gt; 90 days:</span>
                     <span className="font-mono font-bold">
                       {formatCurrency(selectedAging.over_90)}
@@ -856,14 +856,14 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block">
+                <label className="text-[11px] font-semibold text-neutral-300 block">
                   Copyable Message:
                 </label>
                 <textarea
                   readOnly
                   rows={4}
                   value={`Dear ${activeParty.name},\nThis is a friendly statement update from ${settings.business_name}. Your account has an outstanding balance of ${formatCurrency(selectedAging.total_due)}. Please arrange for settlement at your earliest convenience.\nThank you!`}
-                  className="w-full p-3 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs text-[#1D1D1F] font-mono leading-relaxed select-text"
+                  className="w-full p-3 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white font-mono leading-relaxed select-text resize-none"
                 />
               </div>
 
@@ -876,17 +876,17 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   setCopiedReminder(true);
                   setTimeout(() => setCopiedReminder(false), 2000);
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {copiedReminder ? (
                   <>
-                    <Check className="w-4 h-4" />
-                    <span>Copied to Clipboard</span>
+                    <Check className="w-4 h-4 text-black" />
+                    <span>Copied</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copy Message</span>
+                    <Copy className="w-4 h-4 text-black" />
+                    <span>Copy Notice</span>
                   </>
                 )}
               </button>

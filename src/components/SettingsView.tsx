@@ -16,7 +16,6 @@ import {
   ShieldCheck,
   ServerOff,
   Coins,
-  Sparkles,
   RefreshCw,
 } from "lucide-react";
 import type { Settings, BackupInfo, AuthState, AppUpdateInfo } from "../types";
@@ -1559,44 +1558,44 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* SECTION: Commercial Licensing & 14-Day Trial Engine */}
+      {/* SECTION: Commercial Licensing */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#0071E3]" />
+            <ShieldCheck className="w-4 h-4 text-neutral-800" />
             <h2 className="text-sm font-semibold text-[#1D1D1F]">
-              Commercial Licensing & Air-Gapped Key Verification
+              Commercial License
             </h2>
           </div>
           <span
             className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${
               licenseStatus?.is_licensed
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                 : licenseStatus?.is_expired
-                ? "bg-rose-50 text-rose-700 border-rose-200"
-                : "bg-blue-50 text-[#0071E3] border-blue-200"
+                ? "bg-red-500/10 text-red-600 border-red-500/20"
+                : "bg-black/5 text-[#1D1D1F] border-black/10"
             }`}
           >
             {licenseStatus?.is_licensed
-              ? "LICENSED PERPETUAL"
+              ? "LICENSED"
               : licenseStatus?.is_expired
-              ? "TRIAL EXPIRED"
-              : `14-DAY TRIAL (${licenseStatus?.days_remaining ?? 14}d left)`}
+              ? "EXPIRED"
+              : `TRIAL · ${licenseStatus?.days_remaining ?? 14}D LEFT`}
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>Status: {licenseStatus?.is_licensed ? "Commercial Lifetime License Active" : licenseStatus?.is_expired ? "Evaluation Trial Concluded (Billing Locked)" : "14-Day Free Evaluation Trial"}</span>
+              <span>{licenseStatus?.is_licensed ? "Commercial License Active" : licenseStatus?.is_expired ? "Trial Expired" : "14-Day Free Trial"}</span>
             </div>
             {licenseStatus?.is_licensed ? (
               <p className="text-[11px] text-[#6E6E73] font-mono">
-                Key: {licenseStatus.license_key || "LYN-COMM-XXXX-XXXX-XXXX-XXXX"} &bull; Verified 100% Offline via local SHA256 cryptographic MAC.
+                Key: {licenseStatus.license_key || "LYN-COMM-XXXX-XXXX-XXXX-XXXX"}
               </p>
             ) : (
-              <p className="text-[11px] text-[#6E6E73] leading-relaxed">
-                LynTerminal includes a 14-day free trial on your counter. Pay once for a lifetime commercial license with zero monthly subscriptions.
+              <p className="text-[11px] text-[#6E6E73]">
+                Lifetime offline license. One-time payment.
               </p>
             )}
           </div>
@@ -1605,34 +1604,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="button"
               onClick={onOpenLicenseModal}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#1D1D1F] hover:bg-[#2D2D2F] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
             >
-              <span>{licenseStatus?.is_licensed ? "View License" : "Enter License Key"}</span>
+              <span>{licenseStatus?.is_licensed ? "View License" : "Enter Key"}</span>
             </button>
             {!licenseStatus?.is_licensed && (
               <a
                 href="https://lynterminal.wintershogun.tech/pricing?checkout=windows"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer"
               >
-                <span>Buy License ($20 / ₹1,800)</span>
+                <span>Buy License</span>
               </a>
             )}
           </div>
         </div>
       </div>
 
-      {/* SECTION: Software Updates & GitHub Release Channel */}
+      {/* SECTION: Software Updates */}
       <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#0071E3]" />
+            <RefreshCw className="w-4 h-4 text-neutral-800" />
             <h2 className="text-sm font-semibold text-[#1D1D1F]">
-              Software Updates & GitHub Release Channel
+              Software Updates
             </h2>
           </div>
-          <span className="text-[11px] font-mono font-semibold text-[#0071E3] bg-[#0071E3]/10 px-2.5 py-0.5 rounded-full border border-[#0071E3]/20">
+          <span className="text-[11px] font-mono font-semibold text-neutral-700 bg-neutral-100 px-2.5 py-0.5 rounded-full border border-neutral-200">
             v1.5.1v
           </span>
         </div>
@@ -1640,13 +1639,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div>
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>Installed Version: LynTerminal v1.5.1v</span>
+              <span>LynTerminal v1.5.1v</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
                 Current
               </span>
             </div>
-            <p className="text-[11px] text-[#86868B] mt-1 leading-relaxed">
-              Official releases are published on GitHub. Non-destructive updating preserves your database, SKUs, and settings automatically.
+            <p className="text-[11px] text-[#86868B] mt-1">
+              Zero data loss updates.
             </p>
           </div>
 
@@ -1664,26 +1663,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* CURRENCY SWITCH CONFIRM MODAL */}
       {pendingCurrency && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#FF9500]" />
-                <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                  Switch Store Currency
+                <AlertTriangle className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  Change Currency
                 </h3>
               </div>
               <button
                 onClick={() => setPendingCurrency(null)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F]"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-3.5 text-xs text-[#6E6E73]">
+            <div className="p-5 space-y-3.5 text-xs text-neutral-300">
               <p>
-                Changing currency to <strong className="text-[#1D1D1F]">{pendingCurrency.name}</strong> will create an automatic database backup snapshot before applying.
+                Switching currency to <strong className="text-white">{pendingCurrency.name}</strong> creates an automatic backup snapshot.
               </p>
 
               <label className="flex items-center gap-2 cursor-pointer pt-1">
@@ -1691,16 +1690,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="checkbox"
                   checked={preserveCatalogOnReset}
                   onChange={(e) => setPreserveCatalogOnReset(e.target.checked)}
-                  className="rounded text-[#0071E3] focus:ring-0"
+                  className="rounded text-white focus:ring-0 accent-white"
                 />
-                <span className="text-[#1D1D1F]">Preserve catalog products & SKUs</span>
+                <span className="text-neutral-300">Preserve catalog products</span>
               </label>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setPendingCurrency(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73]"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1708,9 +1707,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="button"
                   onClick={confirmCurrencySwitch}
                   disabled={isResettingCurrency}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {isResettingCurrency ? "Switching..." : "Confirm Switch"}
+                  {isResettingCurrency ? "Switching..." : "Confirm"}
                 </button>
               </div>
             </div>
@@ -1720,37 +1719,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* CHANGE MASTER PASSWORD MODAL */}
       {isChangePasswordOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">Change Master Password</h3>
-                  <p className="text-[11px] text-[#86868B]">Update workstation administrator password</p>
+                  <h3 className="text-sm font-bold text-white tracking-tight">Update Password</h3>
+                  <p className="text-[11px] text-neutral-400">Master access key</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsChangePasswordOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {changePwError && (
-              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-700 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+              <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-xs font-medium text-red-200 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
                 <span>{changePwError}</span>
               </div>
             )}
 
             <form onSubmit={handleChangePassword} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
                   Current Password
                 </label>
                 <div className="relative">
@@ -1759,12 +1758,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                     placeholder="Enter current password"
-                    className="w-full px-3 py-2 pr-9 rounded-xl border border-black/[0.12] bg-[#FAFAFC] focus:bg-white focus:border-[#0071E3] text-xs text-[#1D1D1F] outline-none"
+                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                   <button
                     type="button"
                     onClick={() => setShowOldPw(!showOldPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#86868B]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     {showOldPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -1772,7 +1771,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
                   New Password
                 </label>
                 <div className="relative">
@@ -1780,13 +1779,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type={showNewPw ? "text" : "password"}
                     value={newMasterPassword}
                     onChange={(e) => setNewMasterPassword(e.target.value)}
-                    placeholder="At least 4 characters"
-                    className="w-full px-3 py-2 pr-9 rounded-xl border border-black/[0.12] bg-[#FAFAFC] focus:bg-white focus:border-[#0071E3] text-xs text-[#1D1D1F] outline-none"
+                    placeholder="Min 4 characters"
+                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPw(!showNewPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#86868B]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     {showNewPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -1794,15 +1793,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">
-                  Confirm New Password
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  Confirm Password
                 </label>
                 <input
                   type={showNewPw ? "text" : "password"}
                   value={confirmMasterPassword}
                   onChange={(e) => setConfirmMasterPassword(e.target.value)}
-                  placeholder="Re-enter new password"
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.12] bg-[#FAFAFC] focus:bg-white focus:border-[#0071E3] text-xs text-[#1D1D1F] outline-none"
+                  placeholder="Re-enter password"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
@@ -1810,16 +1809,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsChangePasswordOpen(false)}
-                  className="px-3.5 py-2 rounded-xl border border-black/[0.1] text-xs font-semibold text-[#1D1D1F] hover:bg-neutral-50"
+                  className="px-4 py-2 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isChangingPw}
-                  className="px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-xs transition apple-press"
+                  className="px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
-                  {isChangingPw ? "Saving..." : "Update Password"}
+                  {isChangingPw ? "Saving..." : "Save Password"}
                 </button>
               </div>
             </form>
@@ -1829,93 +1828,68 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* PRIVACY CHARTER MODAL */}
       {isCharterOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FAFAFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-2xl border border-white/10 flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">
-                    LynTerminal Privacy Policy & Data Terms
+                  <h3 className="text-sm font-bold text-white tracking-tight">
+                    Privacy Charter
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">
-                    Offline-First Client Sovereignty
+                  <p className="text-[11px] text-neutral-400">
+                    Offline Client Sovereignty
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCharterOpen(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4 text-xs text-[#424245] leading-relaxed">
+            <div className="p-6 overflow-y-auto space-y-4 text-xs text-neutral-300 leading-relaxed">
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-[#1D1D1F]">1. Local Data Architecture & Ownership</h4>
+                <h4 className="font-bold text-sm text-white">1. Local Sovereignty</h4>
                 <p>
-                  LynTerminal is built as a locally installed, offline-first desktop application. Every transaction, product SKU, customer contact, tax calculation, and financial ledger entry is stored exclusively in your local SQLite database on this physical machine.
-                </p>
-                <p>
-                  You retain sole ownership and control of all operational data. We do not maintain remote access, escrow keys, or network backdoors to your database file.
+                  LynTerminal is 100% offline-first. All records, catalog SKUs, receipts, and ledgers reside exclusively in your local SQLite WAL database.
                 </p>
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-[#1D1D1F]">2. Zero Telemetry & Tracking Policy</h4>
+                <h4 className="font-bold text-sm text-white">2. Zero Telemetry</h4>
                 <p>
-                  LynTerminal does not harvest or transmit personal or business information. When using this software:
-                </p>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>No usage metrics, commercial totals, or customer identities are monitored or uploaded.</li>
-                  <li>The software contains zero advertising SDKs, tracking beacons, or profiling scripts.</li>
-                  <li>No third-party marketing or behavioral analytics tools are embedded in any binary.</li>
-                </ul>
-              </section>
-
-              <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-[#1D1D1F]">3. Local Security & Authentication</h4>
-                <p>
-                  Master credentials are authenticated client-side using salted cryptographic SHA-256 hashes. Your 18-character emergency recovery key is generated entirely in your local session. LynTerminal never transmits or mirrors your password or recovery key to any server.
+                  No tracking beacons, no analytics, no external surveillance. Zero user data leaves this machine.
                 </p>
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-[#1D1D1F]">4. Data Export & Portability</h4>
+                <h4 className="font-bold text-sm text-white">3. Local Cryptography</h4>
                 <p>
-                  Because your records are preserved in an open, industry-standard SQLite format, you are free to export sales invoices as PDF documents, generate local database backup snapshots, or query your ledgers without proprietary restrictions.
+                  Master credentials utilize salted SHA-256 hashes computed on-device. Recovery keys never leave your workstation.
                 </p>
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-[#1D1D1F]">5. Contact & Support</h4>
+                <h4 className="font-bold text-sm text-white">4. Data Portability</h4>
                 <p>
-                  For questions regarding software security or privacy terms, contact our support team at <span className="font-mono text-[#0071E3]">support@winershogun.tech</span>.
-                </p>
-              </section>
-
-              <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-[#1D1D1F]">6. Commercial Terms & Local Backup Responsibility</h4>
-                <p>
-                  LynTerminal is commercial store management software provided for on-premise single-establishment operations. All transaction, customer, and accounting records remain stored locally on your SSD under your exclusive ownership.
-                </p>
-                <p>
-                  Because LynTerminal operates with zero cloud servers or third-party backups, regular local database backup snapshots (accessible anytime with 1 click in Settings &gt; System &amp; Audit) should be exported to external storage to safeguard against machine or hardware damage.
+                  Open standard SQLite format. Export invoices as PDF, generate snapshot backups, or migrate anytime without lock-in.
                 </p>
               </section>
             </div>
 
-            <div className="px-6 py-3 border-t border-black/[0.06] bg-[#FAFAFC] flex justify-end">
+            <div className="px-6 py-3 border-t border-white/10 bg-[#181a21]/60 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsCharterOpen(false)}
-                className="px-4 py-2 rounded-xl bg-[#0071E3] text-white text-xs font-semibold hover:bg-[#0077ED]"
+                className="px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
               >
-                Close Terms
+                Close
               </button>
             </div>
           </div>

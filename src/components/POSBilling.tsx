@@ -1067,7 +1067,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     }}
                     className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
                       paymentMethod === "CUSTOM_1" && !isSplitPayment
-                        ? "bg-[#0071E3] text-white border-[#0071E3] font-semibold shadow-xs"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
                         : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
                     }`}
                   >
@@ -1088,7 +1088,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     }}
                     className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl border text-xs flex flex-col items-center gap-1 transition apple-press cursor-pointer ${
                       paymentMethod === "CUSTOM_2" && !isSplitPayment
-                        ? "bg-[#0071E3] text-white border-[#0071E3] font-semibold shadow-xs"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] font-semibold shadow-xs"
                         : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
                     }`}
                   >
@@ -1170,7 +1170,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       }
                     }}
                     className={`text-[11px] font-medium transition cursor-pointer py-1 px-1.5 rounded-lg ${
-                      isSplitPayment ? "text-[#0071E3] font-semibold bg-[#0071E3]/10" : "text-[#86868B] hover:text-[#1D1D1F]"
+                      isSplitPayment ? "text-white font-semibold bg-[#1D1D1F]" : "text-[#86868B] hover:text-[#1D1D1F]"
                     }`}
                   >
                     {isSplitPayment ? "✓ Split Tender" : "+ Split Tender"}
@@ -1197,8 +1197,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     }}
                     className={`py-1 px-2.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition apple-press cursor-pointer border ${
                       paymentMethod === "CREDIT" && !isSplitPayment
-                        ? "bg-[#FF9500] text-white border-[#FF9500] shadow-xs"
-                        : "bg-[#FFF9F2] text-[#FF9500] border-[#FF9500]/30 hover:bg-[#FFF3E6]"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-xs"
+                        : "bg-neutral-100 text-neutral-800 border-neutral-300 hover:bg-neutral-200"
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -1211,7 +1211,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     type="checkbox"
                     checked={previewAfterSale}
                     onChange={(e) => handleTogglePreview(e.target.checked)}
-                    className="rounded text-[#0071E3] focus:ring-0 cursor-pointer"
+                    className="rounded text-black accent-black focus:ring-0 cursor-pointer"
                   />
                   <span>Show receipt</span>
                 </label>
@@ -1434,16 +1434,16 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             <button
               onClick={handleCheckout}
               disabled={cart.length === 0 || isSubmitting}
-              className={`w-full py-3 rounded-2xl font-semibold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-xs transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+              className={`w-full py-3.5 rounded-full font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-sm transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 licenseStatus?.is_expired
-                  ? "bg-rose-600 hover:bg-rose-700"
-                  : "bg-[#0071E3] hover:bg-[#0077ED]"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-black hover:bg-neutral-800 text-white uppercase tracking-wider"
               }`}
             >
               {licenseStatus?.is_expired ? (
                 <>
                   <Lock className="w-4 h-4" />
-                  <span>Trial Expired — Activate License ({formatCurrency(totalAmount)})</span>
+                  <span>Trial Expired · Activate ({formatCurrency(totalAmount)})</span>
                 </>
               ) : (
                 <>
@@ -1466,25 +1466,25 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       {/* QUICK ADD PRODUCT MODAL */}
       {showQuickAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-[#1D1D1F]">
-                    New Product to Ticket
+                  <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
+                    New Product
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">
-                    Adds to catalog and immediately adds to current sale
+                  <p className="text-[11px] text-neutral-400">
+                    Add to catalog &amp; current ticket
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowQuickAddModal(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.06] flex items-center justify-center"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1492,7 +1492,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
             <form onSubmit={handleQuickAddSubmit} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                   Product Name *
                 </label>
                 <input
@@ -1501,13 +1501,13 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="e.g. Colombian Espresso 1kg"
                   value={quickProduct.name}
                   onChange={(e) => setQuickProduct({ ...quickProduct, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Sale Price ({currency}) *
                   </label>
                   <input
@@ -1517,11 +1517,11 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     placeholder="0.00"
                     value={quickProduct.sale_price}
                     onChange={(e) => setQuickProduct({ ...quickProduct, sale_price: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Cost Price ({currency})
                   </label>
                   <input
@@ -1530,14 +1530,14 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     placeholder="0.00"
                     value={quickProduct.purchase_price}
                     onChange={(e) => setQuickProduct({ ...quickProduct, purchase_price: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Category
                   </label>
                   <input
@@ -1545,18 +1545,18 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     placeholder="e.g. Coffee Beans"
                     value={quickProduct.category}
                     onChange={(e) => setQuickProduct({ ...quickProduct, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
                     Starting Stock
                   </label>
                   <input
                     type="number"
                     value={quickProduct.stock_quantity}
                     onChange={(e) => setQuickProduct({ ...quickProduct, stock_quantity: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-[#0071E3]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
                   />
                 </div>
               </div>
@@ -1565,16 +1565,16 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowQuickAddModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isQuickAdding}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
-                  {isQuickAdding ? "Saving..." : "Add & Select"}
+                  {isQuickAdding ? "Adding..." : "Add to Sale"}
                 </button>
               </div>
             </form>
@@ -1584,26 +1584,26 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       {/* Quick Add Customer / Vendor Modal */}
       {showAddCustomerModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-black/[0.08] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#FBFBFC]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-[#13151a] rounded-3xl shadow-2xl border border-white/10 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150 text-white">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
                   <UserPlus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">
+                  <h3 className="text-sm font-bold text-white tracking-tight">
                     {billMode === "PURCHASE" ? "Add Supplier" : "Add Customer"}
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">
-                    Persisted directly into local SQLite database
+                  <p className="text-[11px] text-neutral-400">
+                    Local database record
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddCustomerModal(false)}
-                className="w-7 h-7 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.05] flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1611,56 +1611,56 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
             <form onSubmit={handleCreateCustomer} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Customer Name *
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Name *
                 </label>
                 <input
                   type="text"
                   required
                   autoFocus
-                  placeholder="e.g. Rahul Sharma or Apex Cafe"
+                  placeholder="e.g. Rahul Sharma"
                   value={newCustomerForm.name}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F] focus:outline-none focus:border-[#0071E3] focus:bg-white transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Mobile Number <span className="text-[#86868B] font-normal">(optional)</span>
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Phone <span className="text-neutral-500 font-normal">(optional)</span>
                 </label>
                 <input
                   type="tel"
                   placeholder="+91 98765 43210"
                   value={newCustomerForm.phone}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium text-[#1D1D1F] focus:outline-none focus:border-[#0071E3] focus:bg-white transition"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Email Address <span className="text-[#86868B] font-normal">(optional)</span>
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Email <span className="text-neutral-500 font-normal">(optional)</span>
                 </label>
                 <input
                   type="email"
-                  placeholder="customer@domain.com"
+                  placeholder="name@domain.com"
                   value={newCustomerForm.email}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, email: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F] focus:outline-none focus:border-[#0071E3] focus:bg-white transition"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                  Billing Address <span className="text-[#86868B] font-normal">(optional)</span>
+                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  Address <span className="text-neutral-500 font-normal">(optional)</span>
                 </label>
                 <textarea
                   rows={2}
                   placeholder="Street, City, Postal code..."
                   value={newCustomerForm.address}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F] focus:outline-none focus:border-[#0071E3] focus:bg-white transition resize-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition resize-none"
                 />
               </div>
 
@@ -1668,16 +1668,16 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddCustomerModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-xs font-semibold text-[#6E6E73] hover:bg-[#F5F5F7] transition apple-press cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingCustomer}
-                  className="flex-1 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
-                  {isSavingCustomer ? "Saving to SQLite..." : "Save & Assign"}
+                  {isSavingCustomer ? "Saving..." : "Save Party"}
                 </button>
               </div>
             </form>
