@@ -76,19 +76,31 @@ export function sanitizeCssColors(val: string): string {
 }
 
 function wrapStyleDeclaration(style: CSSStyleDeclaration): CSSStyleDeclaration {
+  if (!style) return style;
   return new Proxy(style, {
-    get(target, prop, receiver) {
+    get(target, prop) {
       if (prop === "getPropertyValue") {
         return (propertyName: string) => {
-          const raw = target.getPropertyValue(propertyName);
-          return sanitizeCssColors(raw);
+          try {
+            const raw = target.getPropertyValue(propertyName);
+            return sanitizeCssColors(raw);
+          } catch {
+            return "";
+          }
         };
       }
-      const raw = Reflect.get(target, prop, receiver);
-      if (typeof raw === "string") {
-        return sanitizeCssColors(raw);
+      try {
+        const raw = (target as any)[prop];
+        if (typeof raw === "function") {
+          return raw.bind(target);
+        }
+        if (typeof raw === "string") {
+          return sanitizeCssColors(raw);
+        }
+        return raw;
+      } catch {
+        return undefined;
       }
-      return raw;
     },
   });
 }

@@ -1280,7 +1280,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                               const found = parties.find((p) => p.id === e.target.value);
                               if (found) setCustomCustomerName(found.name);
                             }}
-                            className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-[#1D1D1F] focus:outline-none focus:border-black"
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-black/[0.12] text-xs font-semibold text-black focus:outline-none focus:border-black"
                           >
                             <option value="">-- Select Customer for Credit Bill --</option>
                             {parties

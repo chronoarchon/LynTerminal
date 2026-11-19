@@ -45,7 +45,7 @@
 
 @layer base {
   :root {
-    color-scheme: dark light;
+    color-scheme: light;
     --apple-canvas: #F5F5F7;
     --apple-surface: #FFFFFF;
     --apple-border: rgba(0, 0, 0, 0.08);
@@ -111,17 +111,44 @@
     font-family: inherit;
   }
 
-  /* 70% White / 30% Black Neumorphic Input System */
+  /* 70% White / 30% Black Neumorphic Input & Controls System */
   .lux-input,
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select {
+    color-scheme: light !important;
     background-color: #FFFFFF !important;
-    border: 1px solid rgba(0, 0, 0, 0.13) !important;
-    color: #111827 !important;
+    border: 1px solid rgba(0, 0, 0, 0.16) !important;
+    color: #000000 !important;
     border-radius: 0.75rem;
     box-shadow: inset 1.5px 1.5px 3.5px rgba(0, 0, 0, 0.07), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
     transition: all 0.15s ease;
+  }
+
+  /* Linux WebKitGTK & Windows Cross-Platform Dropdown Overrides */
+  select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    color-scheme: light !important;
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23000000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.1em 1.1em !important;
+    padding-right: 2.25rem !important;
+    cursor: pointer;
+  }
+
+  select option,
+  select optgroup {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    color-scheme: light !important;
+  }
+
+  input[type="date"] {
+    color-scheme: light !important;
   }
 
   .lux-input::placeholder,
@@ -189,11 +216,6 @@
     border: 1px solid rgba(0, 0, 0, 0.06) !important;
   }
 
-  select option,
-  select optgroup {
-    background-color: #FFFFFF !important;
-    color: #000000 !important;
-  }
 }
 
 /* Tabular figures for accounting numbers */

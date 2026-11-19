@@ -522,7 +522,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                   <select
                     value={settlementMethod}
                     onChange={(e) => setSettlementMethod(e.target.value)}
-                    className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-white border border-black/[0.08] text-black focus:outline-none focus:border-black"
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-white border border-black/[0.12] text-black focus:outline-none focus:border-black"
                   >
                     <option value="UPI">UPI</option>
                     <option value="Cash">Cash</option>

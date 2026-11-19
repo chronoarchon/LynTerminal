@@ -494,7 +494,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               <select
                 value={selectedPartyId}
                 onChange={(e) => setSelectedPartyId(e.target.value)}
-                className="w-full text-xs font-semibold px-2 py-1.5 rounded-xl bg-white border border-black/[0.08] focus:outline-hidden"
+                className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-white border border-black/[0.12] text-black focus:outline-hidden"
               >
                 <option value="">Walk-in Consumer</option>
                 {parties
@@ -514,7 +514,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               <select
                 value={posStateCode}
                 onChange={(e) => setPosStateCode(e.target.value)}
-                className="w-full text-xs font-semibold px-2 py-1.5 rounded-xl bg-white border border-black/[0.08] focus:outline-hidden"
+                className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-white border border-black/[0.12] text-black focus:outline-hidden"
               >
                 {INDIAN_STATES.map((s) => (
                   <option key={s.code} value={s.code}>
@@ -735,7 +735,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                   <select
                     value={creditDays}
                     onChange={(e) => setCreditDays(parseInt(e.target.value))}
-                    className="w-full text-xs font-semibold px-2 py-1 rounded bg-white border border-black/10 focus:outline-hidden"
+                    className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-white border border-black/[0.12] text-black focus:outline-hidden"
                   >
                     <option value={15}>15 Days Credit</option>
                     <option value={30}>30 Days Credit</option>
@@ -752,7 +752,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                   <select
                     value={billRefType}
                     onChange={(e) => setBillRefType(e.target.value)}
-                    className="w-full text-xs font-semibold px-2 py-1 rounded bg-white border border-black/10 focus:outline-hidden"
+                    className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-white border border-black/[0.12] text-black focus:outline-hidden"
                   >
                     <option value="New Ref">New Ref (Default for new invoice)</option>
                     <option value="Agst Ref">Agst Ref (Against order / invoice)</option>

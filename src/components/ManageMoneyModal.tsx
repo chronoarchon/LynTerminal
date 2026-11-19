@@ -370,7 +370,7 @@ export function ManageMoneyModal({
         )}
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 pt-4 pb-8 space-y-4">
           {/* TAB 1: DEPOSIT */}
           {activeTab === "deposit" && (
             <form onSubmit={handleDepositSubmit} className="space-y-4">
@@ -448,7 +448,7 @@ export function ManageMoneyModal({
                   <select
                     value={depositBankAccountId}
                     onChange={(e) => setDepositBankAccountId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
+                    className="w-full px-3 py-2.5 rounded-xl border border-black/[0.12] bg-white text-xs font-semibold text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
                   >
                     {bankAccounts.map((acct) => (
                       <option key={acct.id} value={acct.id}>
@@ -631,7 +631,7 @@ export function ManageMoneyModal({
                 <select
                   value={transferBankAccountId}
                   onChange={(e) => setTransferBankAccountId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.12] bg-white text-xs font-semibold text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
                 >
                   {bankAccounts.length > 0 ? (
                     bankAccounts.map((acct) => (
