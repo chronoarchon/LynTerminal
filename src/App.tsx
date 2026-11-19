@@ -35,14 +35,13 @@ const GSTR1ReportView = lazy(() =>
 const GSTR3BReportView = lazy(() =>
   import("./modules/india_gst/GSTR3BReportView").then((m) => ({ default: m.GSTR3BReportView }))
 );
+import { TrialActivationModal } from "./components/TrialActivationModal";
+
 const SetupWizardModal = lazy(() =>
   import("./components/SetupWizardModal").then((m) => ({ default: m.SetupWizardModal }))
 );
 const UpdateNotificationModal = lazy(() =>
   import("./components/UpdateNotificationModal").then((m) => ({ default: m.UpdateNotificationModal }))
-);
-const TrialActivationModal = lazy(() =>
-  import("./components/TrialActivationModal").then((m) => ({ default: m.TrialActivationModal }))
 );
 
 
@@ -528,17 +527,15 @@ export function AppContent() {
         </Suspense>
 
         {/* Commercial License & 14-Day Trial Activation Modal */}
-        <Suspense fallback={null}>
-          <TrialActivationModal
-            isOpen={isLicenseModalOpen}
-            onClose={() => setIsLicenseModalOpen(false)}
-            licenseStatus={licenseStatus}
-            onActivated={(updated) => {
-              setLicenseStatus(updated);
-              loadAllData();
-            }}
-          />
-        </Suspense>
+        <TrialActivationModal
+          isOpen={isLicenseModalOpen}
+          onClose={() => setIsLicenseModalOpen(false)}
+          licenseStatus={licenseStatus}
+          onActivated={(updated) => {
+            setLicenseStatus(updated);
+            loadAllData();
+          }}
+        />
       </div>
 
     </CurrencyProvider>

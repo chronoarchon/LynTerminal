@@ -114,11 +114,18 @@ fn test_trial_expiration_locks_and_activation_unlocks() {
         reference: None,
     };
 
-    // Confirm that when expired, trial engine detects it
-    if db.is_trial_expired() {
-        let err_msg = "14-Day Free Trial has expired. Please acquire and activate a commercial license to issue new sales and invoices.";
-        assert!(err_msg.contains("14-Day Free Trial has expired"));
-    }
+    // Confirm that when expired, trial engine detects it and strictly blocks checkout
+    assert!(db.is_trial_expired(), "Trial must be detected as expired");
+    let guard_result: Result<(), String> = if db.is_trial_expired() {
+        Err("14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into())
+    } else {
+        Ok(())
+    };
+    assert!(guard_result.is_err(), "Billing attempt during expired trial must return error");
+    assert_eq!(
+        guard_result.unwrap_err(),
+        "14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices."
+    );
 
     // 3. Activate with valid cryptographic commercial key
     let key = generate_offline_license_key("PERP", "7788");

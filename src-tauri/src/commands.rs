@@ -3041,8 +3041,9 @@ pub fn create_database_backup_internal(conn: &Connection) -> Result<String, Stri
     std::fs::create_dir_all(&backup_dir).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&vault_dir).map_err(|e| e.to_string())?;
 
+    let rand_suffix = &uuid::Uuid::new_v4().to_string()[..8];
     let now_str = Local::now().format("%Y%m%d_%H%M%S_%3f").to_string();
-    let filename = format!("lynterminal_backup_{}.db", now_str);
+    let filename = format!("lynterminal_backup_{}_{}.db", now_str, rand_suffix);
     let target_path = backup_dir.join(&filename);
     let vault_path = vault_dir.join(&filename);
 
@@ -3053,7 +3054,8 @@ pub fn create_database_backup_internal(conn: &Connection) -> Result<String, Stri
         let _ = std::fs::remove_file(&vault_path);
     }
 
-    let sql = format!("VACUUM INTO '{}'", target_path.to_string_lossy());
+    let safe_target_path = target_path.to_string_lossy().replace('\\', "/");
+    let sql = format!("VACUUM INTO '{}'", safe_target_path);
     conn.execute_batch(&sql).map_err(|e| format!("VACUUM INTO error: {}", e))?;
 
     let _ = std::fs::copy(&target_path, &vault_path);
@@ -3070,9 +3072,10 @@ pub fn create_pre_update_backup_internal(conn: &Connection, version: &str) -> Re
     std::fs::create_dir_all(&backup_dir).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&vault_dir).map_err(|e| e.to_string())?;
 
+    let rand_suffix = &uuid::Uuid::new_v4().to_string()[..8];
     let v_clean = version.trim_start_matches('v').trim_end_matches('v');
     let now_str = Local::now().format("%Y%m%d_%H%M%S_%3f").to_string();
-    let filename = format!("lynterminal_preupdate_v{}_{}.db", v_clean, now_str);
+    let filename = format!("lynterminal_preupdate_v{}_{}_{}.db", v_clean, now_str, rand_suffix);
     let target_path = backup_dir.join(&filename);
     let vault_path = vault_dir.join(&filename);
 
@@ -3083,7 +3086,8 @@ pub fn create_pre_update_backup_internal(conn: &Connection, version: &str) -> Re
         let _ = std::fs::remove_file(&vault_path);
     }
 
-    let sql = format!("VACUUM INTO '{}'", target_path.to_string_lossy());
+    let safe_target_path = target_path.to_string_lossy().replace('\\', "/");
+    let sql = format!("VACUUM INTO '{}'", safe_target_path);
     conn.execute_batch(&sql).map_err(|e| format!("VACUUM INTO error: {}", e))?;
 
     let _ = std::fs::copy(&target_path, &vault_path);

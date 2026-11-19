@@ -417,13 +417,28 @@ export function initBrowserMock() {
   (window as any).__TAURI_INTERNALS__ = {
     invoke: async (cmd: string, _args?: any) => {
       switch (cmd) {
-        case "get_settings":
+        case "get_settings": {
+          const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const isGst = urlParams?.get("tab")?.startsWith("gst") || urlParams?.get("currency") === "INR" || urlParams?.get("gst") === "1";
+          if (isGst) {
+            return {
+              ...mockSettings,
+              currency_code: "INR",
+              currency_symbol: "₹",
+              tax_name: "GST",
+              default_tax_rate: 18.0,
+              business_name: "LynTerminal India Flagship",
+              address: "108 Brigade Road, Bengaluru, KA 560001",
+              tax_id: "27AABCU9603R1ZM",
+            };
+          }
           return mockSettings;
+        }
         case "get_auth_state":
           return { has_account: true, is_setup_completed: true, is_locked: false };
         case "get_gst_settings": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-          const enableGst = urlParams?.get("gst") === "1" || urlParams?.get("tab") === "gst_pos" || urlParams?.get("tab") === "gst_hub";
+          const enableGst = urlParams?.get("gst") === "1" || urlParams?.get("tab")?.startsWith("gst") || urlParams?.get("currency") === "INR" || true;
           return {
             is_enabled: enableGst,
             gstin: "27AABCU9603R1ZM",

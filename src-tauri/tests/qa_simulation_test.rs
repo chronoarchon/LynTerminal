@@ -653,11 +653,7 @@ fn test_sync_local_bills_as_real_pdf() {
     let db = DatabaseManager::new().expect("Failed to open local user database");
     let conn = db.conn.lock().expect("Failed to acquire DB lock");
 
-    let bills_dir = if let Ok(home) = std::env::var("HOME") {
-        std::path::PathBuf::from(home).join("Downloads").join("lynterminal").join("bills")
-    } else {
-        std::path::PathBuf::from("Downloads").join("lynterminal").join("bills")
-    };
+    let bills_dir = lynterminal_lib::commands::get_bills_storage_dir();
     let _ = std::fs::create_dir_all(&bills_dir);
 
     // Delete stale .html files in bills directory
