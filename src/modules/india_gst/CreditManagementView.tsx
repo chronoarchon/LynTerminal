@@ -560,9 +560,9 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
 
               {/* Pending Bills Allocation Table */}
               <div className="space-y-1.5 pt-2">
-                <div className="text-xs font-bold text-neutral-300 flex justify-between items-center">
+                <div className="text-xs font-bold text-black flex justify-between items-center">
                   <span>Bill Allocation</span>
-                  <span className="text-[11px] text-neutral-400 font-normal">
+                  <span className="text-[11px] text-neutral-500 font-normal">
                     {pendingBills.length} pending bill(s)
                   </span>
                 </div>
@@ -578,7 +578,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                 ) : (
                   <div className="border border-black/[0.08] rounded-xl overflow-hidden max-h-52 overflow-y-auto bg-white">
                     <table className="w-full text-xs">
-                      <thead className="bg-[#F9FAFB] text-neutral-400 font-semibold text-[10px]">
+                      <thead className="bg-[#F9FAFB] text-neutral-500 font-semibold text-[10px]">
                         <tr>
                           <th className="py-2 px-3 text-left">Bill &amp; Date</th>
                           <th className="py-2 px-2 text-right">Total</th>
@@ -586,9 +586,9 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                           <th className="py-2 px-3 text-right">Allocated (₹)</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/10 text-neutral-300">
+                      <tbody className="divide-y divide-black/[0.06] text-neutral-800">
                         {pendingBills.map((b) => (
-                          <tr key={b.invoice_id} className="hover:bg-white/5">
+                          <tr key={b.invoice_id} className="hover:bg-neutral-50">
                             <td className="py-2 px-3">
                               <div className="font-mono font-semibold text-black">{b.invoice_number}</div>
                               <div className="text-[10px] text-neutral-500">
@@ -634,14 +634,14 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSettleParty(null)}
-                  className="px-4 py-2 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] transition cursor-pointer"
+                  className="px-4 py-2 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 transition cursor-pointer shadow-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingSettlement}
-                  className="px-5 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-full bg-black text-white hover:bg-neutral-800 text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
                   {isSubmittingSettlement ? "Processing..." : "Confirm Settle"}
                 </button>
@@ -691,12 +691,12 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="text-xs font-bold text-neutral-300">
+              <div className="text-xs font-bold text-black">
                 Pending Vouchers
               </div>
               <div className="border border-black/[0.08] rounded-xl overflow-hidden bg-white">
                 <table className="w-full text-xs">
-                  <thead className="bg-[#F9FAFB] text-neutral-400 font-semibold text-[10px]">
+                  <thead className="bg-[#F9FAFB] text-neutral-500 font-semibold text-[10px]">
                     <tr>
                       <th className="py-2 px-3 text-left">Date</th>
                       <th className="py-2 px-2 text-left">Voucher #</th>
@@ -705,7 +705,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                       <th className="py-2 px-3 text-right">Due Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10 text-neutral-300">
+                  <tbody className="divide-y divide-black/[0.06] text-neutral-800">
                     {partyBillsForStatement.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-6 text-center text-neutral-500">

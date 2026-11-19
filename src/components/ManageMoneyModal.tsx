@@ -385,8 +385,8 @@ export function ManageMoneyModal({
                     onClick={() => setDepositDestination("CASH")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       depositDestination === "CASH"
-                        ? "border-white bg-[#F9FAFB] shadow-sm text-black"
-                        : "border-black/[0.08] hover:border-black/15 bg-white text-neutral-300"
+                        ? "border-black bg-black text-white shadow-sm"
+                        : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -396,7 +396,7 @@ export function ManageMoneyModal({
                       )}
                     </div>
                     <div className="text-xs font-bold">Cash Drawer</div>
-                    <div className="text-[10px] text-neutral-500 mt-0.5">Counter Float</div>
+                    <div className={`text-[10px] mt-0.5 ${depositDestination === "CASH" ? "text-neutral-300" : "text-neutral-500"}`}>Counter Float</div>
                   </button>
 
                   <button
@@ -404,18 +404,18 @@ export function ManageMoneyModal({
                     onClick={() => setDepositDestination("BANK")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       depositDestination === "BANK"
-                        ? "border-white bg-[#F9FAFB] shadow-sm text-black"
-                        : "border-black/[0.08] hover:border-black/15 bg-white text-neutral-300"
+                        ? "border-black bg-black text-white shadow-sm"
+                        : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <Landmark className="w-4 h-4 text-black" />
+                      <Landmark className="w-4 h-4 text-white" />
                       {depositDestination === "BANK" && (
                         <span className="w-2 h-2 rounded-full bg-white" />
                       )}
                     </div>
                     <div className="text-xs font-bold">Bank Account</div>
-                    <div className="text-[10px] text-neutral-500 mt-0.5">Operating Bank</div>
+                    <div className={`text-[10px] mt-0.5 ${depositDestination === "BANK" ? "text-neutral-300" : "text-neutral-500"}`}>Operating Bank</div>
                   </button>
 
                   <button
@@ -423,18 +423,18 @@ export function ManageMoneyModal({
                     onClick={() => setDepositDestination("CAPITAL")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       depositDestination === "CAPITAL"
-                        ? "border-white bg-[#F9FAFB] shadow-sm text-black"
-                        : "border-black/[0.08] hover:border-black/15 bg-white text-neutral-300"
+                        ? "border-black bg-black text-white shadow-sm"
+                        : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <Coins className="w-4 h-4 text-black" />
+                      <Coins className="w-4 h-4 text-white" />
                       {depositDestination === "CAPITAL" && (
                         <span className="w-2 h-2 rounded-full bg-white" />
                       )}
                     </div>
                     <div className="text-xs font-bold">Owner Capital</div>
-                    <div className="text-[10px] text-neutral-500 mt-0.5">Equity Injection</div>
+                    <div className={`text-[10px] mt-0.5 ${depositDestination === "CAPITAL" ? "text-neutral-300" : "text-neutral-500"}`}>Equity / Ledger</div>
                   </button>
                 </div>
               </div>
@@ -578,17 +578,17 @@ export function ManageMoneyModal({
                     onClick={() => setTransferDirection("CASH_TO_BANK")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       transferDirection === "CASH_TO_BANK"
-                        ? "border-white bg-[#F9FAFB] shadow-sm text-black"
-                        : "border-black/[0.08] hover:border-black/15 bg-white text-neutral-300"
+                        ? "border-black bg-black text-white shadow-sm"
+                        : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Wallet className="w-4 h-4 text-emerald-400" />
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-black" />
-                      <Landmark className="w-4 h-4 text-black" />
+                      <ArrowLeftRight className={`w-3.5 h-3.5 ${transferDirection === "CASH_TO_BANK" ? "text-white" : "text-black"}`} />
+                      <Landmark className={`w-4 h-4 ${transferDirection === "CASH_TO_BANK" ? "text-white" : "text-black"}`} />
                     </div>
                     <div className="text-xs font-bold">Cash to Bank</div>
-                    <div className="text-[10px] text-neutral-400 mt-0.5">Drawer to bank</div>
+                    <div className={`text-[10px] mt-0.5 ${transferDirection === "CASH_TO_BANK" ? "text-neutral-300" : "text-neutral-500"}`}>Drawer to bank</div>
                   </button>
 
                   <button
@@ -596,24 +596,24 @@ export function ManageMoneyModal({
                     onClick={() => setTransferDirection("BANK_TO_CASH")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       transferDirection === "BANK_TO_CASH"
-                        ? "border-white bg-[#F9FAFB] shadow-sm text-black"
-                        : "border-black/[0.08] hover:border-black/15 bg-white text-neutral-300"
+                        ? "border-black bg-black text-white shadow-sm"
+                        : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <Landmark className="w-4 h-4 text-black" />
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-black" />
+                      <Landmark className={`w-4 h-4 ${transferDirection === "BANK_TO_CASH" ? "text-white" : "text-black"}`} />
+                      <ArrowLeftRight className={`w-3.5 h-3.5 ${transferDirection === "BANK_TO_CASH" ? "text-white" : "text-black"}`} />
                       <Wallet className="w-4 h-4 text-emerald-400" />
                     </div>
                     <div className="text-xs font-bold">Bank to Cash</div>
-                    <div className="text-[10px] text-neutral-400 mt-0.5">Bank to drawer</div>
+                    <div className={`text-[10px] mt-0.5 ${transferDirection === "BANK_TO_CASH" ? "text-neutral-300" : "text-neutral-500"}`}>Bank to drawer</div>
                   </button>
                 </div>
               </div>
 
               {/* Dynamic Flow Summary */}
               <div className="p-3 rounded-xl bg-white border border-black/[0.08] text-xs flex items-center justify-between">
-                <span className="text-neutral-400">Effect:</span>
+                <span className="text-neutral-500">Effect:</span>
                 <span className="font-semibold text-black">
                   {transferDirection === "CASH_TO_BANK" ? (
                     <span>Drawer Cash ↓ &nbsp;·&nbsp; Bank Funds ↑</span>
@@ -648,7 +648,7 @@ export function ManageMoneyModal({
               {/* Transfer Amount */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-bold text-neutral-300">
+                  <label className="text-[11px] font-bold text-neutral-700">
                     Transfer Amount ({currencySymbol}) *
                   </label>
                   <button

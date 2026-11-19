@@ -731,7 +731,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 <button
                   type="button"
                   onClick={() => setIsEmployeeModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 cursor-pointer shadow-xs"
                 >
                   Cancel
                 </button>
@@ -851,7 +851,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 <button
                   type="button"
                   onClick={() => setIsPayModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 cursor-pointer shadow-xs"
                 >
                   Cancel
                 </button>
@@ -892,7 +892,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 <div className="text-[10px] text-neutral-400">Salary Payment Voucher</div>
               </div>
 
-              <div className="space-y-1 text-[11px] text-neutral-300">
+              <div className="space-y-1 text-[11px] text-neutral-600">
                 <div className="flex justify-between">
                   <span>VOUCHER:</span>
                   <span className="font-bold text-black">{viewingVoucher.voucher_number}</span>
@@ -913,7 +913,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
               <div className="pt-2 border-t border-black/[0.08] flex justify-between items-baseline font-bold text-sm">
                 <span>NET PAID:</span>
-                <span className="text-base text-emerald-400 font-mono">
+                <span className="text-base text-emerald-600 font-mono">
                   {formatCurrency(viewingVoucher.amount)}
                 </span>
               </div>
@@ -928,7 +928,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 </button>
                 <button
                   onClick={() => setViewingVoucher(null)}
-                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 cursor-pointer shadow-xs"
                 >
                   Done
                 </button>
