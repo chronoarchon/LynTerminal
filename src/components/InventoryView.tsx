@@ -305,7 +305,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Product</span>
@@ -514,11 +514,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* CREATE / EDIT ITEM MODAL */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-lg border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   {activeItem ? "Edit Product" : "New Product"}
                 </h3>
                 <p className="text-[11px] text-neutral-400">
@@ -527,7 +527,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -535,7 +535,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
             <form onSubmit={handleSaveItem} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Product Name *
                 </label>
                 <input
@@ -544,13 +544,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   placeholder="e.g. Organic Oat Milk 1L"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     SKU Code
                   </label>
                   <input
@@ -558,11 +558,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     placeholder="e.g. OAT-100"
                     value={formSku}
                     onChange={(e) => setFormSku(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Barcode / EAN
                   </label>
                   <input
@@ -570,14 +570,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     placeholder="e.g. 789123456789"
                     value={formBarcode}
                     onChange={(e) => setFormBarcode(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Category
                   </label>
                   <input
@@ -585,11 +585,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     placeholder="e.g. Beverages"
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Unit
                   </label>
                   <input
@@ -597,14 +597,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     placeholder="pcs, kg, box"
                     value={formUnit}
                     onChange={(e) => setFormUnit(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Cost Price ({currency})
                   </label>
                   <input
@@ -612,11 +612,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     step="0.01"
                     value={formPurchasePrice}
                     onChange={(e) => setFormPurchasePrice(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Sale Price ({currency}) *
                   </label>
                   <input
@@ -625,47 +625,47 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     required
                     value={formSalePrice}
                     onChange={(e) => setFormSalePrice(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Stock Quantity
                   </label>
                   <input
                     type="number"
                     value={formStock}
                     onChange={(e) => setFormStock(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Low Stock Alert
                   </label>
                   <input
                     type="number"
                     value={formMinAlert}
                     onChange={(e) => setFormMinAlert(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3 border-t border-white/10">
+              <div className="flex gap-2 pt-3 border-t border-black/[0.08]">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Save Product
                 </button>
@@ -677,33 +677,33 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* STOCK ADJUSTMENT MODAL */}
       {isAdjustModalOpen && activeItem && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB] rounded-t-3xl">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Adjust Stock
                 </h3>
                 <p className="text-[11px] text-neutral-400">{activeItem.name}</p>
               </div>
               <button
                 onClick={() => setIsAdjustModalOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleApplyAdjustment} className="p-5 space-y-3.5">
-              <div className="p-3 rounded-xl bg-[#0e1015] border border-white/10 text-xs flex justify-between items-center">
+              <div className="p-3 rounded-xl bg-white border border-black/[0.08] text-xs flex justify-between items-center">
                 <span className="text-neutral-400">Current Stock:</span>
-                <span className="font-mono font-bold text-white">
+                <span className="font-mono font-bold text-black">
                   {activeItem.stock_quantity} {activeItem.unit}
                 </span>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Change (+ / -) *
                 </label>
                 <input
@@ -713,12 +713,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   placeholder="e.g. +10 or -3"
                   value={adjustmentValue}
                   onChange={(e) => setAdjustmentValue(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Reason
                 </label>
                 <AppleSelect
@@ -738,13 +738,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAdjustModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Apply Change
                 </button>
@@ -756,18 +756,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* STOCK MOVEMENTS HISTORY MODAL */}
       {isHistoryModalOpen && activeItem && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-lg border border-white/10 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Stock Log
                 </h3>
                 <p className="text-[11px] text-neutral-400">{activeItem.name}</p>
               </div>
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -780,10 +780,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 return (
                   <div
                     key={mov.id}
-                    className="p-3 rounded-xl border border-white/10 bg-[#0e1015] flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl border border-black/[0.08] bg-white flex items-center justify-between text-xs"
                   >
                     <div>
-                      <div className="font-semibold text-white">
+                      <div className="font-semibold text-black">
                         {mov.movement_type} · {mov.reference_id}
                       </div>
                       <div className="text-[10px] text-neutral-400 mt-0.5">
@@ -819,15 +819,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* LOW STOCK PURCHASE ORDER MODAL */}
       {generatedPO && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-7 h-7 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/[0.08]">
                   <Zap className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-bold text-black tracking-tight">
                     Purchase Order
                   </h3>
                   <p className="text-[11px] text-neutral-400 font-mono">{generatedPO.po_number}</p>
@@ -835,25 +835,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
               <button
                 onClick={() => setGeneratedPO(null)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-3.5">
-              <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 space-y-1.5 text-xs">
+              <div className="p-3.5 rounded-2xl bg-white border border-black/[0.08] space-y-1.5 text-xs">
                 <div className="flex justify-between text-neutral-400">
                   <span>Vendor:</span>
-                  <span className="font-semibold text-white">{generatedPO.vendor_name}</span>
+                  <span className="font-semibold text-black">{generatedPO.vendor_name}</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
                   <span>Restock Count:</span>
-                  <span className="font-bold text-white">{generatedPO.items_count} items</span>
+                  <span className="font-bold text-black">{generatedPO.items_count} items</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
                   <span>Estimated Total:</span>
-                  <span className="font-bold font-mono text-white">
+                  <span className="font-bold font-mono text-black">
                     {formatCurrency(generatedPO.total_cost)}
                   </span>
                 </div>
@@ -863,7 +863,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print PO</span>
@@ -871,7 +871,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setGeneratedPO(null)}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Done
                 </button>
@@ -883,11 +883,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* GODOWN TRANSFER MODAL */}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB] rounded-t-3xl">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Stock Transfer
                 </h3>
                 <p className="text-[11px] text-neutral-400">
@@ -896,7 +896,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
               <button
                 onClick={() => setIsTransferModalOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -904,7 +904,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
             <form onSubmit={handleExecuteTransfer} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Product *
                 </label>
                 <AppleSelect
@@ -923,18 +923,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     From Location
                   </label>
                   <input
                     type="text"
                     value={transferFromGodown}
                     onChange={(e) => setTransferFromGodown(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     To Location *
                   </label>
                   <input
@@ -943,13 +943,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     value={transferToGodown}
                     onChange={(e) => setTransferToGodown(e.target.value)}
                     placeholder="e.g. Counter Shelf"
-                    className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Transfer Quantity *
                 </label>
                 <input
@@ -959,12 +959,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   step="any"
                   value={transferQty}
                   onChange={(e) => setTransferQty(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Notes
                 </label>
                 <input
@@ -972,7 +972,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   placeholder="Restock shelf"
                   value={transferNotes}
                   onChange={(e) => setTransferNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
@@ -980,14 +980,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsTransferModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingTransfer}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingTransfer ? "Transferring..." : "Transfer"}
                 </button>
@@ -999,11 +999,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* SHELF PRICE TAGS MODAL */}
       {isShelfTagsOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-2xl border border-white/10 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 no-print">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB] no-print">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Shelf Price Tags
                 </h3>
                 <p className="text-[11px] text-neutral-400">
@@ -1013,14 +1013,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print All</span>
                 </button>
                 <button
                   onClick={() => setIsShelfTagsOpen(false)}
-                  className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                  className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>

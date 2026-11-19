@@ -169,17 +169,17 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-[#13151a] text-white rounded-3xl shadow-2xl border border-white/10 flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 lux-modal-card">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto">
+      <div className="w-full max-w-3xl bg-white text-black rounded-3xl shadow-2xl border border-black/[0.08] flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 lux-modal-card">
         
         {/* Wizard Progress Top Bar */}
-        <div className="px-6 py-4 border-b border-white/10 bg-[#181a21] flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-black/[0.08] bg-[#F9FAFB] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl bg-white/10 border border-white/10 text-white flex items-center justify-center shadow-xs">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="w-7 h-7 rounded-xl bg-white/10 border border-black/[0.08] text-black flex items-center justify-center shadow-xs">
+              <Sparkles className="w-4 h-4 text-black" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white tracking-tight">Setup Assistant</h2>
+              <h2 className="text-sm font-bold text-black tracking-tight">Setup Assistant</h2>
               <p className="text-[11px] text-neutral-400 font-mono">Step {currentStep} of 6</p>
             </div>
           </div>
@@ -202,17 +202,17 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
         </div>
 
         {/* Wizard Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-[#13151a] text-white">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-white text-black">
           
           {/* STEP 1: PRIVACY POLICY & ZERO-TELEMETRY CHARTER */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs font-semibold text-white mb-3">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-black/[0.08] px-3 py-1 text-xs font-semibold text-black mb-3">
                   <Shield className="w-3.5 h-3.5" />
                   <span>Offline Privacy</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-black tracking-tight">
                   Privacy Policy & Terms
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1">
@@ -222,8 +222,8 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               {/* Bento Highlights */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-2xl bg-[#181a21] border border-white/10">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                <div className="p-3.5 rounded-2xl bg-[#F9FAFB] border border-black/[0.08]">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-black">
                     <ServerOff className="w-4 h-4" />
                     <span>Client-Side Only</span>
                   </div>
@@ -232,7 +232,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-[#181a21] border border-white/10">
+                <div className="p-3.5 rounded-2xl bg-[#F9FAFB] border border-black/[0.08]">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
                     <EyeOff className="w-4 h-4" />
                     <span>Zero Cloud Upload</span>
@@ -242,8 +242,8 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-[#181a21] border border-white/10">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                <div className="p-3.5 rounded-2xl bg-[#F9FAFB] border border-black/[0.08]">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-black">
                     <Lock className="w-4 h-4" />
                     <span>Air-Gapped Ready</span>
                   </div>
@@ -256,9 +256,9 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               {/* Scrollable Legal & Architectural Charter */}
               <div
                 onScroll={handlePolicyScroll}
-                className="h-64 sm:h-72 overflow-y-auto p-4 rounded-2xl border border-white/10 bg-[#0e1015] text-xs text-neutral-300 space-y-4 leading-relaxed font-sans"
+                className="h-64 sm:h-72 overflow-y-auto p-4 rounded-2xl border border-black/[0.08] bg-white text-xs text-neutral-300 space-y-4 leading-relaxed font-sans"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <div className="flex items-center justify-between pb-2 border-b border-black/[0.08]">
                   <div className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
                     SPECIFICATION: LYN-PRIVACY-TERMS · CLIENT-SIDE SOVEREIGNTY
                   </div>
@@ -270,7 +270,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 </div>
 
                 <section className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-bold text-black text-sm">
                     1. Local Data Architecture & Ownership
                   </h3>
                   <p>
@@ -282,7 +282,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 </section>
 
                 <section className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-bold text-black text-sm">
                     2. Zero Telemetry & Tracking Policy
                   </h3>
                   <p>
@@ -296,7 +296,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 </section>
 
                 <section className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-bold text-black text-sm">
                     3. Local Security & Authentication
                   </h3>
                   <p>
@@ -305,7 +305,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 </section>
 
                 <section className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-bold text-black text-sm">
                     4. Data Export & Portability
                   </h3>
                   <p>
@@ -314,16 +314,16 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 </section>
 
                 <section className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-bold text-black text-sm">
                     5. Contact & Support
                   </h3>
                   <p>
-                    For questions regarding software security or privacy terms, contact our team at <span className="font-mono text-white underline">support@wintershogun.tech</span>.
+                    For questions regarding software security or privacy terms, contact our team at <span className="font-mono text-black underline">support@wintershogun.tech</span>.
                   </p>
                 </section>
 
                 <section className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-bold text-black text-sm">
                     6. Commercial Terms & Local Backup Responsibility
                   </h3>
                   <p>
@@ -342,10 +342,10 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   id="privacy-agree"
                   checked={privacyAgreed}
                   onChange={(e) => setPrivacyAgreed(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-[#0e1015] text-white focus:ring-white/20 accent-white cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-black/15 bg-white text-black focus:ring-black/20 accent-white cursor-pointer"
                 />
                 <label htmlFor="privacy-agree" className="text-xs text-neutral-300 font-medium leading-relaxed cursor-pointer select-none">
-                  I agree to the <strong className="text-white">LynTerminal Privacy Policy & Terms</strong>. Business and customer data is stored locally under my control.
+                  I agree to the <strong className="text-black">LynTerminal Privacy Policy & Terms</strong>. Business and customer data is stored locally under my control.
                 </label>
               </div>
             </div>
@@ -355,11 +355,11 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
           {currentStep === 2 && (
             <div className="space-y-6">
               <div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white mb-3 border border-white/10">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-black mb-3 border border-black/[0.08]">
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Security Mode</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-black tracking-tight">
                   Master Password & App Lock
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1">
@@ -374,29 +374,29 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   onClick={() => setSkipAppLock(false)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                     !skipAppLock
-                      ? "border-white bg-[#181a21] shadow-md"
-                      : "border-white/10 bg-[#13151a] hover:border-white/20"
+                      ? "border-white bg-[#F9FAFB] shadow-md"
+                      : "border-black/[0.08] bg-white hover:border-black/15"
                   }`}
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-xl bg-black/5 text-black flex items-center justify-center">
                         <ShieldCheck className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/5 text-black border border-black/15">
                         Recommended
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-white">Enable Password</h3>
+                      <h3 className="text-xs font-bold text-black">Enable Password</h3>
                       <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
                         Require a master password on startup and workstation lock.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                  <div className="mt-3 pt-3 border-t border-black/[0.08] flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-neutral-400">Status:</span>
-                    <span className={`text-[11px] font-bold ${!skipAppLock ? "text-white" : "text-neutral-500"}`}>
+                    <span className={`text-[11px] font-bold ${!skipAppLock ? "text-black" : "text-neutral-500"}`}>
                       {!skipAppLock ? "● App Lock: ENABLED" : "Inactive"}
                     </span>
                   </div>
@@ -407,29 +407,29 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   onClick={selectSkipAppLock}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                     skipAppLock
-                      ? "border-white bg-[#181a21] shadow-md"
-                      : "border-white/10 bg-[#13151a] hover:border-white/20"
+                      ? "border-white bg-[#F9FAFB] shadow-md"
+                      : "border-black/[0.08] bg-white hover:border-black/15"
                   }`}
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-xl bg-black/5 text-black flex items-center justify-center">
                         <Unlock className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-neutral-400 border border-white/10">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-neutral-400 border border-black/[0.08]">
                         Direct
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-white">Skip App Lock</h3>
+                      <h3 className="text-xs font-bold text-black">Skip App Lock</h3>
                       <p className="text-[11px] text-neutral-400 mt-0.5 leading-relaxed">
                         Launch directly into POS without credentials. Can configure later.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                  <div className="mt-3 pt-3 border-t border-black/[0.08] flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-neutral-400">Status:</span>
-                    <span className={`text-[11px] font-bold ${skipAppLock ? "text-white" : "text-neutral-500"}`}>
+                    <span className={`text-[11px] font-bold ${skipAppLock ? "text-black" : "text-neutral-500"}`}>
                       {skipAppLock ? "● App Lock: SKIPPED" : "Inactive"}
                     </span>
                   </div>
@@ -444,16 +444,16 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               )}
 
               {skipAppLock ? (
-                <div className="p-4 rounded-2xl bg-[#181a21] border border-white/10 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-white">
-                    <Unlock className="w-4 h-4 text-white" />
+                <div className="p-4 rounded-2xl bg-[#F9FAFB] border border-black/[0.08] space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-black">
+                    <Unlock className="w-4 h-4 text-black" />
                     <span>Direct Launch Active</span>
                   </div>
                   <p className="text-[11px] text-neutral-400 leading-relaxed">
                     LynTerminal will launch instantly without prompting for a master password.
                   </p>
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
                       Administrator Display Name
                     </label>
                     <input
@@ -461,7 +461,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="admin"
-                      className="w-full max-w-sm px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white placeholder-neutral-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20"
+                      className="w-full max-w-sm px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs text-black placeholder-neutral-400 outline-none focus:border-black focus:ring-1 focus:ring-black/20"
                     />
                   </div>
                 </div>
@@ -469,7 +469,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 <div className="space-y-4 max-w-lg">
                   {/* Username */}
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
                       Administrator Username
                     </label>
                     <input
@@ -477,13 +477,13 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="e.g. admin or storeowner"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white placeholder-neutral-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs text-black placeholder-neutral-400 outline-none focus:border-black focus:ring-1 focus:ring-black/20 transition"
                     />
                   </div>
 
                   {/* Password with Eye Toggle */}
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
                       Master Password
                     </label>
                     <div className="relative">
@@ -492,12 +492,12 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter password (min 4 characters)"
-                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white placeholder-neutral-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition"
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-black/[0.08] bg-white text-xs text-black placeholder-neutral-400 outline-none focus:border-black focus:ring-1 focus:ring-black/20 transition"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
                         title={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -507,7 +507,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
                   {/* Confirm Password with Eye Toggle */}
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
                       Confirm Master Password
                     </label>
                     <div className="relative">
@@ -516,12 +516,12 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Re-enter password"
-                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white placeholder-neutral-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition"
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-black/[0.08] bg-white text-xs text-black placeholder-neutral-400 outline-none focus:border-black focus:ring-1 focus:ring-black/20 transition"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
                         title={showConfirmPassword ? "Hide password" : "Show password"}
                       >
                         {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -548,11 +548,11 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
           {currentStep === 3 && (
             <div className="space-y-6">
               <div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white mb-3 border border-white/10">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-black mb-3 border border-black/[0.08]">
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Recovery Vault</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-black tracking-tight">
                   Security Recovery Key
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1 leading-relaxed">
@@ -561,14 +561,14 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               </div>
 
               {/* Recovery Key Display Box */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-[#0e1015] text-white border border-white/10 shadow-xl relative overflow-hidden group">
+              <div className="p-5 sm:p-6 rounded-2xl bg-white text-black border border-black/[0.08] shadow-xl relative overflow-hidden group">
                 <div className="text-[11px] font-mono text-neutral-400 uppercase tracking-widest mb-2 flex items-center justify-between">
                   <span>MASTER RECOVERY KEY (18 CHARS)</span>
                   <span className="text-emerald-400 font-mono text-xs">OFFLINE SOVEREIGN</span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 mt-2">
-                  <div className="font-mono text-lg sm:text-2xl font-bold tracking-widest text-white select-all bg-[#181a21] px-4 py-2.5 rounded-xl border border-white/10 w-full text-center">
+                  <div className="font-mono text-lg sm:text-2xl font-bold tracking-widest text-black select-all bg-[#F9FAFB] px-4 py-2.5 rounded-xl border border-black/[0.08] w-full text-center">
                     {recoveryCode}
                   </div>
 
@@ -578,7 +578,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                     className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-3 rounded-xl font-bold uppercase tracking-wider text-xs shadow-md transition active:scale-95 cursor-pointer ${
                       copiedKey
                         ? "bg-emerald-500 text-white"
-                        : "bg-white hover:bg-neutral-200 text-black"
+                        : "bg-black hover:bg-neutral-800 text-white"
                     }`}
                   >
                     {copiedKey ? (
@@ -595,7 +595,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </button>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10 flex items-start gap-2 text-xs text-neutral-400">
+                <div className="mt-4 pt-4 border-t border-black/[0.08] flex items-start gap-2 text-xs text-neutral-400">
                   <AlertTriangle className="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
                     Write down this key or save it in your password vault. It cannot be recovered via cloud.
@@ -610,10 +610,10 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   id="key-recorded"
                   checked={keyRecorded}
                   onChange={(e) => setKeyRecorded(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-[#0e1015] text-white focus:ring-white/20 accent-white cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-black/15 bg-white text-black focus:ring-black/20 accent-white cursor-pointer"
                 />
                 <label htmlFor="key-recorded" className="text-xs text-neutral-300 font-medium leading-relaxed cursor-pointer select-none">
-                  I have saved my <strong className="text-white">18-character recovery key</strong> in a secure location.
+                  I have saved my <strong className="text-black">18-character recovery key</strong> in a secure location.
                 </label>
               </div>
             </div>
@@ -623,11 +623,11 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
           {currentStep === 4 && (
             <div className="space-y-6">
               <div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white mb-3 border border-white/10">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-black mb-3 border border-black/[0.08]">
                   <Store className="w-3.5 h-3.5" />
                   <span>Business Profile</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-black tracking-tight">
                   Business Details
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-1">
@@ -637,7 +637,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               <div className="space-y-4 max-w-lg">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
                     Store / Firm Name *
                   </label>
                   <input
@@ -645,12 +645,12 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="e.g. LynTerminal Store"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white placeholder-neutral-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs text-black placeholder-neutral-400 outline-none focus:border-black focus:ring-1 focus:ring-black/20 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
                     Tagline (Optional)
                   </label>
                   <input
@@ -658,12 +658,12 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                     value={businessTagline}
                     onChange={(e) => setBusinessTagline(e.target.value)}
                     placeholder="e.g. Retail & Inventory"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white placeholder-neutral-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs text-black placeholder-neutral-400 outline-none focus:border-black focus:ring-1 focus:ring-black/20 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
                     Operating Currency
                   </label>
                   <AppleSelect
@@ -690,17 +690,17 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white mb-2 border border-white/10">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-black mb-2 border border-black/[0.08]">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Quick Tour</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-black tracking-tight">
                     System Overview
                   </h1>
                 </div>
 
                 {/* Tour Tab Buttons */}
-                <div className="flex items-center gap-1 bg-[#0e1015] p-1 rounded-xl border border-white/10">
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-black/[0.08]">
                   {[0, 1, 2, 3].map((idx) => (
                     <button
                       key={idx}
@@ -708,7 +708,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
                         tourSlide === idx
                           ? "bg-white text-black font-bold"
-                          : "text-neutral-400 hover:text-white"
+                          : "text-neutral-400 hover:text-black"
                       }`}
                     >
                       {idx + 1}
@@ -719,13 +719,13 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               {/* SLIDE 0: SETTINGS & FIRM PROFILE */}
               {tourSlide === 0 && (
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#181a21] space-y-4">
+                <div className="p-6 rounded-2xl border border-black/[0.08] bg-[#F9FAFB] space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-black/5 text-black flex items-center justify-center">
                       <SettingsIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-black">
                         1. Store Settings & Taxes (Ctrl+0)
                       </h3>
                       <p className="text-xs text-neutral-400">
@@ -735,9 +735,9 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white flex items-center gap-1.5">
-                        <Store className="w-4 h-4 text-white" />
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black flex items-center gap-1.5">
+                        <Store className="w-4 h-4 text-black" />
                         <span>Branding & Tax ID</span>
                       </div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
@@ -745,8 +745,8 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white flex items-center gap-1.5">
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black flex items-center gap-1.5">
                         <Printer className="w-4 h-4 text-emerald-400" />
                         <span>Thermal & A4 Print</span>
                       </div>
@@ -760,13 +760,13 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               {/* SLIDE 1: STAFF & PAYROLL */}
               {tourSlide === 1 && (
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#181a21] space-y-4">
+                <div className="p-6 rounded-2xl border border-black/[0.08] bg-[#F9FAFB] space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-black/5 text-black flex items-center justify-center">
                       <Users className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-black">
                         2. Staff & Payroll (Ctrl+7)
                       </h3>
                       <p className="text-xs text-neutral-400">
@@ -776,15 +776,15 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white">Role Management</div>
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black">Role Management</div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
                         Register employees with contact details and roles.
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white">Salary Payouts</div>
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black">Salary Payouts</div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
                         Track attendance and disburse monthly payouts.
                       </p>
@@ -795,13 +795,13 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               {/* SLIDE 2: COUNTER POS BILLING */}
               {tourSlide === 2 && (
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#181a21] space-y-4">
+                <div className="p-6 rounded-2xl border border-black/[0.08] bg-[#F9FAFB] space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-black/5 text-black flex items-center justify-center">
                       <CreditCard className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-black">
                         3. Counter POS Register (F2)
                       </h3>
                       <p className="text-xs text-neutral-400">
@@ -811,15 +811,15 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white">Quick Customer Add</div>
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black">Quick Customer Add</div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
                         Add customer details directly from the checkout register.
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white">Instant Export</div>
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black">Instant Export</div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
                         Bills save locally as PDF files with zero cloud delay.
                       </p>
@@ -830,13 +830,13 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
 
               {/* SLIDE 3: EXECUTIVE DASHBOARD */}
               {tourSlide === 3 && (
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#181a21] space-y-4">
+                <div className="p-6 rounded-2xl border border-black/[0.08] bg-[#F9FAFB] space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-black/5 text-black flex items-center justify-center">
                       <LayoutDashboard className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-black">
                         4. Operations Cockpit (Ctrl+1)
                       </h3>
                       <p className="text-xs text-neutral-400">
@@ -846,15 +846,15 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white">Cash & Bank Float</div>
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black">Cash & Bank Float</div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
                         Drawer cash reconciles live with sales and payouts.
                       </p>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-[#0e1015] border border-white/10 space-y-1.5">
-                      <div className="font-semibold text-white">Profit & Margins</div>
+                    <div className="p-3.5 rounded-xl bg-white border border-black/[0.08] space-y-1.5">
+                      <div className="font-semibold text-black">Profit & Margins</div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
                         Net income and expense ledger computed on device.
                       </p>
@@ -869,7 +869,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   type="button"
                   disabled={tourSlide === 0}
                   onClick={() => setTourSlide((prev) => prev - 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-white/10 bg-[#181a21] text-xs font-semibold text-white hover:bg-[#232733] disabled:opacity-30 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] text-xs font-semibold text-black hover:bg-[#232733] disabled:opacity-30 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Previous</span>
@@ -879,7 +879,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   type="button"
                   disabled={tourSlide === 3}
                   onClick={() => setTourSlide((prev) => prev + 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-white/10 bg-[#181a21] text-xs font-semibold text-white hover:bg-[#232733] disabled:opacity-30 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] text-xs font-semibold text-black hover:bg-[#232733] disabled:opacity-30 cursor-pointer"
                 >
                   <span>Next</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -896,7 +896,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               </div>
 
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-black tracking-tight">
                   Setup Complete
                 </h1>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-md mx-auto leading-relaxed">
@@ -905,23 +905,23 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               </div>
 
               {/* Summary Overview Card */}
-              <div className="max-w-md mx-auto p-5 rounded-2xl bg-[#181a21] border border-white/10 text-left text-xs space-y-2.5 text-white">
-                <div className="flex items-center justify-between py-1 border-b border-white/10">
+              <div className="max-w-md mx-auto p-5 rounded-2xl bg-[#F9FAFB] border border-black/[0.08] text-left text-xs space-y-2.5 text-black">
+                <div className="flex items-center justify-between py-1 border-b border-black/[0.08]">
                   <span className="text-neutral-400">Store Entity</span>
-                  <span className="font-bold text-white">{businessName || "LynTerminal Store"}</span>
+                  <span className="font-bold text-black">{businessName || "LynTerminal Store"}</span>
                 </div>
-                <div className="flex items-center justify-between py-1 border-b border-white/10">
+                <div className="flex items-center justify-between py-1 border-b border-black/[0.08]">
                   <span className="text-neutral-400">Administrator</span>
-                  <span className="font-mono font-semibold text-white">{username}</span>
+                  <span className="font-mono font-semibold text-black">{username}</span>
                 </div>
-                <div className="flex items-center justify-between py-1 border-b border-white/10">
+                <div className="flex items-center justify-between py-1 border-b border-black/[0.08]">
                   <span className="text-neutral-400">Currency</span>
-                  <span className="font-mono font-semibold text-white">{currencyCode} ({currencySymbol})</span>
+                  <span className="font-mono font-semibold text-black">{currencyCode} ({currencySymbol})</span>
                 </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-white/10">
+                <div className="flex items-center justify-between py-1.5 border-b border-black/[0.08]">
                   <span className="text-neutral-400">Security Mode</span>
                   {skipAppLock ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-300 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-300 bg-white/5 px-2.5 py-0.5 rounded-full border border-black/[0.08]">
                       <Unlock className="w-3 h-3 text-neutral-400" />
                       Direct Launch
                     </span>
@@ -942,7 +942,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
         </div>
 
         {/* Wizard Footer Controls */}
-        <div className="px-6 py-4 border-t border-white/10 bg-[#181a21] flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-black/[0.08] bg-[#F9FAFB] flex items-center justify-between">
           <div>
             {currentStep > 1 && currentStep < 6 && (
               <button
@@ -954,7 +954,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                     setCurrentStep((prev) => prev - 1);
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10 bg-[#181a21] hover:bg-[#232733] text-xs font-semibold text-neutral-300 hover:text-white transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-black/[0.08] bg-[#F9FAFB] hover:bg-[#232733] text-xs font-semibold text-neutral-300 hover:text-black transition cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back</span>
@@ -968,7 +968,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 type="button"
                 disabled={!privacyAgreed}
                 onClick={() => setCurrentStep(2)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Agree & Continue</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -981,7 +981,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrentStep(4)}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
                   >
                     <span>Next</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -994,7 +994,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                         setCurrentStep(3);
                       }
                     }}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
                   >
                     <span>Next</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1008,7 +1008,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 type="button"
                 disabled={!keyRecorded}
                 onClick={() => setCurrentStep(4)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1019,7 +1019,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep(5)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1030,7 +1030,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep(6)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1042,7 +1042,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleFinalLaunch}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 <span>{isSubmitting ? "Launching..." : "Launch Terminal"}</span>
               </button>

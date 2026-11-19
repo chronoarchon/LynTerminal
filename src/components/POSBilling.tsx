@@ -1466,25 +1466,25 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       {/* QUICK ADD PRODUCT MODAL */}
       {showQuickAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black lux-modal-card">
+            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/10">
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-xs sm:text-sm font-bold text-black tracking-tight">
                     New Product
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
+                  <p className="text-[11px] text-neutral-500">
                     Add to catalog &amp; current ticket
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowQuickAddModal(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1492,7 +1492,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
             <form onSubmit={handleQuickAddSubmit} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Product Name *
                 </label>
                 <input
@@ -1501,13 +1501,13 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="e.g. Colombian Espresso 1kg"
                   value={quickProduct.name}
                   onChange={(e) => setQuickProduct({ ...quickProduct, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Sale Price ({currency}) *
                   </label>
                   <input
@@ -1517,11 +1517,11 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     placeholder="0.00"
                     value={quickProduct.sale_price}
                     onChange={(e) => setQuickProduct({ ...quickProduct, sale_price: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Cost Price ({currency})
                   </label>
                   <input
@@ -1530,14 +1530,14 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     placeholder="0.00"
                     value={quickProduct.purchase_price}
                     onChange={(e) => setQuickProduct({ ...quickProduct, purchase_price: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Category
                   </label>
                   <input
@@ -1545,18 +1545,18 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     placeholder="e.g. Coffee Beans"
                     value={quickProduct.category}
                     onChange={(e) => setQuickProduct({ ...quickProduct, category: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Starting Stock
                   </label>
                   <input
                     type="number"
                     value={quickProduct.stock_quantity}
                     onChange={(e) => setQuickProduct({ ...quickProduct, stock_quantity: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
                   />
                 </div>
               </div>
@@ -1565,14 +1565,14 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowQuickAddModal(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/10 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isQuickAdding}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
                   {isQuickAdding ? "Adding..." : "Add to Sale"}
                 </button>
@@ -1584,18 +1584,18 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       {/* Quick Add Customer / Vendor Modal */}
       {showAddCustomerModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl border border-white/10 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-black/[0.08] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150 text-black lux-modal-card">
+            <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/10">
                   <UserPlus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-bold text-black tracking-tight">
                     {billMode === "PURCHASE" ? "Add Supplier" : "Add Customer"}
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
+                  <p className="text-[11px] text-neutral-500">
                     Local database record
                   </p>
                 </div>
@@ -1603,7 +1603,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAddCustomerModal(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1611,7 +1611,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
             <form onSubmit={handleCreateCustomer} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Name *
                 </label>
                 <input
@@ -1621,12 +1621,12 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="e.g. Rahul Sharma"
                   value={newCustomerForm.name}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400 transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Phone <span className="text-neutral-500 font-normal">(optional)</span>
                 </label>
                 <input
@@ -1634,12 +1634,12 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="+91 98765 43210"
                   value={newCustomerForm.phone}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400 transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Email <span className="text-neutral-500 font-normal">(optional)</span>
                 </label>
                 <input
@@ -1647,12 +1647,12 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="name@domain.com"
                   value={newCustomerForm.email}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, email: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/10 bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400 transition"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Address <span className="text-neutral-500 font-normal">(optional)</span>
                 </label>
                 <textarea
@@ -1660,7 +1660,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   placeholder="Street, City, Postal code..."
                   value={newCustomerForm.address}
                   onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600 transition resize-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/10 bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400 transition resize-none"
                 />
               </div>
 
@@ -1668,14 +1668,14 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddCustomerModal(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/10 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingCustomer}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
                 >
                   {isSavingCustomer ? "Saving..." : "Save Party"}
                 </button>

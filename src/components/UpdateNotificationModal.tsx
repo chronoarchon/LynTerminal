@@ -243,21 +243,21 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#13151a] rounded-3xl max-w-lg w-full shadow-2xl border border-white/10 overflow-hidden flex flex-col text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-black/[0.08] overflow-hidden flex flex-col text-black lux-modal-card">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-start justify-between border-b border-white/10 bg-[#181a21]/50">
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between border-b border-black/[0.06] bg-[#F9FAFB]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-black/5 border border-black/10 flex items-center justify-center text-black shrink-0">
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold tracking-wider uppercase border border-white/15 mb-1">
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/5 text-black text-[10px] font-bold tracking-wider uppercase border border-black/10 mb-1">
                 <span>Update Ready</span>
                 <span>•</span>
                 <span className="font-mono">v{updateInfo.latest_version}</span>
               </div>
-              <h2 className="text-base font-bold text-white tracking-tight">
+              <h2 className="text-base font-bold text-black tracking-tight">
                 Software Update
               </h2>
             </div>
@@ -265,7 +265,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           <button
             onClick={onClose}
             disabled={isUpdating}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition cursor-pointer disabled:opacity-40"
+            className="p-1.5 rounded-full hover:bg-black/5 text-neutral-400 hover:text-black transition cursor-pointer disabled:opacity-40"
           >
             <X className="w-4 h-4" />
           </button>
@@ -274,13 +274,13 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
         {/* Content Body */}
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
           {/* Safe Data Guarantee Card */}
-          <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 flex items-start gap-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+          <div className="p-3.5 rounded-2xl bg-[#F9FAFB] border border-black/[0.06] flex items-start gap-3">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
             <div className="text-xs">
-              <span className="font-bold text-white block">
+              <span className="font-bold text-black block">
                 Zero Data Loss
               </span>
-              <p className="text-neutral-400 text-[11px] mt-0.5 leading-relaxed">
+              <p className="text-neutral-500 text-[11px] mt-0.5 leading-relaxed">
                 Persistent database isolated. Auto backup snapshot created before upgrade.
               </p>
             </div>
@@ -288,15 +288,15 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
           {/* Version Comparison */}
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-2xl bg-[#0e1015] border border-white/10">
-              <span className="text-[11px] text-neutral-400 block">Current</span>
-              <span className="font-mono font-bold text-white text-sm">
+            <div className="p-3 rounded-2xl bg-[#F9FAFB] border border-black/[0.06]">
+              <span className="text-[11px] text-neutral-500 block">Current</span>
+              <span className="font-mono font-bold text-black text-sm">
                 v{updateInfo.current_version}
               </span>
             </div>
-            <div className="p-3 rounded-2xl bg-[#181a21] border border-white/15">
-              <span className="text-[11px] text-neutral-300 font-semibold block">Target</span>
-              <span className="font-mono font-bold text-white text-sm">
+            <div className="p-3 rounded-2xl bg-[#F9FAFB] border border-black/10">
+              <span className="text-[11px] text-neutral-700 font-semibold block">Target</span>
+              <span className="font-mono font-bold text-black text-sm">
                 v{updateInfo.latest_version}
               </span>
             </div>
@@ -305,11 +305,11 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
           {/* Release Notes with Styled Typography */}
           {updateInfo.release_notes && (
             <div>
-              <h4 className="text-xs font-bold text-white mb-1.5 flex items-center justify-between uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-black mb-1.5 flex items-center justify-between uppercase tracking-wider">
                 <span>Changelog</span>
-                <span className="text-[10px] text-neutral-400 font-mono">v{updateInfo.latest_version}</span>
+                <span className="text-[10px] text-neutral-500 font-mono">v{updateInfo.latest_version}</span>
               </h4>
-              <div className="p-4 rounded-2xl bg-[#0e1015] border border-white/10 max-h-52 overflow-y-auto select-text scrollbar-thin">
+              <div className="p-4 rounded-2xl bg-[#F9FAFB] border border-black/[0.06] max-h-52 overflow-y-auto select-text scrollbar-thin text-black">
                 <FormattedReleaseNotes content={updateInfo.release_notes} />
               </div>
             </div>
@@ -317,7 +317,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
           {/* Step-by-Step Progress Feedback */}
           {isUpdating && (
-            <div className="p-4 rounded-2xl bg-[#0e1015] border border-white/10 space-y-3">
+            <div className="p-4 rounded-2xl bg-[#F9FAFB] border border-black/[0.06] space-y-3">
               {/* Step indicator pills */}
               <div className="grid grid-cols-4 gap-1.5">
                 {stepsList.map((step) => {
@@ -328,14 +328,14 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
                       key={step.num}
                       className={`px-2 py-1.5 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
                         isDone
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
                           : isCurrent
-                          ? "bg-white text-black shadow-xs font-black"
-                          : "bg-white/5 text-neutral-500 border border-white/5"
+                          ? "bg-black text-white shadow-xs font-black"
+                          : "bg-neutral-100 text-neutral-400 border border-black/5"
                       }`}
                     >
                       {isDone ? (
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                       ) : (
                         <span>{step.num}</span>
                       )}
@@ -346,18 +346,18 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               </div>
 
               {/* Status Message and Percent */}
-              <div className="flex items-center justify-between text-xs font-bold text-white">
+              <div className="flex items-center justify-between text-xs font-bold text-black">
                 <span className="flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-white" />
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-black" />
                   <span>{statusMessage}</span>
                 </span>
-                <span className="font-mono text-neutral-300">{progress}%</span>
+                <span className="font-mono text-neutral-600">{progress}%</span>
               </div>
 
               {/* Smooth Progress Bar */}
-              <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-black/10 rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-white h-full transition-all duration-300 rounded-full"
+                  className="bg-black h-full transition-all duration-300 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -366,10 +366,10 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
           {/* Error Banner */}
           {errorMessage && (
-            <div className="p-3.5 rounded-2xl bg-red-950/40 border border-red-500/30 text-xs text-red-200 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-red-400 block">Update Failed</span>
+                <span className="font-bold text-red-700 block">Update Failed</span>
                 <p className="text-[11px] mt-0.5 leading-relaxed">{errorMessage}</p>
               </div>
             </div>
@@ -377,12 +377,12 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 bg-[#181a21]/60 border-t border-white/10 flex items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-[#F9FAFB] border-t border-black/[0.06] flex items-center justify-between gap-3">
           <a
             href={updateInfo.html_url}
             target="_blank"
             rel="noreferrer"
-            className="text-[11px] text-neutral-400 hover:text-white flex items-center gap-1 transition"
+            className="text-[11px] text-neutral-500 hover:text-black flex items-center gap-1 transition"
           >
             <span>GitHub Release</span>
             <ExternalLink className="w-3 h-3" />
@@ -393,7 +393,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               type="button"
               onClick={onClose}
               disabled={isUpdating}
-              className="px-4 py-2 rounded-full border border-white/10 bg-[#181a21] hover:bg-[#20232c] text-xs font-bold text-neutral-300 transition cursor-pointer disabled:opacity-40"
+              className="px-4 py-2 rounded-full border border-black/10 bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700 transition cursor-pointer disabled:opacity-40"
             >
               Later
             </button>
@@ -401,7 +401,7 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
               type="button"
               onClick={handleApplyUpdate}
               disabled={isUpdating}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
             >
               {isUpdating ? (
                 <>

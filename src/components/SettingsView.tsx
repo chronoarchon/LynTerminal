@@ -472,7 +472,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => handleSubmit()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
         >
           <Save className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>{saving ? "Saving..." : "Save Preferences"}</span>
@@ -1085,7 +1085,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="button"
               onClick={() => setIsManageMoneyOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
             >
               <Coins className="w-3.5 h-3.5 stroke-[2.2]" />
               <span>Manage Money</span>
@@ -1458,7 +1458,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         {revealedRecoveryKey && (
-          <div className="p-4 rounded-2xl bg-neutral-900 text-white flex items-center justify-between gap-3 animate-in fade-in duration-150">
+          <div className="p-4 rounded-2xl bg-neutral-900 text-black flex items-center justify-between gap-3 animate-in fade-in duration-150">
             <div>
               <div className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
                 SOVEREIGN RECOVERY KEY
@@ -1604,7 +1604,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="button"
               onClick={onOpenLicenseModal}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
             >
               <span>{licenseStatus?.is_licensed ? "View License" : "Enter Key"}</span>
             </button>
@@ -1653,7 +1653,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             type="button"
             onClick={handleCheckUpdate}
             disabled={checkingUpdate}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer shrink-0 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer shrink-0 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdate ? "animate-spin" : ""}`} />
             <span>{checkingUpdate ? "Checking Releases..." : "Check for Updates"}</span>
@@ -1663,18 +1663,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* CURRENCY SWITCH CONFIRM MODAL */}
       {pendingCurrency && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-white" />
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <AlertTriangle className="w-4 h-4 text-black" />
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Change Currency
                 </h3>
               </div>
               <button
                 onClick={() => setPendingCurrency(null)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1682,7 +1682,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <div className="p-5 space-y-3.5 text-xs text-neutral-300">
               <p>
-                Switching currency to <strong className="text-white">{pendingCurrency.name}</strong> creates an automatic backup snapshot.
+                Switching currency to <strong className="text-black">{pendingCurrency.name}</strong> creates an automatic backup snapshot.
               </p>
 
               <label className="flex items-center gap-2 cursor-pointer pt-1">
@@ -1690,7 +1690,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="checkbox"
                   checked={preserveCatalogOnReset}
                   onChange={(e) => setPreserveCatalogOnReset(e.target.checked)}
-                  className="rounded text-white focus:ring-0 accent-white"
+                  className="rounded text-black focus:ring-0 accent-white"
                 />
                 <span className="text-neutral-300">Preserve catalog products</span>
               </label>
@@ -1699,7 +1699,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setPendingCurrency(null)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1707,7 +1707,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="button"
                   onClick={confirmCurrencySwitch}
                   disabled={isResettingCurrency}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isResettingCurrency ? "Switching..." : "Confirm"}
                 </button>
@@ -1719,22 +1719,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* CHANGE MASTER PASSWORD MODAL */}
       {isChangePasswordOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="flex items-center justify-between border-b border-black/[0.08] pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/[0.08]">
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">Update Password</h3>
+                  <h3 className="text-sm font-bold text-black tracking-tight">Update Password</h3>
                   <p className="text-[11px] text-neutral-400">Master access key</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsChangePasswordOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1749,7 +1749,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <form onSubmit={handleChangePassword} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Current Password
                 </label>
                 <div className="relative">
@@ -1758,12 +1758,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                     placeholder="Enter current password"
-                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-black/[0.08] bg-white text-xs text-black outline-none focus:border-black placeholder:text-neutral-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowOldPw(!showOldPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
                   >
                     {showOldPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -1771,7 +1771,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   New Password
                 </label>
                 <div className="relative">
@@ -1780,12 +1780,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     value={newMasterPassword}
                     onChange={(e) => setNewMasterPassword(e.target.value)}
                     placeholder="Min 4 characters"
-                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-black/[0.08] bg-white text-xs text-black outline-none focus:border-black placeholder:text-neutral-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPw(!showNewPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
                   >
                     {showNewPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -1793,7 +1793,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Confirm Password
                 </label>
                 <input
@@ -1801,7 +1801,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   value={confirmMasterPassword}
                   onChange={(e) => setConfirmMasterPassword(e.target.value)}
                   placeholder="Re-enter password"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs text-white outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs text-black outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1809,14 +1809,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsChangePasswordOpen(false)}
-                  className="px-4 py-2 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="px-4 py-2 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isChangingPw}
-                  className="px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isChangingPw ? "Saving..." : "Save Password"}
                 </button>
@@ -1828,15 +1828,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* PRIVACY CHARTER MODAL */}
       {isCharterOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-2xl border border-white/10 flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-6 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/[0.08]">
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-bold text-black tracking-tight">
                     Privacy Charter
                   </h3>
                   <p className="text-[11px] text-neutral-400">
@@ -1847,7 +1847,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCharterOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1855,39 +1855,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <div className="p-6 overflow-y-auto space-y-4 text-xs text-neutral-300 leading-relaxed">
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white">1. Local Sovereignty</h4>
+                <h4 className="font-bold text-sm text-black">1. Local Sovereignty</h4>
                 <p>
                   LynTerminal is 100% offline-first. All records, catalog SKUs, receipts, and ledgers reside exclusively in your local SQLite WAL database.
                 </p>
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white">2. Zero Telemetry</h4>
+                <h4 className="font-bold text-sm text-black">2. Zero Telemetry</h4>
                 <p>
                   No tracking beacons, no analytics, no external surveillance. Zero user data leaves this machine.
                 </p>
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white">3. Local Cryptography</h4>
+                <h4 className="font-bold text-sm text-black">3. Local Cryptography</h4>
                 <p>
                   Master credentials utilize salted SHA-256 hashes computed on-device. Recovery keys never leave your workstation.
                 </p>
               </section>
 
               <section className="space-y-1.5">
-                <h4 className="font-bold text-sm text-white">4. Data Portability</h4>
+                <h4 className="font-bold text-sm text-black">4. Data Portability</h4>
                 <p>
                   Open standard SQLite format. Export invoices as PDF, generate snapshot backups, or migrate anytime without lock-in.
                 </p>
               </section>
             </div>
 
-            <div className="px-6 py-3 border-t border-white/10 bg-[#181a21]/60 flex justify-end">
+            <div className="px-6 py-3 border-t border-black/[0.08] bg-[#F9FAFB] flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsCharterOpen(false)}
-                className="px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                className="px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
               >
                 Close
               </button>

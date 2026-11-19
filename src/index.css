@@ -59,17 +59,17 @@
     --apple-orange: #FF9500;
     --apple-red: #FF3B30;
 
-    /* Obsidian Luxury Black & White Theme System */
-    --lux-bg: #0c0d0e;
-    --lux-card: #13151a;
-    --lux-card-elevated: #181a21;
-    --lux-card-hover: #1f232d;
-    --lux-input: #0e1015;
-    --lux-border: rgba(255, 255, 255, 0.08);
-    --lux-border-strong: rgba(255, 255, 255, 0.16);
-    --lux-text: #FFFFFF;
-    --lux-text-muted: #8e929b;
-    --lux-text-subtle: #636875;
+    /* 70% White / 30% Black Luxury System */
+    --lux-bg: #FFFFFF;
+    --lux-card: #FFFFFF;
+    --lux-card-elevated: #F9FAFB;
+    --lux-card-hover: #F3F4F6;
+    --lux-input: #FFFFFF;
+    --lux-border: rgba(0, 0, 0, 0.08);
+    --lux-border-strong: rgba(0, 0, 0, 0.16);
+    --lux-text: #000000;
+    --lux-text-muted: #6B7280;
+    --lux-text-subtle: #9CA3AF;
     --lux-success: #10B981;
     --lux-danger: #EF4444;
 
@@ -102,7 +102,7 @@
     text-rendering: optimizeLegibility;
     image-rendering: -webkit-optimize-contrast;
     scrollbar-width: thin;
-    scrollbar-color: #3f4350 transparent;
+    scrollbar-color: #c1c5cc transparent;
   }
 
 
@@ -111,14 +111,14 @@
     font-family: inherit;
   }
 
-  /* Luxury Obsidian Input System */
+  /* 70% White / 30% Black Input System */
   .lux-input,
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select {
-    background-color: #0e1015 !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    color: #111827 !important;
     border-radius: 0.75rem;
     transition: all 0.15s ease;
   }
@@ -126,7 +126,7 @@
   .lux-input::placeholder,
   input:not([type="checkbox"]):not([type="radio"])::placeholder,
   textarea::placeholder {
-    color: #717684 !important;
+    color: #9CA3AF !important;
   }
 
   .lux-input:focus,
@@ -134,14 +134,15 @@
   textarea:focus,
   select:focus {
     outline: none !important;
-    border-color: rgba(255, 255, 255, 0.45) !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+    border-color: #000000 !important;
+    box-shadow: 0 0 0 1px #000000 !important;
+    background-color: #FFFFFF !important;
   }
 
   select option,
   select optgroup {
-    background-color: #13151a !important;
-    color: #FFFFFF !important;
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
   }
 }
 
@@ -218,43 +219,46 @@
 }
 
 .lux-modal-card {
-  background-color: #13151a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  color: #FFFFFF;
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  color: #000000 !important;
 }
 
 .lux-card-elevated {
-  background-color: #181a21;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #F9FAFB !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: #000000 !important;
 }
 
 .lux-btn-primary {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
   transition: all 0.15s ease !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 9999px !important;
 }
 .lux-btn-primary:hover {
-  background-color: #E5E5E5 !important;
+  background-color: #1F2937 !important;
 }
 .lux-btn-primary:active {
   transform: scale(0.98);
 }
 
 .lux-btn-secondary {
-  background-color: #181a21 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #D1D5DB !important;
+  background-color: #F3F4F6 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #1F2937 !important;
   font-weight: 600 !important;
   transition: all 0.15s ease !important;
+  border-radius: 9999px !important;
 }
 .lux-btn-secondary:hover {
-  background-color: #232733 !important;
-  color: #FFFFFF !important;
+  background-color: #E5E7EB !important;
+  color: #000000 !important;
 }
 .lux-btn-secondary:active {
   transform: scale(0.98);
@@ -268,9 +272,9 @@
   letter-spacing: 0.15em;
   padding: 2px 8px;
   border-radius: 9999px;
-  background-color: #181a21;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #8e929b;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #000000;
 }
 
 /* Hide scrollbar utility */

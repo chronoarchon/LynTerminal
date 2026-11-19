@@ -205,27 +205,27 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2.5 animate-in slide-in-from-bottom-2 fade-in duration-200 bg-[#13151a] text-white ${
+            className={`pointer-events-auto px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2.5 animate-in slide-in-from-bottom-2 fade-in duration-200 bg-white text-black ${
               t.type === "success"
-                ? "border-emerald-500/30"
+                ? "border-emerald-300"
                 : t.type === "error"
-                ? "border-red-500/30"
-                : "border-white/10"
+                ? "border-red-300"
+                : "border-black/10"
             }`}
           >
-            {t.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
-            {t.type === "error" && <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
-            {t.type === "info" && <Info className="w-4 h-4 text-neutral-300 shrink-0" />}
+            {t.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+            {t.type === "error" && <XCircle className="w-4 h-4 text-red-600 shrink-0" />}
+            {t.type === "info" && <Info className="w-4 h-4 text-neutral-600 shrink-0" />}
             <span className="leading-snug">{t.message}</span>
           </div>
         ))}
       </div>
 
-      {/* Luxury Obsidian Modal Dialog */}
+      {/* 70% White / 30% Black Luxury Modal Dialog */}
       {dialogState.isOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div
-            className="bg-[#13151a] rounded-3xl p-6 shadow-2xl border border-white/10 max-w-md w-full animate-in zoom-in-95 fade-in duration-150 select-none text-white lux-modal-card"
+            className="bg-white rounded-3xl p-6 shadow-2xl border border-black/[0.08] max-w-md w-full animate-in zoom-in-95 fade-in duration-150 select-none text-black lux-modal-card"
             role="dialog"
             aria-modal="true"
           >
@@ -233,10 +233,10 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
               <div
                 className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
                   dialogState.isDestructive
-                    ? "bg-red-500/10 text-red-400 border-red-500/20"
+                    ? "bg-red-50 text-red-600 border-red-200"
                     : dialogState.alertType === "success"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : "bg-white/10 text-white border-white/10"
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                    : "bg-neutral-100 text-black border-black/5"
                 }`}
               >
                 {dialogState.isDestructive ? (
@@ -248,10 +248,10 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                 )}
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-bold text-white leading-tight">
+                <h3 className="text-base font-bold text-black leading-tight">
                   {dialogState.title}
                 </h3>
-                <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed whitespace-pre-line">
+                <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed whitespace-pre-line">
                   {dialogState.message}
                 </p>
               </div>
@@ -269,11 +269,11 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                     if (e.key === "Escape") handleCancel();
                   }}
                   placeholder={dialogState.placeholder}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-[#F9FAFB] text-xs font-medium text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black/20 transition"
                 />
                 {dialogState.requiredMatch && (
-                  <div className="text-[11px] text-neutral-400 mt-1.5 font-mono">
-                    Type <span className="font-bold text-red-400">{dialogState.requiredMatch}</span> to confirm
+                  <div className="text-[11px] text-neutral-500 mt-1.5 font-mono">
+                    Type <span className="font-bold text-red-600">{dialogState.requiredMatch}</span> to confirm
                   </div>
                 )}
               </div>
@@ -284,7 +284,7 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#181a21] hover:bg-[#232733] border border-white/10 text-neutral-300 hover:text-white transition cursor-pointer"
+                  className="px-4 py-2 rounded-full text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 border border-black/5 text-neutral-800 transition cursor-pointer"
                 >
                   {dialogState.cancelText}
                 </button>
@@ -293,10 +293,10 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                 type="button"
                 disabled={Boolean(isConfirmDisabled)}
                 onClick={handleConfirm}
-                className={`px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                   dialogState.isDestructive
                     ? "bg-red-600 hover:bg-red-500 text-white shadow-md"
-                    : "bg-white hover:bg-neutral-200 text-black shadow-md"
+                    : "bg-black hover:bg-neutral-800 text-white shadow-md"
                 }`}
               >
                 {dialogState.confirmText}

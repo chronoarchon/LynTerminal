@@ -97,12 +97,12 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl rounded-3xl bg-[#13151a] p-6 sm:p-8 shadow-2xl border border-white/10 text-white overflow-hidden max-h-[92vh] flex flex-col lux-modal-card">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-black/[0.08] text-black overflow-hidden max-h-[92vh] flex flex-col lux-modal-card">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-neutral-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+          className="absolute top-5 right-5 p-2 text-neutral-400 hover:text-black rounded-full bg-black/5 hover:bg-black/10 transition-colors cursor-pointer"
           title="Close"
           aria-label="Close"
         >
@@ -115,10 +115,10 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
             <div
               className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
                 isLicensed
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                   : isExpired
-                  ? "bg-red-500/10 text-red-400 border-red-500/20"
-                  : "bg-white/10 text-white border-white/10"
+                  ? "bg-red-50 text-red-600 border-red-200"
+                  : "bg-black/5 text-black border-black/10"
               }`}
             >
               {isLicensed ? (
@@ -134,10 +134,10 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
               <span
                 className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                   isLicensed
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                     : isExpired
-                    ? "bg-red-500/10 text-red-400 border-red-500/20"
-                    : "bg-white/10 text-white border-white/10"
+                    ? "bg-red-50 text-red-600 border-red-200"
+                    : "bg-black/5 text-black border-black/10"
                 }`}
               >
                 {isLicensed
@@ -146,7 +146,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                   ? "TRIAL EXPIRED"
                   : `14-DAY TRIAL • ${daysRemaining} DAYS LEFT`}
               </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-black tracking-tight mt-0.5">
                 {isLicensed
                   ? "Commercial License Active"
                   : isExpired
@@ -157,7 +157,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
           </div>
 
           {/* Description */}
-          <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed mb-5">
+          <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed mb-5">
             {isLicensed
               ? "Perpetual commercial license active on this workstation. Unlimited offline access."
               : isExpired
@@ -167,53 +167,53 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
 
           {/* Notice Banner */}
           {isExpired && !isLicensed && (
-            <div className="mb-5 rounded-2xl bg-red-500/10 border border-red-500/20 p-3.5 text-xs text-red-300 flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="mb-5 rounded-2xl bg-red-50 border border-red-200 p-3.5 text-xs text-red-700 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <strong className="font-semibold text-white">Billing Locked:</strong> Enter license key below to resume. Past invoices remain safe.
+                <strong className="font-semibold text-black">Billing Locked:</strong> Enter license key below to resume. Past invoices remain safe.
               </div>
             </div>
           )}
 
           {/* Already Licensed Info Box */}
           {isLicensed ? (
-            <div className="rounded-2xl bg-[#181a21] border border-white/10 p-4 sm:p-5 mb-5 space-y-3 font-mono text-xs">
+            <div className="rounded-2xl bg-[#F9FAFB] border border-black/[0.06] p-4 sm:p-5 mb-5 space-y-3 font-mono text-xs text-black">
               <div className="flex items-center justify-between">
-                <span className="text-neutral-400 text-[11px]">TIER:</span>
-                <span className="font-bold text-white text-[11px]">
+                <span className="text-neutral-500 text-[11px]">TIER:</span>
+                <span className="font-bold text-black text-[11px]">
                   {licenseStatus?.license_tier || "Commercial Lifetime"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-neutral-400 text-[11px]">LICENSE KEY:</span>
-                <div className="flex items-center gap-1.5 font-bold text-white">
+                <span className="text-neutral-500 text-[11px]">LICENSE KEY:</span>
+                <div className="flex items-center gap-1.5 font-bold text-black">
                   <span>{licenseStatus?.license_key || "LYN-COMM-XXXX-XXXX-XXXX-XXXX"}</span>
                   <button
                     onClick={handleCopyExistingKey}
-                    className="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/10 text-neutral-300 cursor-pointer"
+                    className="p-1 rounded bg-black/5 hover:bg-black/10 border border-black/10 text-black cursor-pointer"
                     title="Copy Key"
                   >
-                    {copiedKey ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copiedKey ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-neutral-400">
+              <div className="flex items-center justify-between text-[10px] text-neutral-500">
                 <span>VERIFICATION:</span>
-                <span className="text-emerald-400 font-semibold">100% Offline SHA-256</span>
+                <span className="text-emerald-600 font-semibold">100% Offline SHA-256</span>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Option A: Buy License on Website */}
-              <div className="rounded-2xl bg-[#181a21] border border-white/10 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+              <div className="rounded-2xl bg-[#F9FAFB] border border-black/[0.06] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400 block mb-0.5">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-500 block mb-0.5">
                     COMMERCIAL LICENSE
                   </span>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-bold text-black">
                     Buy License (₹1,800 / $20)
                   </h3>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">
+                  <p className="text-[11px] text-neutral-500 mt-0.5">
                     One-time payment. Instant key sent to your email.
                   </p>
                 </div>
@@ -221,7 +221,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenStore}
-                  className="w-full sm:w-auto h-10 px-5 rounded-full bg-white hover:bg-neutral-200 text-black font-bold uppercase tracking-wider text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+                  className="w-full sm:w-auto h-10 px-5 rounded-full bg-black hover:bg-neutral-800 text-white font-bold uppercase tracking-wider text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
                 >
                   <span>Buy Online</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -229,17 +229,17 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
               </div>
 
               {/* Option B: Enter Existing Key */}
-              <div className="rounded-2xl border border-white/10 p-4 sm:p-5 bg-[#181a21]">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-white block mb-1">
+              <div className="rounded-2xl border border-black/[0.06] p-4 sm:p-5 bg-[#F9FAFB]">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-black block mb-1">
                   Activate License
                 </span>
-                <p className="text-[11px] text-neutral-400 mb-3">
+                <p className="text-[11px] text-neutral-500 mb-3">
                   Enter the key from your purchase receipt.
                 </p>
 
                 <form onSubmit={handleActivate} className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
                       License Key *
                     </label>
                     <input
@@ -251,12 +251,12 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                         setLicenseKeyInput(e.target.value.toUpperCase());
                         setErrorMessage(null);
                       }}
-                      className="w-full rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-mono text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 bg-[#0e1015] transition-colors uppercase tracking-wider"
+                      className="w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-xs font-mono text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black/20 bg-white transition-colors uppercase tracking-wider"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
                       Owner Email <span className="text-neutral-500 font-normal">(Optional)</span>
                     </label>
                     <input
@@ -264,19 +264,19 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                       placeholder="store@business.com"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 px-3.5 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 bg-[#0e1015] transition-colors"
+                      className="w-full rounded-xl border border-black/10 px-3.5 py-2 text-xs text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black/20 bg-white transition-colors"
                     />
                   </div>
 
                   {errorMessage && (
-                    <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                       <span>{errorMessage}</span>
                     </div>
                   )}
 
                   {successMessage && (
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 font-medium">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs flex items-center gap-2 font-medium">
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                       <span>{successMessage}</span>
                     </div>
@@ -285,7 +285,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 rounded-full bg-white hover:bg-neutral-200 text-black font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shadow-md mt-2"
+                    className="w-full h-11 rounded-full bg-black hover:bg-neutral-800 text-white font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shadow-md mt-2"
                   >
                     {isSubmitting ? (
                       <span>Verifying Key...</span>
@@ -303,13 +303,13 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-neutral-400">
+        <div className="mt-4 pt-3 border-t border-black/[0.06] flex items-center justify-between text-[11px] text-neutral-500">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Offline SHA-256 Verification</span>
           </div>
           <div>
-            Support: <a href="mailto:support@wintershogun.tech" className="text-neutral-300 hover:text-white underline">support@wintershogun.tech</a>
+            Support: <a href="mailto:support@wintershogun.tech" className="text-black hover:underline">support@wintershogun.tech</a>
           </div>
         </div>
       </div>

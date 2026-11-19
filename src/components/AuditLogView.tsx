@@ -129,7 +129,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
           <button
             onClick={handleSeedDemoData}
             disabled={seeding}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition apple-press"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-50 text-black text-xs font-semibold shadow-xs transition apple-press"
           >
             <Sparkles className={`w-3.5 h-3.5 ${seeding ? "animate-spin" : ""}`} />
             <span>{seeding ? "Simulating..." : "Generate Demo Data"}</span>
@@ -293,18 +293,18 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
       {/* INSPECT LOG MODAL */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Audit Entry
                 </h3>
                 <p className="text-[11px] text-neutral-400 font-mono">ID #{selectedLog.id}</p>
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -313,19 +313,19 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
             <div className="p-5 space-y-3 select-text font-mono text-xs">
               <div>
                 <span className="text-neutral-400 block text-[10px] uppercase">Timestamp</span>
-                <span className="text-white">{selectedLog.timestamp}</span>
+                <span className="text-black">{selectedLog.timestamp}</span>
               </div>
               <div>
                 <span className="text-neutral-400 block text-[10px] uppercase">Action</span>
-                <span className="text-white font-bold">{selectedLog.action} · {selectedLog.entity}</span>
+                <span className="text-black font-bold">{selectedLog.action} · {selectedLog.entity}</span>
               </div>
               <div>
                 <span className="text-neutral-400 block text-[10px] uppercase">Entity ID</span>
-                <span className="text-white">{selectedLog.entity_id}</span>
+                <span className="text-black">{selectedLog.entity_id}</span>
               </div>
               <div>
                 <span className="text-neutral-400 block text-[10px] uppercase">Details</span>
-                <p className="text-white font-sans leading-relaxed mt-1 p-3 rounded-xl bg-[#0e1015] border border-white/10">
+                <p className="text-black font-sans leading-relaxed mt-1 p-3 rounded-xl bg-white border border-black/[0.08]">
                   {selectedLog.details}
                 </p>
               </div>
@@ -334,7 +334,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedLog(null)}
-                  className="w-full py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="w-full py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Close
                 </button>

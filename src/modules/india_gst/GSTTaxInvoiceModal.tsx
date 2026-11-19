@@ -179,24 +179,24 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   const wordsRepresentation = amountToIndianWords(invoice.total_amount);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
-      <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-4xl border border-white/10 overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150 text-white">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150 text-black">
         
         {/* Top Control Bar */}
-        <div className="px-5 py-3.5 bg-[#181a21] border-b border-white/10 flex flex-wrap items-center justify-between gap-3 no-print shrink-0">
+        <div className="px-5 py-3.5 bg-[#F9FAFB] border-b border-black/[0.08] flex flex-wrap items-center justify-between gap-3 no-print shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center font-bold text-xs border border-white/10">
+            <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center font-bold text-xs border border-black/[0.08]">
               GST
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold text-black">
                   {invoice.invoice_number}
                 </span>
                 <button
                   onClick={handleCopyNumber}
                   title="Copy Invoice Number"
-                  className="text-neutral-400 hover:text-white transition cursor-pointer"
+                  className="text-neutral-400 hover:text-black transition cursor-pointer"
                 >
                   {copied ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -216,20 +216,20 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
             <select
               value={copyType}
               onChange={(e) => setCopyType(e.target.value as any)}
-              className="text-xs bg-[#0e1015] border border-white/10 rounded-xl px-2.5 py-1.5 font-bold text-white focus:outline-none cursor-pointer"
+              className="text-xs bg-white border border-black/[0.08] rounded-xl px-2.5 py-1.5 font-bold text-black focus:outline-none cursor-pointer"
             >
               <option value="ORIGINAL FOR RECIPIENT">Original (Recipient)</option>
               <option value="DUPLICATE FOR TRANSPORTER">Duplicate (Transporter)</option>
               <option value="TRIPLICATE FOR SUPPLIER">Triplicate (Supplier)</option>
             </select>
 
-            <div className="flex items-center p-0.5 rounded-xl bg-[#0e1015] border border-white/10 text-xs">
+            <div className="flex items-center p-0.5 rounded-xl bg-white border border-black/[0.08] text-xs">
               <button
                 onClick={() => setDocFormat("standard")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition cursor-pointer ${
                   docFormat === "standard"
                     ? "bg-white text-black font-bold shadow-xs"
-                    : "text-neutral-400 hover:text-white"
+                    : "text-neutral-400 hover:text-black"
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition cursor-pointer ${
                   docFormat === "thermal"
                     ? "bg-white text-black font-bold shadow-xs"
-                    : "text-neutral-400 hover:text-white"
+                    : "text-neutral-400 hover:text-black"
                 }`}
               >
                 <ReceiptIcon className="w-3.5 h-3.5" />
@@ -250,7 +250,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
             <button
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print</span>
@@ -259,7 +259,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
             <button
               onClick={handleExportPdf}
               disabled={isExporting}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-[#181a21] hover:bg-[#20232c] text-white text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] hover:bg-[#20232c] text-black text-xs font-semibold transition cursor-pointer disabled:opacity-50"
             >
               <FileDown className="w-3.5 h-3.5" />
               <span>{isExporting ? "Saving..." : "PDF"}</span>
@@ -267,7 +267,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+              className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

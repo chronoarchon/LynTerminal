@@ -392,7 +392,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => onNavigate("pos")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>New Sale (F2)</span>
@@ -511,7 +511,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               const el = document.getElementById("credit-ledger-section");
               if (el) el.scrollIntoView({ behavior: "smooth" });
             }}
-            className="px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-white text-xs font-semibold shrink-0 transition apple-press cursor-pointer self-start sm:self-auto"
+            className="px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-black text-xs font-semibold shrink-0 transition apple-press cursor-pointer self-start sm:self-auto"
           >
             Review Debtors
           </button>
@@ -1021,14 +1021,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {openInvs.length > 0 ? (
                           <button
                             onClick={() => handleOpenDashboardCreditPay(openInvs[0])}
-                            className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-white text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-black text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
                           >
                             Pay
                           </button>
                         ) : (
                           <button
                             onClick={() => handleOpenCustomerCreditPay(cust)}
-                            className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-white text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-black text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
                           >
                             Pay
                           </button>
@@ -1095,7 +1095,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                         <button
                           onClick={() => handleOpenDashboardCreditPay(inv)}
-                          className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-white text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-black text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer"
                         >
                           Pay
                         </button>
@@ -1294,15 +1294,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Pay Supplier Modal */}
       {isPaySupplierOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB] rounded-t-3xl">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/[0.08]">
                   <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-bold text-black tracking-tight">
                     Settle Supplier
                   </h3>
                   <p className="text-[11px] text-neutral-400">
@@ -1312,7 +1312,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <button
                 onClick={() => setIsPaySupplierOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1320,7 +1320,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <form onSubmit={handleExecutePaySupplier} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Supplier *
                 </label>
                 <AppleSelect
@@ -1342,7 +1342,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Amount ({currency}) *
                 </label>
                 <input
@@ -1351,12 +1351,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   required
                   value={supplierAmount}
                   onChange={(e) => setSupplierAmount(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Source
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1366,7 +1366,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       supplierMethod === "CASH"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Cash Drawer
@@ -1377,7 +1377,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       supplierMethod === "BANK"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Bank
@@ -1387,7 +1387,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {supplierMethod === "BANK" && bankAccounts.length > 0 && (
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Debit Bank
                   </label>
                   <AppleSelect
@@ -1402,7 +1402,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               )}
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Reference
                 </label>
                 <input
@@ -1410,12 +1410,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   placeholder="Optional reference"
                   value={supplierRef}
                   onChange={(e) => setSupplierRef(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Note
                 </label>
                 <input
@@ -1423,7 +1423,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   placeholder="Settlement note"
                   value={supplierNotes}
                   onChange={(e) => setSupplierNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1431,14 +1431,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPaySupplierOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingPay}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingPay ? "Recording..." : "Pay Supplier"}
                 </button>
@@ -1450,16 +1450,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Credit Bill Settlement Modal */}
       {dashboardPayTarget && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10">
+                <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/[0.08]">
                   <DollarSign className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-bold text-black tracking-tight">
                     Settle Credit
                   </h3>
                   <p className="text-[11px] text-neutral-400">
@@ -1469,7 +1469,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <button
                 onClick={() => setDashboardPayTarget(null)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer transition"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1477,22 +1477,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Bill Summary Card */}
             <div className="p-5 space-y-4">
-              <div className="p-3.5 rounded-2xl bg-[#0e1015] border border-white/10 space-y-2 text-xs">
+              <div className="p-3.5 rounded-2xl bg-white border border-black/[0.08] space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-400">Invoice:</span>
-                  <span className="font-mono font-bold text-white">
+                  <span className="font-mono font-bold text-black">
                     #{dashboardPayTarget.invoice_number}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-400">Customer:</span>
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-black">
                     {dashboardPayTarget.party_name || "Walk-in Customer"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-400">Total:</span>
-                  <span className="font-mono font-semibold text-white">
+                  <span className="font-mono font-semibold text-black">
                     {formatCurrency(dashboardPayTarget.total_amount)}
                   </span>
                 </div>
@@ -1502,7 +1502,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {formatCurrency(dashboardPayTarget.paid_amount || 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                <div className="pt-2 border-t border-black/[0.08] flex justify-between items-center">
                   <span className="font-bold text-red-400">Balance Due:</span>
                   <span className="font-mono font-bold text-sm text-red-400">
                     {formatCurrency(
@@ -1514,7 +1514,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {/* Custom Money Entry Input with 100% and 50% quick buttons */}
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Payment Amount *
                 </label>
                 <div className="relative">
@@ -1528,7 +1528,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     required
                     value={dashboardPayAmount}
                     onChange={(e) => setDashboardPayAmount(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-sm font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-black/[0.08] bg-white text-sm font-mono font-bold text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                     placeholder="0.00"
                   />
                 </div>
@@ -1540,7 +1540,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       const rem = Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0));
                       setDashboardPayAmount(rem.toFixed(2));
                     }}
-                    className="flex-1 py-1.5 px-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-full bg-white/10 hover:bg-black/10 text-black text-xs font-bold transition cursor-pointer"
                   >
                     100% Full
                   </button>
@@ -1550,7 +1550,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       const rem = Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0));
                       setDashboardPayAmount((rem / 2).toFixed(2));
                     }}
-                    className="flex-1 py-1.5 px-2 rounded-full bg-[#181a21] hover:bg-[#20232c] text-neutral-300 text-xs font-semibold border border-white/10 transition cursor-pointer"
+                    className="flex-1 py-1.5 px-2 rounded-full bg-[#F9FAFB] hover:bg-neutral-200 text-neutral-700 text-xs font-semibold border border-black/[0.08] transition cursor-pointer"
                   >
                     50% Half
                   </button>
@@ -1559,7 +1559,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {/* Payment Method Selector */}
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Method
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -1569,7 +1569,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       dashboardPayMethod === "CASH"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Cash
@@ -1580,7 +1580,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       dashboardPayMethod === "CARD"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Card
@@ -1591,7 +1591,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       dashboardPayMethod === "BANK"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Bank
@@ -1600,11 +1600,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2 border-t border-white/10">
+              <div className="flex gap-2 pt-2 border-t border-black/[0.08]">
                 <button
                   type="button"
                   onClick={() => setDashboardPayTarget(null)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1612,7 +1612,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   type="button"
                   disabled={isSubmittingDashboardPay}
                   onClick={() => handleExecuteDashboardCreditPay()}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingDashboardPay ? "Saving..." : "Confirm Pay"}
                 </button>

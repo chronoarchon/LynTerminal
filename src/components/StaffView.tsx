@@ -307,7 +307,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
           {subTab === "employees" && (
             <button
               onClick={handleOpenAddEmployee}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-black text-xs font-semibold shadow-xs transition apple-press"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>+ New Employee</span>
@@ -486,7 +486,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                             onClick={() => handleSetAttendance(emp.id, "PRESENT")}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
                               status === "PRESENT"
-                                ? "bg-[#34C759] text-white"
+                                ? "bg-[#34C759] text-black"
                                 : "bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F]"
                             }`}
                           >
@@ -496,7 +496,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                             onClick={() => handleSetAttendance(emp.id, "HALF_DAY")}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
                               status === "HALF_DAY"
-                                ? "bg-[#FF9500] text-white"
+                                ? "bg-[#FF9500] text-black"
                                 : "bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F]"
                             }`}
                           >
@@ -506,7 +506,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                             onClick={() => handleSetAttendance(emp.id, "ABSENT")}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
                               status === "ABSENT"
-                                ? "bg-[#FF3B30] text-white"
+                                ? "bg-[#FF3B30] text-black"
                                 : "bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F]"
                             }`}
                           >
@@ -641,18 +641,18 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
       {/* CREATE / EDIT EMPLOYEE MODAL */}
       {isEmployeeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   {editingEmployee ? "Edit Staff" : "New Staff"}
                 </h3>
                 <p className="text-[11px] text-neutral-400">Employee profile &amp; payroll</p>
               </div>
               <button
                 onClick={() => setIsEmployeeModalOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -660,7 +660,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
             <form onSubmit={handleSaveEmployee} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Full Name *
                 </label>
                 <input
@@ -669,13 +669,13 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                   placeholder="e.g. Marcus Vance"
                   value={empForm.name}
                   onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Role / Position
                   </label>
                   <input
@@ -683,11 +683,11 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     placeholder="e.g. Cashier"
                     value={empForm.role}
                     onChange={(e) => setEmpForm({ ...empForm, role: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Base Salary ({currencySymbol})
                   </label>
                   <input
@@ -696,14 +696,14 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     required
                     value={empForm.monthly_salary}
                     onChange={(e) => setEmpForm({ ...empForm, monthly_salary: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Phone
                   </label>
                   <input
@@ -711,18 +711,18 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     placeholder="+91 98765 43210"
                     value={empForm.phone}
                     onChange={(e) => setEmpForm({ ...empForm, phone: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Joining Date
                   </label>
                   <input
                     type="date"
                     value={empForm.joining_date}
                     onChange={(e) => setEmpForm({ ...empForm, joining_date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black"
                   />
                 </div>
               </div>
@@ -731,13 +731,13 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 <button
                   type="button"
                   onClick={() => setIsEmployeeModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Save Staff
                 </button>
@@ -749,18 +749,18 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
       {/* DISBURSE SALARY MODAL */}
       {isPayModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-md border border-white/10 overflow-visible animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 rounded-t-3xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-black/[0.08] overflow-visible animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB] rounded-t-3xl">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Disburse Salary
                 </h3>
                 <p className="text-[11px] text-neutral-400">Payroll settlement</p>
               </div>
               <button
                 onClick={() => setIsPayModalOpen(false)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -768,7 +768,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
             <form onSubmit={handleConfirmPaySalary} className="p-5 space-y-3.5">
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Employee *
                 </label>
                 <AppleSelect
@@ -792,18 +792,18 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Month
                   </label>
                   <input
                     type="month"
                     value={payForm.for_month}
                     onChange={(e) => setPayForm({ ...payForm, for_month: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-medium text-white focus:outline-none focus:border-white/40"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                     Salary ({currencySymbol})
                   </label>
                   <input
@@ -812,13 +812,13 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     required
                     value={payForm.amount}
                     onChange={(e) => setPayForm({ ...payForm, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e1015] text-xs font-mono font-bold text-white focus:outline-none focus:border-white/40 placeholder:text-neutral-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-neutral-300 block mb-1">
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
                   Payment Source
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -828,7 +828,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       payForm.payment_source === "CASH"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Cash Drawer
@@ -839,7 +839,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       payForm.payment_source === "BANK"
                         ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#181a21] text-neutral-400 border-white/10 hover:text-white"
+                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Bank
@@ -851,13 +851,13 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 <button
                   type="button"
                   onClick={() => setIsPayModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Issue Voucher
                 </button>
@@ -869,37 +869,37 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
       {/* PRINTABLE SALARY SLIP MODAL */}
       {viewingVoucher && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13151a] rounded-3xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#181a21]/60 no-print">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-black">
+            <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB] no-print">
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">
+                <h3 className="text-sm font-bold text-black tracking-tight">
                   Salary Voucher
                 </h3>
                 <p className="text-[11px] text-neutral-400 font-mono">{viewingVoucher.voucher_number}</p>
               </div>
               <button
                 onClick={() => setViewingVoucher(null)}
-                className="w-7 h-7 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-6 space-y-3 select-text font-mono text-xs">
-              <div className="text-center pb-2 border-b border-white/10">
-                <div className="font-bold text-sm font-sans text-white">{settings?.business_name || "LynTerminal"}</div>
+              <div className="text-center pb-2 border-b border-black/[0.08]">
+                <div className="font-bold text-sm font-sans text-black">{settings?.business_name || "LynTerminal"}</div>
                 <div className="text-[10px] text-neutral-400">Salary Payment Voucher</div>
               </div>
 
               <div className="space-y-1 text-[11px] text-neutral-300">
                 <div className="flex justify-between">
                   <span>VOUCHER:</span>
-                  <span className="font-bold text-white">{viewingVoucher.voucher_number}</span>
+                  <span className="font-bold text-black">{viewingVoucher.voucher_number}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>EMPLOYEE:</span>
-                  <span className="font-semibold text-white">{viewingVoucher.employee_name}</span>
+                  <span className="font-semibold text-black">{viewingVoucher.employee_name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>MONTH:</span>
@@ -911,7 +911,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-white/10 flex justify-between items-baseline font-bold text-sm">
+              <div className="pt-2 border-t border-black/[0.08] flex justify-between items-baseline font-bold text-sm">
                 <span>NET PAID:</span>
                 <span className="text-base text-emerald-400 font-mono">
                   {formatCurrency(viewingVoucher.amount)}
@@ -921,14 +921,14 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
               <div className="pt-4 flex gap-2 no-print">
                 <button
                   onClick={() => window.print()}
-                  className="flex-1 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Slip</span>
                 </button>
                 <button
                   onClick={() => setViewingVoucher(null)}
-                  className="flex-1 py-2.5 rounded-full border border-white/10 text-xs font-semibold text-neutral-300 bg-[#181a21] hover:bg-[#20232c] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full border border-black/[0.08] text-xs font-semibold text-neutral-300 bg-[#F9FAFB] hover:bg-[#20232c] cursor-pointer"
                 >
                   Done
                 </button>

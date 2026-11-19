@@ -158,7 +158,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     }`}
                   />
                   {tab.badge !== undefined && (
-                    <span className="absolute -top-1 -right-2 min-w-4 h-4 px-1 rounded-full bg-[#FF3B30] text-white text-[9px] font-bold flex items-center justify-center">
+                    <span className="absolute -top-1 -right-2 min-w-4 h-4 px-1 rounded-full bg-[#FF3B30] text-black text-[9px] font-bold flex items-center justify-center">
                       {tab.badge}
                     </span>
                   )}
@@ -200,11 +200,11 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
       {/* Obsidian Luxury Bottom Sheet for "More" Navigation */}
       {isMoreSheetOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end"
+          className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex flex-col justify-end"
           onClick={() => setIsMoreSheetOpen(false)}
         >
           <div
-            className="bg-[#13151a] rounded-t-3xl max-h-[80vh] overflow-y-auto border-t border-white/10 shadow-2xl p-5 pb-8 safe-bottom animate-in slide-in-from-bottom duration-200 text-white"
+            className="bg-white rounded-t-3xl max-h-[80vh] overflow-y-auto border-t border-black/[0.08] shadow-2xl p-5 pb-8 safe-bottom animate-in slide-in-from-bottom duration-200 text-black"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sheet Handle */}
@@ -212,7 +212,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
 
             <div className="flex items-center justify-between mb-4 px-1">
               <div>
-                <h3 className="text-base font-bold text-white tracking-tight">
+                <h3 className="text-base font-bold text-black tracking-tight">
                   Modules
                 </h3>
                 <p className="text-xs text-neutral-400">
@@ -221,7 +221,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
               </div>
               <button
                 onClick={() => setIsMoreSheetOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-neutral-400 hover:text-black hover:bg-black/5 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -242,14 +242,14 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     className={`flex items-start gap-3 p-3.5 rounded-2xl text-left border transition cursor-pointer ${
                       isActive
                         ? "bg-white text-black border-white shadow-md font-bold"
-                        : "bg-[#0e1015] text-white border-white/10 hover:border-white/30"
+                        : "bg-white text-black border-black/[0.08] hover:border-white/30"
                     }`}
                   >
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                         isActive
                           ? "bg-black text-white"
-                          : "bg-[#181a21] text-white"
+                          : "bg-[#F9FAFB] text-black"
                       }`}
                     >
                       <Icon className="w-4 h-4 stroke-[2]" />
