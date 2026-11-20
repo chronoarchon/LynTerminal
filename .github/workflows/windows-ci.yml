@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-ci-${{ github.ref }}
@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun Runtime
         uses: oven-sh/setup-bun@v2
@@ -42,94 +44,46 @@ jobs:
         run: bun install
 
       - name: Run Trial & License Integration Tests
-        shell: cmd
+        shell: pwsh
         env:
           RUST_BACKTRACE: 1
         run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1 > test_trial.log 2>&1
-          set TEST_STATUS=%ERRORLEVEL%
-          type test_trial.log
-          if %TEST_STATUS% neq 0 (
-            echo ### Trial ^& License Tests Failed >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            type test_trial.log >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            exit /b %TEST_STATUS%
-          )
+          cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1 *>&1 | Tee-Object -FilePath test_trial.log
+          if ($LASTEXITCODE -ne 0) {
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout -B ci-debug-log
+            git add -f test_trial.log
+            git commit -m "ci(debug): windows test log failure"
+            git push origin ci-debug-log -f
+            exit $LASTEXITCODE
+          }
 
       - name: Run Indian GST Statutory Tests
-        shell: cmd
+        shell: pwsh
         env:
           RUST_BACKTRACE: 1
-        run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test indian_gst_test -- --nocapture --test-threads=1 > test_gst.log 2>&1
-          set TEST_STATUS=%ERRORLEVEL%
-          type test_gst.log
-          if %TEST_STATUS% neq 0 (
-            echo ### Indian GST Tests Failed >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            type test_gst.log >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            exit /b %TEST_STATUS%
-          )
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test indian_gst_test -- --nocapture --test-threads=1
 
       - name: Run V1.3 & V1.5 Financial Feature Tests
-        shell: cmd
+        shell: pwsh
         env:
           RUST_BACKTRACE: 1
         run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test v1_3_features_test -- --nocapture --test-threads=1 > test_v13.log 2>&1
-          set TEST_STATUS=%ERRORLEVEL%
-          type test_v13.log
-          if %TEST_STATUS% neq 0 (
-            echo ### V1.3 Features Tests Failed >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            type test_v13.log >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            exit /b %TEST_STATUS%
-          )
-          cargo test --manifest-path src-tauri/Cargo.toml --test v1_5_features_test -- --nocapture --test-threads=1 > test_v15.log 2>&1
-          set TEST_STATUS=%ERRORLEVEL%
-          type test_v15.log
-          if %TEST_STATUS% neq 0 (
-            echo ### V1.5 Features Tests Failed >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            type test_v15.log >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            exit /b %TEST_STATUS%
-          )
+          cargo test --manifest-path src-tauri/Cargo.toml --test v1_3_features_test -- --nocapture --test-threads=1
+          cargo test --manifest-path src-tauri/Cargo.toml --test v1_5_features_test -- --nocapture --test-threads=1
 
       - name: Run End-to-End QA Simulation Tests
-        shell: cmd
+        shell: pwsh
         env:
           RUST_BACKTRACE: 1
-        run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test qa_simulation_test -- --nocapture --test-threads=1 > test_qa.log 2>&1
-          set TEST_STATUS=%ERRORLEVEL%
-          type test_qa.log
-          if %TEST_STATUS% neq 0 (
-            echo ### QA Simulation Tests Failed >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            type test_qa.log >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            exit /b %TEST_STATUS%
-          )
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test qa_simulation_test -- --nocapture --test-threads=1
 
       - name: Run Windows Performance & Readiness Benchmark
-        shell: cmd
+        shell: pwsh
         env:
           RUST_BACKTRACE: 1
-        run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test performance_benchmark_test -- --nocapture --test-threads=1 > test_perf.log 2>&1
-          set TEST_STATUS=%ERRORLEVEL%
-          type test_perf.log
-          if %TEST_STATUS% neq 0 (
-            echo ### Performance Benchmark Tests Failed >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            type test_perf.log >> "%GITHUB_STEP_SUMMARY%"
-            echo ``` >> "%GITHUB_STEP_SUMMARY%"
-            exit /b %TEST_STATUS%
-          )
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test performance_benchmark_test -- --nocapture --test-threads=1
 
       - name: Build Production Frontend Assets
         run: bun run build
