@@ -41,8 +41,22 @@ jobs:
       - name: Install Frontend Dependencies
         run: bun install
 
-      - name: Run Core & License Integration Tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --verbose
+      - name: Run Trial & License Integration Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1
+
+      - name: Run Indian GST Statutory Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test indian_gst_test -- --nocapture --test-threads=1
+
+      - name: Run V1.3 & V1.5 Financial Feature Tests
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml --test v1_3_features_test -- --nocapture --test-threads=1
+          cargo test --manifest-path src-tauri/Cargo.toml --test v1_5_features_test -- --nocapture --test-threads=1
+
+      - name: Run End-to-End QA Simulation Tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test qa_simulation_test -- --nocapture --test-threads=1
+
+      - name: Run Windows Performance & Readiness Benchmark
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test performance_benchmark_test -- --nocapture --test-threads=1
 
       - name: Build Production Frontend Assets
         run: bun run build
