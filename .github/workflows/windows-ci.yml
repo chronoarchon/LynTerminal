@@ -42,21 +42,94 @@ jobs:
         run: bun install
 
       - name: Run Trial & License Integration Tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1
+        shell: cmd
+        env:
+          RUST_BACKTRACE: 1
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1 > test_trial.log 2>&1
+          set TEST_STATUS=%ERRORLEVEL%
+          type test_trial.log
+          if %TEST_STATUS% neq 0 (
+            echo ### Trial ^& License Tests Failed >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            type test_trial.log >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            exit /b %TEST_STATUS%
+          )
 
       - name: Run Indian GST Statutory Tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --test indian_gst_test -- --nocapture --test-threads=1
+        shell: cmd
+        env:
+          RUST_BACKTRACE: 1
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml --test indian_gst_test -- --nocapture --test-threads=1 > test_gst.log 2>&1
+          set TEST_STATUS=%ERRORLEVEL%
+          type test_gst.log
+          if %TEST_STATUS% neq 0 (
+            echo ### Indian GST Tests Failed >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            type test_gst.log >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            exit /b %TEST_STATUS%
+          )
 
       - name: Run V1.3 & V1.5 Financial Feature Tests
+        shell: cmd
+        env:
+          RUST_BACKTRACE: 1
         run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test v1_3_features_test -- --nocapture --test-threads=1
-          cargo test --manifest-path src-tauri/Cargo.toml --test v1_5_features_test -- --nocapture --test-threads=1
+          cargo test --manifest-path src-tauri/Cargo.toml --test v1_3_features_test -- --nocapture --test-threads=1 > test_v13.log 2>&1
+          set TEST_STATUS=%ERRORLEVEL%
+          type test_v13.log
+          if %TEST_STATUS% neq 0 (
+            echo ### V1.3 Features Tests Failed >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            type test_v13.log >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            exit /b %TEST_STATUS%
+          )
+          cargo test --manifest-path src-tauri/Cargo.toml --test v1_5_features_test -- --nocapture --test-threads=1 > test_v15.log 2>&1
+          set TEST_STATUS=%ERRORLEVEL%
+          type test_v15.log
+          if %TEST_STATUS% neq 0 (
+            echo ### V1.5 Features Tests Failed >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            type test_v15.log >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            exit /b %TEST_STATUS%
+          )
 
       - name: Run End-to-End QA Simulation Tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --test qa_simulation_test -- --nocapture --test-threads=1
+        shell: cmd
+        env:
+          RUST_BACKTRACE: 1
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml --test qa_simulation_test -- --nocapture --test-threads=1 > test_qa.log 2>&1
+          set TEST_STATUS=%ERRORLEVEL%
+          type test_qa.log
+          if %TEST_STATUS% neq 0 (
+            echo ### QA Simulation Tests Failed >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            type test_qa.log >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            exit /b %TEST_STATUS%
+          )
 
       - name: Run Windows Performance & Readiness Benchmark
-        run: cargo test --manifest-path src-tauri/Cargo.toml --test performance_benchmark_test -- --nocapture --test-threads=1
+        shell: cmd
+        env:
+          RUST_BACKTRACE: 1
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml --test performance_benchmark_test -- --nocapture --test-threads=1 > test_perf.log 2>&1
+          set TEST_STATUS=%ERRORLEVEL%
+          type test_perf.log
+          if %TEST_STATUS% neq 0 (
+            echo ### Performance Benchmark Tests Failed >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            type test_perf.log >> "%GITHUB_STEP_SUMMARY%"
+            echo ``` >> "%GITHUB_STEP_SUMMARY%"
+            exit /b %TEST_STATUS%
+          )
 
       - name: Build Production Frontend Assets
         run: bun run build

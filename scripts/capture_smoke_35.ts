@@ -16,6 +16,18 @@ interface Step {
   action?: (page: any) => Promise<void>;
 }
 
+async function clickButtonWithText(page: any, text: string): Promise<boolean> {
+  return page.evaluate((btnText: string) => {
+    const btns = Array.from(document.querySelectorAll("button, [role='button'], a"));
+    const target = btns.find((b) => (b.textContent || "").toLowerCase().includes(btnText.toLowerCase()));
+    if (target) {
+      (target as HTMLElement).click();
+      return true;
+    }
+    return false;
+  }, text);
+}
+
 const steps: Step[] = [
   // 1-5: Setup, Security, Dashboard & POS Register
   {
@@ -64,8 +76,9 @@ const steps: Step[] = [
         await card.click();
         await new Promise((r) => setTimeout(r, 200));
       }
-      const tenderBtn = await page.$("button:has-text('CHARGE'), button:has-text('PAY'), button:has-text('TENDER')");
-      if (tenderBtn) await tenderBtn.click();
+      await clickButtonWithText(page, "CHARGE");
+      await clickButtonWithText(page, "PAY");
+      await clickButtonWithText(page, "TENDER");
       await new Promise((r) => setTimeout(r, 300));
     },
   },
@@ -79,11 +92,9 @@ const steps: Step[] = [
     desc: "A4 Commercial Tax Invoice Preview (Original for Recipient)",
     url: `${BASE_URL}/?tab=invoices`,
     action: async (page) => {
-      const viewBtn = await page.$("button:has-text('Bill'), button:has-text('View'), button:has-text('Receipt')");
-      if (viewBtn) {
-        await viewBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-      }
+      const clicked = await clickButtonWithText(page, "Bill");
+      if (!clicked) await clickButtonWithText(page, "View");
+      await new Promise((r) => setTimeout(r, 500));
     },
   },
   {
@@ -91,16 +102,11 @@ const steps: Step[] = [
     desc: "80mm POS Continuous Thermal Slip Preview",
     url: `${BASE_URL}/?tab=invoices`,
     action: async (page) => {
-      const viewBtn = await page.$("button:has-text('Bill'), button:has-text('View'), button:has-text('Receipt')");
-      if (viewBtn) {
-        await viewBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-        const thermalBtn = await page.$("button:has-text('80mm Slip'), button:has-text('80mm')");
-        if (thermalBtn) {
-          await thermalBtn.click();
-          await new Promise((r) => setTimeout(r, 400));
-        }
-      }
+      const clicked = await clickButtonWithText(page, "Bill");
+      if (!clicked) await clickButtonWithText(page, "View");
+      await new Promise((r) => setTimeout(r, 400));
+      await clickButtonWithText(page, "80mm");
+      await new Promise((r) => setTimeout(r, 400));
     },
   },
 
@@ -115,11 +121,9 @@ const steps: Step[] = [
     desc: "Quick Create New Product / Stock Modal",
     url: `${BASE_URL}/?tab=inventory`,
     action: async (page) => {
-      const addBtn = await page.$("button:has-text('Add Product'), button:has-text('New Item')");
-      if (addBtn) {
-        await addBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-      }
+      const clicked = await clickButtonWithText(page, "Add Product");
+      if (!clicked) await clickButtonWithText(page, "New Item");
+      await new Promise((r) => setTimeout(r, 400));
     },
   },
   {
@@ -127,11 +131,9 @@ const steps: Step[] = [
     desc: "Inventory Stock Adjustment & Godown Audit Modal",
     url: `${BASE_URL}/?tab=inventory`,
     action: async (page) => {
-      const adjBtn = await page.$("button:has-text('Adjust'), button:has-text('Stock')");
-      if (adjBtn) {
-        await adjBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-      }
+      const clicked = await clickButtonWithText(page, "Adjust");
+      if (!clicked) await clickButtonWithText(page, "Stock");
+      await new Promise((r) => setTimeout(r, 400));
     },
   },
 
@@ -146,11 +148,9 @@ const steps: Step[] = [
     desc: "Register New Customer & Vendor Profile Modal",
     url: `${BASE_URL}/?tab=parties`,
     action: async (page) => {
-      const addPartyBtn = await page.$("button:has-text('Add Party'), button:has-text('New Customer')");
-      if (addPartyBtn) {
-        await addPartyBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-      }
+      const clicked = await clickButtonWithText(page, "Add Party");
+      if (!clicked) await clickButtonWithText(page, "New Customer");
+      await new Promise((r) => setTimeout(r, 400));
     },
   },
   {
@@ -170,11 +170,9 @@ const steps: Step[] = [
     desc: "Record Operating Expense Modal",
     url: `${BASE_URL}/?tab=expenses`,
     action: async (page) => {
-      const addExpBtn = await page.$("button:has-text('Add Expense'), button:has-text('New Expense')");
-      if (addExpBtn) {
-        await addExpBtn.click();
-        await new Promise((r) => setTimeout(r, 400));
-      }
+      const clicked = await clickButtonWithText(page, "Add Expense");
+      if (!clicked) await clickButtonWithText(page, "New Expense");
+      await new Promise((r) => setTimeout(r, 400));
     },
   },
 
@@ -208,11 +206,8 @@ const steps: Step[] = [
     desc: "Manage Money: Cash to Bank Contra Transfer",
     url: `${BASE_URL}/?tab=pos`,
     action: async (page) => {
-      const manageMoneyBtn = await page.$("button:has-text('Manage Money')");
-      if (manageMoneyBtn) {
-        await manageMoneyBtn.click();
-        await new Promise((r) => setTimeout(r, 500));
-      }
+      await clickButtonWithText(page, "Manage Money");
+      await new Promise((r) => setTimeout(r, 500));
     },
   },
   {
@@ -220,14 +215,10 @@ const steps: Step[] = [
     desc: "Manage Money: Bank to Cash Drawer Withdrawal",
     url: `${BASE_URL}/?tab=pos`,
     action: async (page) => {
-      const manageMoneyBtn = await page.$("button:has-text('Manage Money')");
-      if (manageMoneyBtn) {
-        await manageMoneyBtn.click();
-        await new Promise((r) => setTimeout(r, 300));
-        const b2c = await page.$("button:has-text('Bank to Cash')");
-        if (b2c) await b2c.click();
-        await new Promise((r) => setTimeout(r, 300));
-      }
+      await clickButtonWithText(page, "Manage Money");
+      await new Promise((r) => setTimeout(r, 300));
+      await clickButtonWithText(page, "Bank to Cash");
+      await new Promise((r) => setTimeout(r, 300));
     },
   },
   {
@@ -235,14 +226,10 @@ const steps: Step[] = [
     desc: "Manage Money: Capital Injection & Partner Deposit",
     url: `${BASE_URL}/?tab=pos`,
     action: async (page) => {
-      const manageMoneyBtn = await page.$("button:has-text('Manage Money')");
-      if (manageMoneyBtn) {
-        await manageMoneyBtn.click();
-        await new Promise((r) => setTimeout(r, 300));
-        const dep = await page.$("button:has-text('Deposit')");
-        if (dep) await dep.click();
-        await new Promise((r) => setTimeout(r, 300));
-      }
+      await clickButtonWithText(page, "Manage Money");
+      await new Promise((r) => setTimeout(r, 300));
+      await clickButtonWithText(page, "Deposit");
+      await new Promise((r) => setTimeout(r, 300));
     },
   },
 
