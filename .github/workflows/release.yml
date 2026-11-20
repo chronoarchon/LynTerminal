@@ -59,8 +59,10 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      - name: Install Frontend Dependencies
-        run: bun install
+      - name: Install Frontend Dependencies & Build Dist
+        run: |
+          bun install
+          bun run build
 
       - name: Build Tauri Application & Publish Release
         uses: tauri-apps/tauri-action@v0
@@ -79,13 +81,13 @@ jobs:
             curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash
             ```
 
-            ### ✨ Key Highlights in v1.5.2:
-            - **70% White / 30% Black Luxury Theme**: Complete redesign of all 23 dialogs, modals, and input fields to a pristine minimalist black-and-white aesthetic.
-            - **Windows Commercial Edition & 14-Day Free Trial**: Automated licensing enforcement, hardware node fingerprinting, offline trial expiration guard, and instant commercial unlock.
-            - **Dynamic Geo-Currency Checkout**: Global auto-detection for INR (₹1,800 via Razorpay) and USD ($20 International) with instant automated perpetual key delivery via Resend.
-            - **html2canvas-pro Modern PDF Engine**: Native support for modern OKLab/OKLCh Tailwind v4 colors in regular and GST invoices.
-            - **Rule 48 CGST Multi-Copy Bill Prints**: Original, Duplicate, and Triplicate copy modes with badges.
-            - **Strict Cash & Bank Liquidity Routing**: Precise separation of cash drawer and bank liquidity.
+            ### ✨ Key Highlights in v1.5.3:
+            - **Linux WebKitGTK Glitch Fix & Hardware Stabilization**: Eradicated screen tearing, black canvas artifacts, and display glitches by default.
+            - **Resilient Auto-Updater & Persistent State**: Seamless updater lifecycle with clean process detachment, atomic binary replacement, and persistent state management.
+            - **PDF Engine & CSS Counter Fix**: Eliminated `counterIncrement` runtime exceptions; reliable 80mm thermal and A4 bill printing.
+            - **Rule 48 CGST Statutory Bill Prints**: Original (Recipient), Duplicate (Transporter), and Triplicate (Supplier) tax invoice generation.
+            - **70% White / 30% Black Luxury Monochrome UI**: Modernized all 23 modals, inputs, and tables with crystal-clear contrast.
+            - **Windows Commercial Edition (14-Day Free Trial)**: Hardware node fingerprinting, offline SHA-256 license verification, and multi-currency billing.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

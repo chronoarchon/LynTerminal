@@ -6315,7 +6315,8 @@ pub fn create_pre_update_backup(
 
 fn compare_semver(remote: &str, current: &str) -> bool {
     let parse_parts = |s: &str| -> Vec<u64> {
-        s.trim_start_matches('v')
+        s.trim()
+            .trim_start_matches('v')
             .trim_end_matches('v')
             .split('.')
             .filter_map(|p| p.parse::<u64>().ok())
@@ -6372,7 +6373,9 @@ pub fn check_app_update() -> Result<AppUpdateInfo, String> {
     let tag_name = release["tag_name"]
         .as_str()
         .unwrap_or("")
+        .trim()
         .trim_start_matches('v')
+        .trim_end_matches('v')
         .to_string();
 
     if tag_name.is_empty() {
@@ -6591,17 +6594,29 @@ pub fn apply_update_and_restart(
     let _ = std::fs::remove_file(&target_gz);
     let _ = std::fs::remove_file(&target_bin);
 
-    // Launch the freshly updated binary and terminate current process cleanly
-    let launch_target = if current_updated {
-        std::env::current_exe().ok()
-    } else {
-        updated_user_bin.or_else(|| std::env::current_exe().ok())
-    };
-
-    if let Some(exe) = launch_target {
-        let _ = std::process::Command::new(&exe).spawn();
-        std::thread::sleep(std::time::Duration::from_millis(150));
-        std::process::exit(0);
+    if current_updated {
+        // If current binary was updated, restart via Tauri for graceful GTK teardown
+        app_handle.restart();
+        Ok(())
+    } else if let Some(exe) = updated_user_bin {
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            let mut cmd = std::process::Command::new(&exe);
+            cmd.process_group(0);
+            cmd.stdin(std::process::Stdio::null());
+            cmd.stdout(std::process::Stdio::null());
+            cmd.stderr(std::process::Stdio::null());
+            let _ = cmd.spawn();
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            std::process::exit(0);
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = std::process::Command::new(&exe).spawn();
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            std::process::exit(0);
+        }
     } else {
         app_handle.restart();
         Ok(())

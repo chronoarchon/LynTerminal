@@ -4,8 +4,8 @@
 fn main() {
     #[cfg(target_os = "linux")]
     {
-        // Allow user to fallback to software rendering if their GPU driver specifically requires it
-        if std::env::var_os("LYNTERMINAL_SOFTWARE_RENDER").is_some() || std::env::var_os("LYNDESK_SOFTWARE_RENDER").is_some() {
+        // Prevent WebKitGTK DMA-BUF renderer hardware acceleration conflicts that cause screen glitches/flickering
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
             unsafe {
                 std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
             }

@@ -200,7 +200,8 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
 
   const handleDismiss = () => {
     if (updateInfo?.latest_version && typeof window !== "undefined") {
-      sessionStorage.setItem("lyn_dismissed_update", updateInfo.latest_version);
+      localStorage.setItem("lyn_dismissed_update", updateInfo.latest_version);
+      localStorage.setItem("lyn_dismissed_update_at", Date.now().toString());
     }
     onClose();
   };
@@ -233,10 +234,11 @@ export const UpdateNotificationModal: React.FC<UpdateNotificationModalProps> = (
       setStatusMessage("Step 4/4: Applying update and relaunching...");
       setProgress(100);
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("lyn_dismissed_update", updateInfo.latest_version);
+        localStorage.setItem("lyn_dismissed_update", updateInfo.latest_version);
+        localStorage.setItem("lyn_dismissed_update_at", Date.now().toString());
       }
-      await api.applyUpdateAndRestart(updateInfo.latest_version);
       onClose();
+      await api.applyUpdateAndRestart(updateInfo.latest_version);
     } catch (err) {
       console.error("Update failed:", err);
       setErrorMessage(String(err));

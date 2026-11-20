@@ -133,8 +133,11 @@ export function AppContent() {
         .then((info) => {
           if (info && info.has_update) {
             setUpdateInfo(info);
-            const dismissed = typeof window !== "undefined" ? sessionStorage.getItem("lyn_dismissed_update") : null;
-            if (dismissed !== info.latest_version) {
+            const dismissed = typeof window !== "undefined" ? localStorage.getItem("lyn_dismissed_update") : null;
+            const dismissedAt = typeof window !== "undefined" ? Number(localStorage.getItem("lyn_dismissed_update_at") || "0") : 0;
+            const now = Date.now();
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            if (dismissed !== info.latest_version || (now - dismissedAt > oneDayMs)) {
               setIsUpdateModalOpen(true);
             }
           }

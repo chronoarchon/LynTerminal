@@ -448,7 +448,7 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.5.2",
+            current_version: "1.5.3",
             latest_version: "1.5.3",
             download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.5.3/lynterminal_1.5.3_x64-setup.exe",
             release_notes: "### What's New in v1.5.3\n- **Offline Commercial Licensing**: Seamless Razorpay activation key verification\n- **Windows Native Build**: Robust NSIS installer and high-DPI font rendering\n- **Indian GST Hub**: Enhanced GSTR-1 and GSTR-3B statutory tax compliance reports\n- **Zero UI Latency**: Sub-10ms transaction commits and SQLite WAL concurrency",

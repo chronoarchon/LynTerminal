@@ -1632,14 +1632,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </h2>
           </div>
           <span className="text-[11px] font-mono font-semibold text-neutral-700 bg-neutral-100 px-2.5 py-0.5 rounded-full border border-neutral-200">
-            v1.5.2
+            v1.5.3
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div>
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>LynTerminal v1.5.2</span>
+              <span>LynTerminal v1.5.3</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
                 Current
               </span>
