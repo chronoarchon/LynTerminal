@@ -40,24 +40,16 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install Frontend Dependencies
-        run: bun install
+      - name: Install Frontend Dependencies & Build Dist
+        run: |
+          bun install
+          bun run build
 
       - name: Run Trial & License Integration Tests
         shell: pwsh
         env:
           RUST_BACKTRACE: 1
-        run: |
-          cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1 *>&1 | Tee-Object -FilePath test_trial.log
-          if ($LASTEXITCODE -ne 0) {
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git checkout -B ci-debug-log
-            git add -f test_trial.log
-            git commit -m "ci(debug): windows test log failure"
-            git push origin ci-debug-log -f
-            exit $LASTEXITCODE
-          }
+        run: cargo test --manifest-path src-tauri/Cargo.toml --test trial_and_license_test -- --nocapture --test-threads=1
 
       - name: Run Indian GST Statutory Tests
         shell: pwsh
@@ -84,9 +76,6 @@ jobs:
         env:
           RUST_BACKTRACE: 1
         run: cargo test --manifest-path src-tauri/Cargo.toml --test performance_benchmark_test -- --nocapture --test-threads=1
-
-      - name: Build Production Frontend Assets
-        run: bun run build
 
       - name: Build Tauri Windows Executable & NSIS Bundle
         uses: tauri-apps/tauri-action@v0
