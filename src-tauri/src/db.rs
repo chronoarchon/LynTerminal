@@ -853,12 +853,18 @@ impl DatabaseManager {
         let (first_run_str, last_run_str, is_lic_num, key_str, tier_str, email_str, act_at_str, trial_limit) = row;
         
         let now = chrono::Utc::now();
-        let first_run = chrono::DateTime::parse_from_rfc3339(&first_run_str)
-            .map(|dt| dt.with_timezone(&chrono::Utc))
-            .unwrap_or(now);
-        let last_run = chrono::DateTime::parse_from_rfc3339(&last_run_str)
-            .map(|dt| dt.with_timezone(&chrono::Utc))
-            .unwrap_or(first_run);
+        let parse_dt = |s: &str| -> Option<chrono::DateTime<chrono::Utc>> {
+            chrono::DateTime::parse_from_rfc3339(s)
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .ok()
+                .or_else(|| {
+                    chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
+                        .ok()
+                        .map(|dt| chrono::DateTime::from_naive_utc_and_offset(dt, chrono::Utc))
+                })
+        };
+        let first_run = parse_dt(&first_run_str).unwrap_or(now);
+        let last_run = parse_dt(&last_run_str).unwrap_or(first_run);
 
         // Anti-tamper clock rollback check: if system clock is moved backwards by more than 24 hours
         let is_clock_tampered = now < (last_run - chrono::Duration::hours(24));
@@ -878,12 +884,18 @@ impl DatabaseManager {
         };
 
         let trial_deadline = first_run + chrono::Duration::days(trial_limit);
-        let days_elapsed = (now - first_run).num_days().max(0);
+        let days_elapsed = if now <= first_run {
+            0
+        } else {
+            let elapsed_diff = now - first_run;
+            ((elapsed_diff.num_seconds() + 43200) / 86400).max(0).min(trial_limit + 30)
+        };
         let days_remaining = if now >= trial_deadline {
             0
         } else {
             let diff = trial_deadline - now;
-            ((diff.num_seconds() + 86399) / 86400).max(0)
+            let rem = (diff.num_seconds() + 86399) / 86400;
+            rem.clamp(0, trial_limit)
         };
         let is_expired = !is_licensed && (now >= trial_deadline || is_clock_tampered);
 
@@ -945,7 +957,7 @@ impl DatabaseManager {
     }
 
     pub fn set_trial_start_days_ago(&self, days_ago: i64) -> std::result::Result<(), String> {
-        let target = chrono::Utc::now() - chrono::Duration::days(days_ago);
+        let target = chrono::Utc::now() - chrono::Duration::days(days_ago) - chrono::Duration::seconds(5);
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "UPDATE app_license SET first_run_date = ?1, last_run_date = ?1 WHERE id = 1",

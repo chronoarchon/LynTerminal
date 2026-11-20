@@ -99,7 +99,13 @@ export function AppContent() {
     }
     return false;
   });
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("locked") === "1") return true;
+    }
+    return false;
+  });
   const [initialLoading, setInitialLoading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(() => {
