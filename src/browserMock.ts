@@ -434,8 +434,28 @@ export function initBrowserMock() {
           }
           return mockSettings;
         }
-        case "get_auth_state":
-          return { has_account: true, is_setup_completed: true, is_locked: false };
+        case "get_auth_state": {
+          const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const isSetup = urlParams?.get("setup") === "1" || urlParams?.get("onboarding") === "1";
+          const isLocked = urlParams?.get("locked") === "1";
+          if (isSetup) {
+            return { has_account: false, is_setup_completed: false, is_locked: false };
+          }
+          return { has_account: true, is_setup_completed: true, is_locked: isLocked };
+        }
+        case "check_app_update": {
+          const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
+          return {
+            update_available: showUpdate,
+            current_version: "1.5.2",
+            latest_version: "1.5.3",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.5.3/lynterminal_1.5.3_x64-setup.exe",
+            release_notes: "### What's New in v1.5.3\n- **Offline Commercial Licensing**: Seamless Razorpay activation key verification\n- **Windows Native Build**: Robust NSIS installer and high-DPI font rendering\n- **Indian GST Hub**: Enhanced GSTR-1 and GSTR-3B statutory tax compliance reports\n- **Zero UI Latency**: Sub-10ms transaction commits and SQLite WAL concurrency",
+            published_at: "2026-11-20T12:00:00Z",
+            platform: "windows",
+          };
+        }
         case "get_gst_settings": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
           const enableGst = urlParams?.get("gst") === "1" || urlParams?.get("tab")?.startsWith("gst") || urlParams?.get("currency") === "INR" || true;

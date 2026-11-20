@@ -92,11 +92,23 @@ export function AppContent() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [authState, setAuthState] = useState<AuthState | null>(null);
-  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("setup") === "1" || p.get("onboarding") === "1") return true;
+    }
+    return false;
+  });
   const [isLocked, setIsLocked] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("modal") === "update" || p.get("update") === "1") return true;
+    }
+    return false;
+  });
   const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(() => {

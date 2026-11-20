@@ -4,8 +4,8 @@ import App from "./App";
 import { api } from "./services/api";
 import "./index.css";
 
-// In development browser preview (outside Tauri), initialize browser mock
-if (import.meta.env.DEV && typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__) {
+// In browser preview (outside Tauri), initialize browser mock
+if (typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__) {
   import("./browserMock").then(({ initBrowserMock }) => initBrowserMock());
 }
 
