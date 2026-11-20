@@ -650,8 +650,9 @@ fn test_stage_5_staff_payroll_attendance_and_liabilities() {
 // ============================================================================
 #[test]
 fn test_sync_local_bills_as_real_pdf() {
-    let db = DatabaseManager::new().expect("Failed to open local user database");
-    let conn = db.conn.lock().expect("Failed to acquire DB lock");
+    let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
+    let mut conn = db.conn.lock().expect("Failed to acquire DB lock");
+    let _ = seed_demo_data_conn(&mut conn, 30);
 
     let bills_dir = lynterminal_lib::commands::get_bills_storage_dir();
     let _ = std::fs::create_dir_all(&bills_dir);

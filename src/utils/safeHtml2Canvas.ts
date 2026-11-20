@@ -75,40 +75,13 @@ export function sanitizeCssColors(val: string): string {
     .replace(/color\(\s*srgb[^)]+\)/gi, (m) => srgbColorToRgb(m));
 }
 
-function wrapStyleDeclaration(style: CSSStyleDeclaration): CSSStyleDeclaration {
-  if (!style) return style;
-  return new Proxy(style, {
-    get(target, prop) {
-      if (prop === "getPropertyValue") {
-        return (propertyName: string) => {
-          try {
-            const raw = target.getPropertyValue(propertyName);
-            return sanitizeCssColors(raw);
-          } catch {
-            return "";
-          }
-        };
-      }
-      try {
-        const raw = (target as any)[prop];
-        if (typeof raw === "function") {
-          return raw.bind(target);
-        }
-        if (typeof raw === "string") {
-          return sanitizeCssColors(raw);
-        }
-        return raw;
-      } catch {
-        return undefined;
-      }
-    },
-  });
-}
-
 /**
  * Drop-in wrapper for html2canvas that intercepts all color calculations in both
  * the main window and html2canvas's cloned document iframe, preventing "oklab" and "oklch"
  * parse exceptions in Tailwind CSS v4 or modern WebKit.
+ *
+ * Implemented by safely intercepting CSSStyleDeclaration.prototype.getPropertyValue
+ * to preserve native IDL instance brand checks on getters like `counterIncrement` in WebKit/Blink.
  */
 export async function safeHtml2Canvas(
   element: HTMLElement,
@@ -116,24 +89,39 @@ export async function safeHtml2Canvas(
 ): Promise<HTMLCanvasElement> {
   const userOnClone = options.onclone;
 
-  // Intercept main window getComputedStyle during html2canvas setup
-  const originalMainGetComputedStyle = window.getComputedStyle.bind(window);
-  window.getComputedStyle = function (el: Element, pseudo?: string | null) {
-    const raw = originalMainGetComputedStyle(el, pseudo);
-    return wrapStyleDeclaration(raw);
-  };
+  // Intercept CSSStyleDeclaration.prototype.getPropertyValue on window
+  const proto = typeof window !== "undefined" ? window.CSSStyleDeclaration?.prototype : null;
+  const originalGetPropertyValue = proto ? proto.getPropertyValue : null;
+
+  if (proto && originalGetPropertyValue) {
+    proto.getPropertyValue = function (propertyName: string): string {
+      try {
+        const val = originalGetPropertyValue.call(this, propertyName);
+        return sanitizeCssColors(val);
+      } catch {
+        return "";
+      }
+    };
+  }
 
   const enhancedOptions = {
     ...options,
     onclone: (clonedDoc: Document, clonedEl: HTMLElement) => {
-      // 1. Hook iframe window's getComputedStyle
+      // 1. Hook iframe window's CSSStyleDeclaration.prototype.getPropertyValue
       const iframeWin = clonedDoc.defaultView;
-      if (iframeWin) {
-        const origIframeGCS = iframeWin.getComputedStyle.bind(iframeWin);
-        iframeWin.getComputedStyle = function (el: Element, pseudo?: string | null) {
-          const raw = origIframeGCS(el, pseudo);
-          return wrapStyleDeclaration(raw);
-        };
+      if (iframeWin && iframeWin.CSSStyleDeclaration?.prototype) {
+        const iframeProto = iframeWin.CSSStyleDeclaration.prototype;
+        const origIframeGPV = iframeProto.getPropertyValue;
+        if (origIframeGPV) {
+          iframeProto.getPropertyValue = function (propertyName: string): string {
+            try {
+              const val = origIframeGPV.call(this, propertyName);
+              return sanitizeCssColors(val);
+            } catch {
+              return "";
+            }
+          };
+        }
       }
 
       // 2. Walk cloned elements and sanitize inline style attributes
@@ -165,7 +153,9 @@ export async function safeHtml2Canvas(
   try {
     return await html2canvas(element, enhancedOptions);
   } finally {
-    // Always restore the original main window getComputedStyle
-    window.getComputedStyle = originalMainGetComputedStyle;
+    // Always restore the original getPropertyValue prototype method
+    if (proto && originalGetPropertyValue) {
+      proto.getPropertyValue = originalGetPropertyValue;
+    }
   }
 }
