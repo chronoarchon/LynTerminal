@@ -813,17 +813,31 @@ impl DatabaseManager {
 
         if lic_count == 0 {
             let now = chrono::Utc::now().to_rfc3339();
+            #[cfg(target_os = "linux")]
+            let (is_lic_init, key_init, tier_init) = (1, "LINUX-FREE", "community");
+            #[cfg(not(target_os = "linux"))]
+            let (is_lic_init, key_init, tier_init) = (0, "", "");
+
             let _ = conn.execute(
                 "INSERT INTO app_license (
                     id, first_run_date, last_run_date, is_licensed,
                     license_key, license_tier, customer_email, activated_at,
                     trial_days_limit, anti_tamper_hash
                 ) VALUES (
-                    1, ?1, ?1, 0,
-                    '', '', '', '',
+                    1, ?1, ?1, ?2,
+                    ?3, ?4, '', '',
                     14, ''
                 )",
-                params![now],
+                params![now, is_lic_init, key_init, tier_init],
+            );
+        }
+
+        // On Linux, ensure existing installations are permanently unlocked community edition
+        #[cfg(target_os = "linux")]
+        {
+            let _ = conn.execute(
+                "UPDATE app_license SET is_licensed = 1, license_key = 'LINUX-FREE', license_tier = 'community' WHERE id = 1 AND is_licensed = 0",
+                [],
             );
         }
 

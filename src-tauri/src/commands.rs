@@ -6408,22 +6408,10 @@ pub fn check_app_update() -> Result<AppUpdateInfo, String> {
                 }
             }
         }
-        // 2. Fallback to distribution packages
-        if download_url.is_empty() {
-            for a in assets {
-                if let Some(name) = a["name"].as_str() {
-                    if name.ends_with(".deb") || name.ends_with(".pkg.tar.zst") || name.ends_with(".rpm") {
-                        if let Some(url) = a["browser_download_url"].as_str() {
-                            download_url = url.to_string();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
     }
+    // Always use reliable CDN URL for binary in-app updates
     if download_url.is_empty() {
-        download_url = format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}/lynterminal.gz", tag_name);
+        download_url = "https://lynterminal.wintershogun.tech/lynterminal/lynterminal.gz".to_string();
     }
 
     Ok(AppUpdateInfo {
@@ -6450,6 +6438,8 @@ pub fn download_update_binary(
     }
 
     let candidate_urls = vec![
+        format!("https://lynterminal.wintershogun.tech/lynterminal/lynterminal.gz"),
+        format!("https://wintershogun.tech/lynterminal/lynterminal.gz"),
         download_url.clone(),
         format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}/lynterminal.gz", target_version),
         format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}v/lynterminal.gz", target_version),
@@ -6458,11 +6448,11 @@ pub fn download_update_binary(
 
     let mut download_success = false;
     for url in candidate_urls {
-        if url.is_empty() {
+        if url.is_empty() || url.ends_with(".deb") || url.ends_with(".rpm") {
             continue;
         }
         let dl = std::process::Command::new("curl")
-            .args(&["-fSL", "--max-time", "60", &url, "-o", &target_gz.to_string_lossy()])
+            .args(&["-fSL", "--max-time", "15", &url, "-o", &target_gz.to_string_lossy()])
             .output();
 
         if let Ok(out) = dl {
@@ -6478,7 +6468,7 @@ pub fn download_update_binary(
     }
 
     if !download_success {
-        return Err("Failed to download update binary from GitHub. Please check network connection.".into());
+        return Err("Failed to download update binary. Please check network connection.".into());
     }
 
     Ok(target_gz.to_string_lossy().to_string())
@@ -6594,19 +6584,31 @@ pub fn apply_update_and_restart(
     let _ = std::fs::remove_file(&target_gz);
     let _ = std::fs::remove_file(&target_bin);
 
-    if current_updated {
-        // If current binary was updated, restart via Tauri for graceful GTK teardown
-        app_handle.restart();
-        Ok(())
-    } else if updated_user_bin.is_some() {
-        // User-local binary updated — use Tauri restart for clean GTK teardown
-        // This ensures WebKitGTK releases all file handles before the new binary runs
-        app_handle.restart();
-        Ok(())
-    } else {
-        app_handle.restart();
-        Ok(())
+    // On Linux/Unix, spawn the updated binary in a detached process group
+    // and cleanly exit the old process to prevent WebKitGTK / Wayland teardown deadlocks.
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        let launch_target = if current_updated {
+            std::env::current_exe().ok()
+        } else {
+            updated_user_bin
+        };
+
+        if let Some(exe) = launch_target {
+            let mut cmd = std::process::Command::new(&exe);
+            cmd.process_group(0);
+            cmd.stdin(std::process::Stdio::null());
+            cmd.stdout(std::process::Stdio::null());
+            cmd.stderr(std::process::Stdio::null());
+            let _ = cmd.spawn();
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            std::process::exit(0);
+        }
     }
+
+    app_handle.restart();
+    Ok(())
 }
 
 #[tauri::command]
