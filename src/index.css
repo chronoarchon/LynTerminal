@@ -53,8 +53,8 @@
     --apple-text: #1D1D1F;
     --apple-text-secondary: #6E6E73;
     --apple-text-tertiary: #86868B;
-    --apple-blue: #000000;
-    --apple-blue-hover: #262626;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
     --apple-green: #34C759;
     --apple-orange: #FF9500;
     --apple-red: #FF3B30;
@@ -80,6 +80,8 @@
   * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   html, body {
@@ -111,18 +113,18 @@
     font-family: inherit;
   }
 
-  /* 70% White / 30% Black Neumorphic Input & Controls System */
+  /* Clean Minimalist Input & Controls System */
   .lux-input,
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select {
     color-scheme: light !important;
     background-color: #FFFFFF !important;
-    border: 1px solid rgba(0, 0, 0, 0.16) !important;
-    color: #000000 !important;
+    border: 1px solid rgba(0, 0, 0, 0.14) !important;
+    color: #111827 !important;
     border-radius: 0.75rem;
-    box-shadow: inset 1.5px 1.5px 3.5px rgba(0, 0, 0, 0.07), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
-    transition: all 0.15s ease;
+    box-shadow: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
   /* Linux WebKitGTK & Windows Cross-Platform Dropdown Overrides */
@@ -131,8 +133,8 @@
     -webkit-appearance: none !important;
     color-scheme: light !important;
     background-color: #FFFFFF !important;
-    color: #000000 !important;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23000000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+    color: #111827 !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23111827' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
     background-position: right 0.75rem center !important;
     background-repeat: no-repeat !important;
     background-size: 1.1em 1.1em !important;
@@ -143,7 +145,7 @@
   select option,
   select optgroup {
     background-color: #FFFFFF !important;
-    color: #000000 !important;
+    color: #111827 !important;
     color-scheme: light !important;
   }
 
@@ -162,12 +164,12 @@
   textarea:focus,
   select:focus {
     outline: none !important;
-    border-color: #000000 !important;
-    box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 2px #000000, 0 3px 8px rgba(0, 0, 0, 0.08) !important;
+    border-color: #0071E3 !important;
+    box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.18) !important;
     background-color: #FFFFFF !important;
   }
 
-  /* Tactile Neumorphic Checkbox System */
+  /* Clean Minimalist Checkbox System */
   input[type="checkbox"]:not(.sr-only) {
     appearance: none;
     -webkit-appearance: none;
@@ -175,45 +177,45 @@
     height: 1.125rem;
     border-radius: 0.375rem;
     background-color: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, 0.14);
-    box-shadow: inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.1), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.95), 0 1px 1px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: none;
     cursor: pointer;
     position: relative;
     display: inline-grid;
     place-content: center;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
   }
   input[type="checkbox"]:not(.sr-only)::before {
     content: "";
     width: 0.65rem;
     height: 0.65rem;
     transform: scale(0);
-    transition: 120ms transform ease-in-out;
-    box-shadow: inset 1em 1em #000000;
+    transition: 100ms transform ease-in-out;
+    box-shadow: inset 1em 1em #FFFFFF;
     transform-origin: center;
     clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
   }
   input[type="checkbox"]:not(.sr-only):checked {
-    background-color: #000000;
-    border-color: #000000;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    background-color: #0071E3;
+    border-color: #0071E3;
+    box-shadow: none;
   }
   input[type="checkbox"]:not(.sr-only):checked::before {
     transform: scale(1);
     box-shadow: inset 1em 1em #FFFFFF;
   }
 
-  /* Neumorphic iOS-style Toggle Switch */
+  /* Clean Flat iOS-style Toggle Switch */
   label:has(input[type="checkbox"].peer) > div,
   .neu-switch-track {
-    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.18), inset -1px -1px 2px rgba(255, 255, 255, 0.85) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
   }
 
   label:has(input[type="checkbox"].peer) > div::after,
   .neu-switch-thumb {
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25), -1px -1px 2px rgba(255, 255, 255, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
   }
 
 }
@@ -234,26 +236,24 @@
 
 .apple-card {
   background-color: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .apple-card-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.15s ease;
 }
 .apple-card-hover:hover {
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  transform: translateY(-1px);
+  border-color: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-/* Tactile interactive state */
+/* Fast responsive interactive state */
 .apple-press {
-  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.12s ease;
+  transition: opacity 0.1s ease;
 }
 .apple-press:active {
-  transform: scale(0.982);
-  opacity: 0.92;
+  opacity: 0.88;
 }
 
 /* Safe area insets for notched phones & mobile devices */
@@ -281,99 +281,117 @@
 }
 
 /* ============================================================================
-   OBSIDIAN LUXURY MONOCHROME SYSTEM (Wintershogun Luxury Standard)
-   Strict high-contrast black/white palette with subtle borders.
+   CLEAN MINIMALIST PERFORMANCE SYSTEM
+   Zero-lag flat & subtle-bordered UI for Linux WebKitGTK and Windows.
    ============================================================================ */
 
 .lux-modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .lux-modal-card {
   background-color: #FFFFFF !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-  color: #000000 !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
+  color: #111827 !important;
 }
 
 .lux-card-elevated {
-  background-color: #F9FAFB !important;
-  border: 1px solid rgba(0, 0, 0, 0.07) !important;
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.03), -2px -2px 6px rgba(255, 255, 255, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-  color: #000000 !important;
-}
-
-/* Primary Luxury Black Extruded Button */
-.lux-btn-primary,
-button.bg-black:not(.neu-flat),
-button.bg-\[\#1D1D1F\]:not(.neu-flat) {
-  background-color: #000000 !important;
-  color: #FFFFFF !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-  border: 1px solid rgba(0, 0, 0, 0.9) !important;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-.lux-btn-primary:hover,
-button.bg-black:not(.neu-flat):hover,
-button.bg-\[\#1D1D1F\]:not(.neu-flat):hover {
-  background-color: #1F2937 !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28), 0 2px 4px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-  transform: translateY(-1px);
-}
-.lux-btn-primary:active,
-button.bg-black:not(.neu-flat):active,
-button.bg-\[\#1D1D1F\]:not(.neu-flat):active {
-  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-  transform: translateY(1px) scale(0.985);
-}
-
-/* Secondary Luxury White / Light Extruded Button */
-.lux-btn-secondary,
-.neu-btn-light,
-button.bg-white:not(.neu-flat):not([data-dropdown-item]):not([role="option"]),
-button.border.border-black\/\[0\.08\]:not(.neu-flat):not([data-dropdown-item]):not([role="option"]) {
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.06), -2px -2px 5px rgba(255, 255, 255, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  background-color: #FFFFFF !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  color: #111827 !important;
+}
+
+/* Clean Minimal Buttons */
+.lux-btn-primary {
+  background-color: #0071E3 !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: background-color 0.15s ease, opacity 0.15s ease !important;
+}
+.lux-btn-primary:hover {
+  background-color: #0077ED !important;
+}
+.lux-btn-primary:active {
+  opacity: 0.9 !important;
+}
+
+.lux-btn-secondary,
+.neu-btn-light {
+  background-color: #FFFFFF !important;
+  color: #1D1D1F !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease !important;
 }
 .lux-btn-secondary:hover,
-.neu-btn-light:hover,
-button.bg-white:not(.neu-flat):hover,
-button.border.border-black\/\[0\.08\]:not(.neu-flat):hover {
-  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.08), -3px -3px 8px rgba(255, 255, 255, 1), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-  transform: translateY(-1px);
+.neu-btn-light:hover {
+  background-color: #F5F5F7 !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
 }
 .lux-btn-secondary:active,
-.neu-btn-light:active,
-button.bg-white:not(.neu-flat):active,
-button.border.border-black\/\[0\.08\]:not(.neu-flat):active {
-  box-shadow: inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.12), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.75) !important;
-  transform: translateY(1px) scale(0.985);
+.neu-btn-light:active {
+  background-color: #E5E5EA !important;
 }
 
 .lux-badge {
   font-family: var(--font-mono);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.08em;
   padding: 2px 8px;
   border-radius: 9999px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #000000;
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.04), -1px -1px 2px rgba(255, 255, 255, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  background-color: rgba(0, 113, 227, 0.08);
+  border: 1px solid rgba(0, 113, 227, 0.2);
+  color: #0071E3;
+  box-shadow: none !important;
 }
 
-/* Neumorphic Segmented Selector (e.g. Subtab Bar) */
+/* Clean Segmented Selector */
 .neu-segmented {
-  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.08), inset -2px -2px 4px rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background-color: #F5F5F7 !important;
 }
 .neu-segmented-active {
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.08), -1px -1px 3px rgba(255, 255, 255, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background-color: #FFFFFF !important;
+  color: #0071E3 !important;
+}
+
+/* Zero-overhead rendering: eliminate backdrop-filter blur freezes on Linux WebKitGTK & Windows WebView2 */
+.backdrop-blur-sm,
+.backdrop-blur,
+.backdrop-blur-md,
+.backdrop-blur-lg,
+.backdrop-blur-xl,
+.backdrop-blur-2xl,
+.backdrop-blur-3xl,
+[class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Zero-overhead rendering: eliminate heavy multi-layer shadows on WebKitGTK Linux & Windows */
+.shadow-2xl,
+.shadow-xl,
+.shadow-lg {
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.shadow-md {
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Fast instantaneous modal entry without CPU raster zoom stalls */
+.animate-in {
+  animation: none !important;
 }
 
 /* Hide scrollbar utility */

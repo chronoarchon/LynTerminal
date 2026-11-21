@@ -1437,7 +1437,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               className={`w-full py-3.5 rounded-full font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-sm transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 licenseStatus?.is_expired && licenseStatus?.platform !== "linux"
                   ? "bg-red-600 hover:bg-red-700"
-                  : "bg-black hover:bg-neutral-800 text-white uppercase tracking-wider"
+                  : "bg-[#0071E3] hover:bg-[#0077ED] text-white uppercase tracking-wider shadow-xs"
               }`}
             >
               {licenseStatus?.is_expired && licenseStatus?.platform !== "linux" ? (

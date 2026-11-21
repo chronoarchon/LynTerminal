@@ -236,7 +236,7 @@ export function ManageMoneyModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -385,7 +385,7 @@ export function ManageMoneyModal({
                     onClick={() => setDepositDestination("CASH")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       depositDestination === "CASH"
-                        ? "border-black bg-black text-white shadow-sm"
+                        ? "border-[#0071E3] bg-[#0071E3] text-white shadow-sm"
                         : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
@@ -396,7 +396,7 @@ export function ManageMoneyModal({
                       )}
                     </div>
                     <div className="text-xs font-bold">Cash Drawer</div>
-                    <div className={`text-[10px] mt-0.5 ${depositDestination === "CASH" ? "text-neutral-300" : "text-neutral-500"}`}>Counter Float</div>
+                    <div className={`text-[10px] mt-0.5 ${depositDestination === "CASH" ? "text-blue-100" : "text-neutral-500"}`}>Counter Float</div>
                   </button>
 
                   <button
@@ -404,18 +404,18 @@ export function ManageMoneyModal({
                     onClick={() => setDepositDestination("BANK")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       depositDestination === "BANK"
-                        ? "border-black bg-black text-white shadow-sm"
+                        ? "border-[#0071E3] bg-[#0071E3] text-white shadow-sm"
                         : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <Landmark className="w-4 h-4 text-white" />
+                      <Landmark className={`w-4 h-4 ${depositDestination === "BANK" ? "text-white" : "text-[#0071E3]"}`} />
                       {depositDestination === "BANK" && (
                         <span className="w-2 h-2 rounded-full bg-white" />
                       )}
                     </div>
                     <div className="text-xs font-bold">Bank Account</div>
-                    <div className={`text-[10px] mt-0.5 ${depositDestination === "BANK" ? "text-neutral-300" : "text-neutral-500"}`}>Operating Bank</div>
+                    <div className={`text-[10px] mt-0.5 ${depositDestination === "BANK" ? "text-blue-100" : "text-neutral-500"}`}>Operating Bank</div>
                   </button>
 
                   <button
@@ -423,18 +423,18 @@ export function ManageMoneyModal({
                     onClick={() => setDepositDestination("CAPITAL")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       depositDestination === "CAPITAL"
-                        ? "border-black bg-black text-white shadow-sm"
+                        ? "border-[#0071E3] bg-[#0071E3] text-white shadow-sm"
                         : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <Coins className="w-4 h-4 text-white" />
+                      <Coins className={`w-4 h-4 ${depositDestination === "CAPITAL" ? "text-white" : "text-amber-500"}`} />
                       {depositDestination === "CAPITAL" && (
                         <span className="w-2 h-2 rounded-full bg-white" />
                       )}
                     </div>
                     <div className="text-xs font-bold">Owner Capital</div>
-                    <div className={`text-[10px] mt-0.5 ${depositDestination === "CAPITAL" ? "text-neutral-300" : "text-neutral-500"}`}>Equity / Ledger</div>
+                    <div className={`text-[10px] mt-0.5 ${depositDestination === "CAPITAL" ? "text-blue-100" : "text-neutral-500"}`}>Equity / Ledger</div>
                   </button>
                 </div>
               </div>
@@ -555,7 +555,7 @@ export function ManageMoneyModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <ArrowDownLeft className="w-4 h-4" />
                   <span>{loading ? "Recording..." : "Record Deposit"}</span>
@@ -578,17 +578,17 @@ export function ManageMoneyModal({
                     onClick={() => setTransferDirection("CASH_TO_BANK")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       transferDirection === "CASH_TO_BANK"
-                        ? "border-black bg-black text-white shadow-sm"
+                        ? "border-[#0071E3] bg-[#0071E3] text-white shadow-sm"
                         : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Wallet className="w-4 h-4 text-emerald-400" />
-                      <ArrowLeftRight className={`w-3.5 h-3.5 ${transferDirection === "CASH_TO_BANK" ? "text-white" : "text-black"}`} />
-                      <Landmark className={`w-4 h-4 ${transferDirection === "CASH_TO_BANK" ? "text-white" : "text-black"}`} />
+                      <ArrowLeftRight className={`w-3.5 h-3.5 ${transferDirection === "CASH_TO_BANK" ? "text-white" : "text-[#0071E3]"}`} />
+                      <Landmark className={`w-4 h-4 ${transferDirection === "CASH_TO_BANK" ? "text-white" : "text-[#0071E3]"}`} />
                     </div>
                     <div className="text-xs font-bold">Cash to Bank</div>
-                    <div className={`text-[10px] mt-0.5 ${transferDirection === "CASH_TO_BANK" ? "text-neutral-300" : "text-neutral-500"}`}>Drawer to bank</div>
+                    <div className={`text-[10px] mt-0.5 ${transferDirection === "CASH_TO_BANK" ? "text-blue-100" : "text-neutral-500"}`}>Drawer to bank</div>
                   </button>
 
                   <button
@@ -596,17 +596,17 @@ export function ManageMoneyModal({
                     onClick={() => setTransferDirection("BANK_TO_CASH")}
                     className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                       transferDirection === "BANK_TO_CASH"
-                        ? "border-black bg-black text-white shadow-sm"
+                        ? "border-[#0071E3] bg-[#0071E3] text-white shadow-sm"
                         : "border-black/[0.08] hover:border-black/20 bg-white text-neutral-700"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <Landmark className={`w-4 h-4 ${transferDirection === "BANK_TO_CASH" ? "text-white" : "text-black"}`} />
-                      <ArrowLeftRight className={`w-3.5 h-3.5 ${transferDirection === "BANK_TO_CASH" ? "text-white" : "text-black"}`} />
+                      <Landmark className={`w-4 h-4 ${transferDirection === "BANK_TO_CASH" ? "text-white" : "text-[#0071E3]"}`} />
+                      <ArrowLeftRight className={`w-3.5 h-3.5 ${transferDirection === "BANK_TO_CASH" ? "text-white" : "text-[#0071E3]"}`} />
                       <Wallet className="w-4 h-4 text-emerald-400" />
                     </div>
                     <div className="text-xs font-bold">Bank to Cash</div>
-                    <div className={`text-[10px] mt-0.5 ${transferDirection === "BANK_TO_CASH" ? "text-neutral-300" : "text-neutral-500"}`}>Bank to drawer</div>
+                    <div className={`text-[10px] mt-0.5 ${transferDirection === "BANK_TO_CASH" ? "text-blue-100" : "text-neutral-500"}`}>Bank to drawer</div>
                   </button>
                 </div>
               </div>
@@ -699,7 +699,7 @@ export function ManageMoneyModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <ArrowLeftRight className="w-4 h-4" />
                   <span>{loading ? "Executing..." : "Execute Transfer"}</span>
@@ -862,7 +862,7 @@ export function ManageMoneyModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Sliders className="w-4 h-4" />
                   <span>{loading ? "Saving..." : "Save Balances"}</span>

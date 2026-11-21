@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#F5F5F7] border border-black/[0.05]">
-          <div className="w-2 h-2 rounded-full bg-[#34C759] shadow-[0_0_6px_rgba(52,199,89,0.6)]" />
+          <div className="w-2 h-2 rounded-full bg-[#34C759]" />
           <Store className="w-3.5 h-3.5 text-[#6E6E73]" />
           <span className="text-xs font-semibold text-[#1D1D1F] max-w-[140px] sm:max-w-[200px] truncate">
             {settings?.business_name || "LynTerminal Store"}
@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onOpenQuickSale}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-xs transition apple-press cursor-pointer"
           title="Open Register (F2)"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />

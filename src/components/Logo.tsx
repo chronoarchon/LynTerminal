@@ -17,10 +17,10 @@ export const Logo: React.FC<LogoProps> = ({
     <div className={`flex items-center gap-2.5 ${className}`}>
       {/* Apple-style squircle icon with approved Continuous Minimalist 'L' */}
       <div
-        className={`relative flex items-center justify-center rounded-xl shadow-xs transition-transform overflow-hidden ${
+        className={`relative flex items-center justify-center rounded-xl overflow-hidden ${
           light
-            ? "bg-[#18191E] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] border border-black/[0.08]"
-            : "bg-[#18191E] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)] border border-white/[0.08]"
+            ? "bg-[#18191E] text-white border border-black/[0.08]"
+            : "bg-[#18191E] text-white border border-white/[0.08]"
         }`}
         style={{ width: size, height: size }}
       >

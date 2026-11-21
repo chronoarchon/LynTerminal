@@ -641,7 +641,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmittingSettlement}
-                  className="px-5 py-2 rounded-full bg-black text-white hover:bg-neutral-800 text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-full bg-[#0071E3] text-white hover:bg-[#0077ED] text-xs font-bold uppercase tracking-wider shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
                   {isSubmittingSettlement ? "Processing..." : "Confirm Settle"}
                 </button>
@@ -738,7 +738,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
               </span>
               <button
                 onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-xs transition cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Print Statement</span>

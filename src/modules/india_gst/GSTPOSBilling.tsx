@@ -823,7 +823,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
                 licenseStatus?.is_expired
                   ? "bg-rose-600 hover:bg-rose-700"
-                  : "bg-black hover:bg-neutral-800"
+                  : "bg-[#0071E3] hover:bg-[#0077ED]"
               }`}
             >
               {licenseStatus?.is_expired ? (

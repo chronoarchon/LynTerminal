@@ -83,9 +83,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors apple-press cursor-pointer ${
                   isActive
-                    ? "bg-white text-black shadow-md font-bold"
+                    ? "bg-white text-black font-bold"
                     : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
                 }`}
               >
@@ -138,9 +138,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     key={item.id}
                     onClick={() => onSelectTab(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all apple-press cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors apple-press cursor-pointer ${
                       isActive
-                        ? "bg-white text-black shadow-md font-bold"
+                        ? "bg-white text-black font-bold"
                         : "text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-white/[0.06]"
                     }`}
                   >
@@ -216,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Local SQLite Engine
             </span>
             <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
               100% Offline & Private
             </span>
           </div>
