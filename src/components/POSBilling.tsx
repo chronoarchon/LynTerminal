@@ -363,7 +363,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
-    if (licenseStatus?.is_expired) {
+    if (licenseStatus?.is_expired && licenseStatus?.platform !== "linux") {
       onOpenLicenseModal?.();
       appleAlert({
         title: "14-Day Free Trial Expired",
@@ -512,8 +512,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-[#F5F5F7] overflow-hidden relative select-none">
-      {/* 14-Day Free Trial Expired Warning Banner */}
-      {licenseStatus?.is_expired && (
+      {/* 14-Day Free Trial Expired Warning Banner — Windows only */}
+      {licenseStatus?.is_expired && licenseStatus?.platform !== "linux" && (
         <div className="w-full bg-rose-50 border-b border-rose-200 px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 z-30 shrink-0">
           <div className="flex items-center gap-2 text-xs text-rose-800 font-medium">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -1435,12 +1435,12 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               onClick={handleCheckout}
               disabled={cart.length === 0 || isSubmitting}
               className={`w-full py-3.5 rounded-full font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-sm transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
-                licenseStatus?.is_expired
+                licenseStatus?.is_expired && licenseStatus?.platform !== "linux"
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-black hover:bg-neutral-800 text-white uppercase tracking-wider"
               }`}
             >
-              {licenseStatus?.is_expired ? (
+              {licenseStatus?.is_expired && licenseStatus?.platform !== "linux" ? (
                 <>
                   <Lock className="w-4 h-4" />
                   <span>Trial Expired · Activate ({formatCurrency(totalAmount)})</span>

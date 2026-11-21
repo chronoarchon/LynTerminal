@@ -1564,19 +1564,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-neutral-800" />
             <h2 className="text-sm font-semibold text-[#1D1D1F]">
-              Commercial License
+              {licenseStatus?.platform === "linux" ? "Community Edition" : "Commercial License"}
             </h2>
           </div>
           <span
             className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${
-              licenseStatus?.is_licensed
+              licenseStatus?.platform === "linux"
+                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                : licenseStatus?.is_licensed
                 ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                 : licenseStatus?.is_expired
                 ? "bg-red-500/10 text-red-600 border-red-500/20"
                 : "bg-black/5 text-[#1D1D1F] border-black/10"
             }`}
           >
-            {licenseStatus?.is_licensed
+            {licenseStatus?.platform === "linux"
+              ? "FREE"
+              : licenseStatus?.is_licensed
               ? "LICENSED"
               : licenseStatus?.is_expired
               ? "EXPIRED"
@@ -1587,9 +1591,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>{licenseStatus?.is_licensed ? "Commercial License Active" : licenseStatus?.is_expired ? "Trial Expired" : "14-Day Free Trial"}</span>
+              <span>{licenseStatus?.platform === "linux" ? "Linux Community Edition — Free Forever" : licenseStatus?.is_licensed ? "Commercial License Active" : licenseStatus?.is_expired ? "Trial Expired" : "14-Day Free Trial"}</span>
             </div>
-            {licenseStatus?.is_licensed ? (
+            {licenseStatus?.platform === "linux" ? (
+              <p className="text-[11px] text-[#6E6E73]">
+                Full-featured. No license required on Linux.
+              </p>
+            ) : licenseStatus?.is_licensed ? (
               <p className="text-[11px] text-[#6E6E73] font-mono">
                 Key: {licenseStatus.license_key || "LYN-COMM-XXXX-XXXX-XXXX-XXXX"}
               </p>
@@ -1601,14 +1609,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onOpenLicenseModal}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
-            >
-              <span>{licenseStatus?.is_licensed ? "View License" : "Enter Key"}</span>
-            </button>
-            {!licenseStatus?.is_licensed && (
+            {licenseStatus?.platform !== "linux" && (
+              <button
+                type="button"
+                onClick={onOpenLicenseModal}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
+              >
+                <span>{licenseStatus?.is_licensed ? "View License" : "Enter Key"}</span>
+              </button>
+            )}
+            {licenseStatus?.platform !== "linux" && !licenseStatus?.is_licensed && (
               <a
                 href="https://lynterminal.wintershogun.tech/pricing?checkout=windows"
                 target="_blank"

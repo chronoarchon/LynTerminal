@@ -196,7 +196,8 @@ export function AppContent() {
       if (fetchedGstSettings) setGstSettings(fetchedGstSettings);
       if (fetchedLicense) {
         setLicenseStatus(fetchedLicense);
-        if (fetchedLicense.is_expired && !fetchedLicense.is_licensed) {
+        // Only auto-open the license modal on Windows (Linux is free — no trial)
+        if (fetchedLicense.is_expired && !fetchedLicense.is_licensed && fetchedLicense.platform !== "linux") {
           setIsLicenseModalOpen(true);
         }
       }
@@ -550,16 +551,18 @@ export function AppContent() {
           />
         </Suspense>
 
-        {/* Commercial License & 14-Day Trial Activation Modal */}
-        <TrialActivationModal
-          isOpen={isLicenseModalOpen}
-          onClose={() => setIsLicenseModalOpen(false)}
-          licenseStatus={licenseStatus}
-          onActivated={(updated) => {
-            setLicenseStatus(updated);
-            loadAllData();
-          }}
-        />
+        {/* Commercial License & 14-Day Trial Activation Modal — Windows only */}
+        {licenseStatus?.platform !== "linux" && (
+          <TrialActivationModal
+            isOpen={isLicenseModalOpen}
+            onClose={() => setIsLicenseModalOpen(false)}
+            licenseStatus={licenseStatus}
+            onActivated={(updated) => {
+              setLicenseStatus(updated);
+              loadAllData();
+            }}
+          />
+        )}
       </div>
 
     </CurrencyProvider>

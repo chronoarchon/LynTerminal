@@ -62,8 +62,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Controls: Trial / License Badge + Offline Status + Actions */}
       <div className="flex items-center gap-2.5">
-        {/* Trial & License Badge */}
-        {licenseStatus && (
+        {/* Trial & License Badge — hidden on Linux (community edition is free) */}
+        {licenseStatus && licenseStatus.platform !== "linux" && (
           <button
             onClick={onOpenLicenseModal}
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold border transition apple-press cursor-pointer ${

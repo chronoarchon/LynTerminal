@@ -6598,25 +6598,11 @@ pub fn apply_update_and_restart(
         // If current binary was updated, restart via Tauri for graceful GTK teardown
         app_handle.restart();
         Ok(())
-    } else if let Some(exe) = updated_user_bin {
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            let mut cmd = std::process::Command::new(&exe);
-            cmd.process_group(0);
-            cmd.stdin(std::process::Stdio::null());
-            cmd.stdout(std::process::Stdio::null());
-            cmd.stderr(std::process::Stdio::null());
-            let _ = cmd.spawn();
-            std::thread::sleep(std::time::Duration::from_millis(250));
-            std::process::exit(0);
-        }
-        #[cfg(not(unix))]
-        {
-            let _ = std::process::Command::new(&exe).spawn();
-            std::thread::sleep(std::time::Duration::from_millis(250));
-            std::process::exit(0);
-        }
+    } else if updated_user_bin.is_some() {
+        // User-local binary updated — use Tauri restart for clean GTK teardown
+        // This ensures WebKitGTK releases all file handles before the new binary runs
+        app_handle.restart();
+        Ok(())
     } else {
         app_handle.restart();
         Ok(())

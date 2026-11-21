@@ -172,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Terminal Info Footer & License Badge */}
       <div className="p-3.5 border-t border-white/[0.08] bg-black/20 space-y-2">
-        {licenseStatus && (
+        {licenseStatus && licenseStatus.platform !== "linux" && (
           <button
             onClick={onOpenLicenseModal}
             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition apple-press cursor-pointer ${

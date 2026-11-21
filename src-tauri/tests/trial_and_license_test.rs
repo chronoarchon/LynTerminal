@@ -9,13 +9,26 @@ fn test_trial_initial_state_14_days() {
     let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
     let status = db.get_license_status().expect("Must get license status");
 
-    assert!(!status.is_licensed, "Fresh installation must not be licensed");
-    assert!(status.is_trial, "Fresh installation must be in trial mode");
-    assert!(!status.is_expired, "Day 0 trial must not be expired");
-    assert_eq!(status.days_elapsed, 0, "Initial days elapsed must be 0");
-    assert_eq!(status.days_remaining, 14, "Initial trial days remaining must be 14");
-    assert_eq!(status.trial_days_limit, 14, "Trial limit must be 14");
-    assert!(!status.first_run_date.is_empty(), "First run date must be recorded");
+    // On Linux, the app is free — always licensed, never trial
+    #[cfg(target_os = "linux")]
+    {
+        assert!(status.is_licensed, "Linux must always be licensed (community edition)");
+        assert!(!status.is_trial, "Linux must never show trial");
+        assert!(!status.is_expired, "Linux must never be expired");
+        assert_eq!(status.platform, "linux");
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        assert!(!status.is_licensed, "Fresh installation must not be licensed");
+        assert!(status.is_trial, "Fresh installation must be in trial mode");
+        assert!(!status.is_expired, "Day 0 trial must not be expired");
+        assert_eq!(status.days_elapsed, 0, "Initial days elapsed must be 0");
+        assert_eq!(status.days_remaining, 14, "Initial trial days remaining must be 14");
+        assert_eq!(status.trial_days_limit, 14, "Trial limit must be 14");
+        assert!(!status.first_run_date.is_empty(), "First run date must be recorded");
+    }
 }
 
 #[test]
@@ -65,13 +78,21 @@ fn test_license_activation_persists_in_sqlite() {
     assert!(activated.is_licensed, "Must be licensed after activation");
     assert!(!activated.is_trial, "Must no longer be in trial mode");
     assert!(!activated.is_expired, "Must not be expired");
-    assert_eq!(activated.license_key, Some(key.clone()));
-    assert_eq!(activated.license_tier, Some("Commercial Windows Lifetime".to_string()));
-    assert_eq!(activated.customer_email, Some("merchant@store.local".to_string()));
 
-    // Verify persistence across subsequent status queries
+    // On Linux, get_license_status() early-returns LINUX-FREE community edition;
+    // key/tier/email assertions only apply on Windows (where trial flow is active)
+    #[cfg(not(target_os = "linux"))]
+    {
+        assert_eq!(activated.license_key, Some(key.clone()));
+        assert_eq!(activated.license_tier, Some("Commercial Windows Lifetime".to_string()));
+        assert_eq!(activated.customer_email, Some("merchant@store.local".to_string()));
+    }
+
+    // Verify persistence: at minimum the app reports is_licensed = true
     let queried = db.get_license_status().expect("Must query license status");
     assert!(queried.is_licensed);
+
+    #[cfg(not(target_os = "linux"))]
     assert_eq!(queried.license_key, Some(key));
 }
 
@@ -79,6 +100,19 @@ fn test_license_activation_persists_in_sqlite() {
 fn test_trial_expiration_locks_and_activation_unlocks() {
     let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
 
+    // On Linux there is no trial — this test validates Windows/non-Linux behavior
+    #[cfg(target_os = "linux")]
+    {
+        // Linux is always free — trial never expires
+        let status = db.get_license_status().expect("Must get license status");
+        assert!(status.is_licensed, "Linux always licensed");
+        assert!(!status.is_expired, "Linux never expired");
+        assert!(!db.is_trial_expired(), "Linux is_trial_expired must be false");
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
     // 1. Advance trial start by 15 days ago (> 14 days)
     db.set_trial_start_days_ago(15).expect("Must set trial start");
 
@@ -138,12 +172,24 @@ fn test_trial_expiration_locks_and_activation_unlocks() {
     let mut conn = db.conn.lock().expect("Lock connection");
     let invoice_detail = create_invoice_internal(&mut conn, payload).expect("Invoice creation must succeed when licensed");
     assert_eq!(invoice_detail.invoice.total_amount, 105.0);
+    }
 }
 
 #[test]
 fn test_anti_tamper_clock_rollback() {
     let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
 
+    // On Linux there is no trial clock — anti-tamper is a Windows-only concern
+    #[cfg(target_os = "linux")]
+    {
+        let status = db.get_license_status().expect("Must get license status");
+        assert!(status.is_licensed, "Linux always licensed regardless of clock");
+        assert!(!status.is_expired, "Linux never expired");
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
     // Set last_run_date to 5 days in the future to simulate user rolling back system clock
     let future_time = chrono::Utc::now() + chrono::Duration::days(5);
     {
@@ -158,12 +204,16 @@ fn test_anti_tamper_clock_rollback() {
     // Checking status now should detect clock rollback tampering and lock the trial
     let status = db.get_license_status().expect("Must get license status");
     assert!(status.is_expired, "Clock rollback tampering must lock the trial");
+    }
 }
 
 #[test]
 fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
     let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
 
+    // On Linux the app is free — trial days don't apply; skip trial countdown checks
+    #[cfg(not(target_os = "linux"))]
+    {
     // 1. Verify 14-day trial countdown progression
     let day0_status = db.get_license_status().expect("Status day 0");
     assert_eq!(day0_status.days_remaining, 14);
@@ -183,6 +233,7 @@ fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
     assert!(expired_status.is_expired, "Day 15 must be expired");
     assert_eq!(expired_status.days_remaining, 0);
     assert!(db.is_trial_expired(), "is_trial_expired must return true");
+    }
 
     // 3. Cryptographic Key Generation matching /api/razorpay/verify
     // Salt: WINTERSHOGUN_LYNTERMINAL_SOVEREIGN_OFFLINE_SECRET_2026
@@ -200,6 +251,8 @@ fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
 
     let res_tampered = db.activate_license(&tampered_key, Some("customer@shop.in".to_string()));
     assert!(res_tampered.is_err(), "Tampered signature key must be rejected");
+
+    #[cfg(not(target_os = "linux"))]
     assert!(db.is_trial_expired(), "Trial must remain expired after failed activation");
 
     let res_bad_prefix = db.activate_license("XYZ-COMM-RZP8-COMM-1111-2222", None);
@@ -219,16 +272,28 @@ fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
     assert!(activated.is_licensed, "Workstation must now be licensed");
     assert!(!activated.is_trial, "Trial mode terminated");
     assert!(!activated.is_expired, "Not expired");
-    assert_eq!(activated.license_key, Some(razorpay_key.clone()));
-    assert_eq!(activated.customer_email, Some("licensed_merchant@kirana.store".to_string()));
-    assert_eq!(activated.license_tier, Some("Commercial Windows Lifetime".to_string()));
+
+    // On Linux, activate_license calls get_license_status() which early-returns LINUX-FREE;
+    // key/email/tier assertions only apply on Windows
+    #[cfg(not(target_os = "linux"))]
+    {
+        assert_eq!(activated.license_key, Some(razorpay_key.clone()));
+        assert_eq!(activated.customer_email, Some("licensed_merchant@kirana.store".to_string()));
+        assert_eq!(activated.license_tier, Some("Commercial Windows Lifetime".to_string()));
+    }
+
     assert!(!db.is_trial_expired(), "is_trial_expired must return false");
 
     // 6. Verify SQLite persistence across fresh connection queries
     let persisted = db.get_license_status().expect("Must read persisted license status");
     assert!(persisted.is_licensed, "Must persist in SQLite database");
-    assert_eq!(persisted.license_key, Some(razorpay_key));
-    assert_eq!(persisted.customer_email, Some("licensed_merchant@kirana.store".to_string()));
+
+    // On Linux early return gives LINUX-FREE, on Windows it gives the actual key
+    #[cfg(not(target_os = "linux"))]
+    {
+        assert_eq!(persisted.license_key, Some(razorpay_key));
+        assert_eq!(persisted.customer_email, Some("licensed_merchant@kirana.store".to_string()));
+    }
 
     // 7. Verify POS Billing is unlocked: create_invoice_internal succeeds
     let mut conn = db.conn.lock().expect("Lock connection");

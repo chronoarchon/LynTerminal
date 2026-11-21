@@ -907,6 +907,28 @@ impl DatabaseManager {
             "linux".to_string()
         };
 
+        // ── Linux Community Edition ─────────────────────────────────────────
+        // Linux is FREE. No trial enforcement, no license UI, no expiry.
+        // Windows keeps the full commercial trial / license flow.
+        #[cfg(target_os = "linux")]
+        {
+            return Ok(LicenseStatus {
+                is_licensed: true,
+                is_trial: false,
+                is_expired: false,
+                days_elapsed: 0,
+                days_remaining: 9999,
+                trial_days_limit: 9999,
+                first_run_date: first_run_str,
+                license_key: Some("LINUX-FREE".to_string()),
+                license_tier: Some("community".to_string()),
+                customer_email: None,
+                activated_at: None,
+                platform: "linux".to_string(),
+            });
+        }
+
+        #[allow(unreachable_code)]
         Ok(LicenseStatus {
             is_licensed,
             is_trial: !is_licensed,
