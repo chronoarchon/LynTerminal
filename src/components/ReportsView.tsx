@@ -171,7 +171,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
         <div className="flex items-center gap-2">
           <button
             onClick={handleOpenClosingModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-xs transition apple-press"
           >
             <ClipboardCheck className="w-3.5 h-3.5" />
             <span>Shift Close (Z-Report)</span>
@@ -585,7 +585,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
                 <button
                   type="submit"
                   disabled={isSubmittingClosing}
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingClosing ? "Closing..." : "Close Shift"}
                 </button>

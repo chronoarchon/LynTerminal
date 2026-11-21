@@ -221,7 +221,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenStore}
-                  className="w-full sm:w-auto h-10 px-5 rounded-full bg-black hover:bg-neutral-800 text-white font-bold uppercase tracking-wider text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+                  className="w-full sm:w-auto h-10 px-5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white font-bold uppercase tracking-wider text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
                 >
                   <span>Buy Online</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -285,7 +285,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 rounded-full bg-black hover:bg-neutral-800 text-white font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shadow-md mt-2"
+                    className="w-full h-11 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shadow-md mt-2"
                   >
                     {isSubmitting ? (
                       <span>Verifying Key...</span>

@@ -7,7 +7,7 @@ import { AppleDialogProvider } from "./components/common/AppleDialog";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { gstApi } from "./modules/india_gst/gstApi";
 import type { GstSettings } from "./modules/india_gst/gstTypes";
-import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, AppUpdateInfo, LicenseStatus } from "./types";
+import type { Settings, Item, Party, Invoice, DashboardSummary, AuthState, LicenseStatus } from "./types";
 import { api } from "./services/api";
 
 import { DashboardView } from "./components/DashboardView";
@@ -39,9 +39,6 @@ import { TrialActivationModal } from "./components/TrialActivationModal";
 
 const SetupWizardModal = lazy(() =>
   import("./components/SetupWizardModal").then((m) => ({ default: m.SetupWizardModal }))
-);
-const UpdateNotificationModal = lazy(() =>
-  import("./components/UpdateNotificationModal").then((m) => ({ default: m.UpdateNotificationModal }))
 );
 
 
@@ -107,14 +104,6 @@ export function AppContent() {
     return false;
   });
   const [initialLoading, setInitialLoading] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get("modal") === "update" || p.get("update") === "1") return true;
-    }
-    return false;
-  });
   const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(() => {
@@ -124,33 +113,6 @@ export function AppContent() {
     }
     return false;
   });
-
-
-  // Check for updates on startup and periodically (every 4 hours)
-  useEffect(() => {
-    const runUpdateCheck = () => {
-      api.checkAppUpdate()
-        .then((info) => {
-          if (info && info.has_update) {
-            setUpdateInfo(info);
-            const dismissed = typeof window !== "undefined" ? localStorage.getItem("lyn_dismissed_update") : null;
-            const dismissedAt = typeof window !== "undefined" ? Number(localStorage.getItem("lyn_dismissed_update_at") || "0") : 0;
-            const now = Date.now();
-            const oneDayMs = 24 * 60 * 60 * 1000;
-            if (dismissed !== info.latest_version || (now - dismissedAt > oneDayMs)) {
-              setIsUpdateModalOpen(true);
-            }
-          }
-        })
-        .catch((err) => {
-          console.debug("Silent update check info:", err);
-        });
-    };
-
-    runUpdateCheck();
-    const timer = setInterval(runUpdateCheck, 4 * 60 * 60 * 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleLockApp = useCallback(async () => {
     if (!authState || !authState.has_account) {
@@ -314,7 +276,7 @@ export function AppContent() {
   if (initialLoading) {
     return (
       <div className="h-screen w-screen bg-[#F5F5F7] flex flex-col items-center justify-center text-[#1D1D1F]">
-        <div className="w-14 h-14 rounded-2xl bg-[#1D1D1F] flex items-center justify-center mb-4 shadow-xl">
+        <div className="w-14 h-14 rounded-2xl bg-[#0071E3] flex items-center justify-center mb-4 shadow-xl">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -541,15 +503,6 @@ export function AppContent() {
           authState={authState}
           onUnlocked={handleUnlocked}
         />
-
-        {/* GitHub Software Update Notification Modal */}
-        <Suspense fallback={null}>
-          <UpdateNotificationModal
-            updateInfo={updateInfo}
-            isOpen={isUpdateModalOpen}
-            onClose={() => setIsUpdateModalOpen(false)}
-          />
-        </Suspense>
 
         {/* Commercial License & 14-Day Trial Activation Modal — Windows only */}
         {licenseStatus?.platform !== "linux" && (

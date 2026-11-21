@@ -454,7 +454,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => openSettleModal(party)}
-                          className="px-2.5 py-1 rounded-lg bg-black text-white hover:bg-neutral-800 text-[11px] font-semibold transition apple-press cursor-pointer shadow-xs"
+                          className="px-2.5 py-1 rounded-lg bg-[#0071E3] text-white hover:bg-[#0077ED] text-[11px] font-semibold transition apple-press cursor-pointer shadow-xs"
                         >
                           {activeTab === "debtors" ? "Receive Payment" : "Pay Supplier"}
                         </button>

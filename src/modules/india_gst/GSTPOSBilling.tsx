@@ -422,7 +422,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   selectedCategory === cat
-                    ? "bg-[#1D1D1F] text-white shadow-xs"
+                    ? "bg-[#0071E3] text-white shadow-xs"
                     : "bg-white border border-black/[0.08] text-neutral-600 hover:bg-neutral-100"
                 }`}
               >
@@ -585,7 +585,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                         onClick={() => updateTaxRate(idx, slab)}
                         className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition ${
                           line.tax_rate === slab
-                            ? "bg-black text-white"
+                            ? "bg-[#0071E3] text-white"
                             : "text-neutral-500 hover:text-black"
                         }`}
                       >
@@ -642,7 +642,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 onClick={() => setPaymentType("CASH")}
                 className={`py-1.5 rounded-lg font-bold flex flex-col items-center gap-0.5 transition cursor-pointer ${
                   paymentType === "CASH"
-                    ? "bg-[#1D1D1F] text-white shadow-xs"
+                    ? "bg-[#0071E3] text-white shadow-xs"
                     : "bg-white border border-black/[0.08] text-neutral-600 hover:bg-neutral-100"
                 }`}
               >
@@ -655,7 +655,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 onClick={() => setPaymentType("UPI")}
                 className={`py-1.5 rounded-lg font-bold flex flex-col items-center gap-0.5 transition cursor-pointer ${
                   paymentType === "UPI"
-                    ? "bg-black text-white shadow-xs"
+                    ? "bg-[#0071E3] text-white shadow-xs"
                     : "bg-white border border-black/[0.08] text-neutral-600 hover:bg-neutral-100"
                 }`}
               >

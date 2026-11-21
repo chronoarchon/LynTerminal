@@ -578,7 +578,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                     className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-3 rounded-xl font-bold uppercase tracking-wider text-xs shadow-md transition active:scale-95 cursor-pointer ${
                       copiedKey
                         ? "bg-emerald-500 text-white"
-                        : "bg-black hover:bg-neutral-800 text-white"
+                        : "bg-[#0071E3] hover:bg-[#0077ED] text-white"
                     }`}
                   >
                     {copiedKey ? (
@@ -968,7 +968,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 type="button"
                 disabled={!privacyAgreed}
                 onClick={() => setCurrentStep(2)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Agree & Continue</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -981,7 +981,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrentStep(4)}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
                   >
                     <span>Next</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -994,7 +994,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                         setCurrentStep(3);
                       }
                     }}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
                   >
                     <span>Next</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1008,7 +1008,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 type="button"
                 disabled={!keyRecorded}
                 onClick={() => setCurrentStep(4)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1019,7 +1019,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep(5)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1030,7 +1030,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep(6)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1042,7 +1042,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleFinalLaunch}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 <span>{isSubmitting ? "Launching..." : "Launch Terminal"}</span>
               </button>

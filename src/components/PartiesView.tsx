@@ -254,7 +254,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
         <button
           onClick={openCreateParty}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>New Contact</span>
@@ -416,7 +416,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                       {hasBalance && (
                         <button
                           onClick={() => openPaymentModal(party)}
-                          className="px-2 py-1 rounded-lg bg-[#1D1D1F] text-white hover:bg-black text-[11px] font-semibold transition apple-press"
+                          className="px-2 py-1 rounded-lg bg-[#0071E3] text-white hover:bg-[#0077ED] text-[11px] font-semibold transition apple-press"
                         >
                           {isCust ? "Collect" : "Pay"}
                         </button>
@@ -490,7 +490,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   {hasBalance && (
                     <button
                       onClick={() => openPaymentModal(party)}
-                      className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[11px] font-semibold"
+                      className="px-2.5 py-1 rounded-lg bg-[#0071E3] hover:bg-[#0077ED] text-white text-[11px] font-semibold"
                     >
                       {isCust ? "Collect" : "Pay"}
                     </button>
@@ -656,7 +656,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Save Party
                 </button>
@@ -747,7 +747,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmittingPayment}
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingPayment ? "Recording..." : "Save Payment"}
                 </button>
@@ -876,7 +876,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   setCopiedReminder(true);
                   setTimeout(() => setCopiedReminder(false), 2000);
                 }}
-                className="w-full py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {copiedReminder ? (
                   <>

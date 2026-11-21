@@ -6313,6 +6313,7 @@ pub fn create_pre_update_backup(
     Ok(path)
 }
 
+#[allow(dead_code)]
 fn compare_semver(remote: &str, current: &str) -> bool {
     let parse_parts = |s: &str| -> Vec<u64> {
         s.trim()
@@ -6338,90 +6339,14 @@ fn compare_semver(remote: &str, current: &str) -> bool {
 #[tauri::command]
 pub fn check_app_update() -> Result<AppUpdateInfo, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
-
-    let user_agent = format!("LynTerminal-App/{}", current_version);
-    let output = std::process::Command::new("curl")
-        .args(&[
-            "-s",
-            "--max-time", "6",
-            "-H", &user_agent,
-            "https://api.github.com/repos/chronoarchon/LynTerminal/releases/latest",
-        ])
-        .output()
-        .map_err(|e| format!("Failed to check for updates: {}", e))?;
-
-    if !output.status.success() {
-        return Err("Update check failed: network error or timeout".into());
-    }
-
-    let json_str = String::from_utf8_lossy(&output.stdout);
-    let release: serde_json::Value = match serde_json::from_str(&json_str) {
-        Ok(v) => v,
-        Err(_) => {
-            return Ok(AppUpdateInfo {
-                current_version: current_version.clone(),
-                latest_version: current_version,
-                has_update: false,
-                release_notes: "".into(),
-                published_at: "".into(),
-                html_url: "".into(),
-                download_url: "".into(),
-            });
-        }
-    };
-
-    let tag_name = release["tag_name"]
-        .as_str()
-        .unwrap_or("")
-        .trim()
-        .trim_start_matches('v')
-        .trim_end_matches('v')
-        .to_string();
-
-    if tag_name.is_empty() {
-        return Ok(AppUpdateInfo {
-            current_version: current_version.clone(),
-            latest_version: current_version,
-            has_update: false,
-            release_notes: "".into(),
-            published_at: "".into(),
-            html_url: "".into(),
-            download_url: "".into(),
-        });
-    }
-
-    let has_update = compare_semver(&tag_name, &current_version);
-    let release_notes = release["body"].as_str().unwrap_or("").to_string();
-    let published_at = release["published_at"].as_str().unwrap_or("").to_string();
-    let html_url = release["html_url"].as_str().unwrap_or("https://github.com/chronoarchon/LynTerminal/releases").to_string();
-
-    let mut download_url = String::new();
-    if let Some(assets) = release["assets"].as_array() {
-        // 1. Prioritize standalone binary bundle for direct update
-        for a in assets {
-            if let Some(name) = a["name"].as_str() {
-                if name == "lynterminal.gz" || name == "lyndesk.gz" || name.ends_with(".gz") {
-                    if let Some(url) = a["browser_download_url"].as_str() {
-                        download_url = url.to_string();
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    // Always use reliable CDN URL for binary in-app updates
-    if download_url.is_empty() {
-        download_url = "https://lynterminal.wintershogun.tech/lynterminal/lynterminal.gz".to_string();
-    }
-
     Ok(AppUpdateInfo {
-        current_version,
-        latest_version: tag_name,
-        has_update,
-        release_notes,
-        published_at,
-        html_url,
-        download_url,
+        current_version: current_version.clone(),
+        latest_version: current_version,
+        has_update: false,
+        release_notes: "".into(),
+        published_at: "".into(),
+        html_url: "".into(),
+        download_url: "".into(),
     })
 }
 

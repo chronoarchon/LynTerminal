@@ -290,7 +290,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
           {activeSubTab === "EXPENSES" ? (
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Record Expense</span>
@@ -298,7 +298,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
           ) : (
             <button
               onClick={() => setIsAddBillModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Monthly Bill</span>
@@ -532,7 +532,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
                 <button
                   onClick={() => handleOpenPayBill(bill)}
-                  className="px-3 py-1.5 rounded-xl bg-[#1D1D1F] hover:bg-black text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
                 >
                   Pay Bill
                 </button>
@@ -656,7 +656,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {editingExpense ? "Save Expense" : "Record Expense"}
                 </button>
@@ -781,7 +781,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmittingPayment}
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isSubmittingPayment ? "Paying..." : "Record Payment"}
                 </button>
@@ -889,7 +889,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Save Bill
                 </button>

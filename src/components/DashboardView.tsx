@@ -500,7 +500,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <button
             onClick={() => {
               const el = document.getElementById("credit-ledger-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
+              if (el) el.scrollIntoView({ behavior: "auto" });
             }}
             className="px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-black text-xs font-semibold shrink-0 transition apple-press cursor-pointer self-start sm:self-auto"
           >

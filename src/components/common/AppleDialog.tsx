@@ -296,7 +296,7 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                 className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                   dialogState.isDestructive
                     ? "bg-red-600 hover:bg-red-500 text-white shadow-md"
-                    : "bg-black hover:bg-neutral-800 text-white shadow-md"
+                    : "bg-[#0071E3] hover:bg-[#0077ED] text-white shadow-md"
                 }`}
               >
                 {dialogState.confirmText}

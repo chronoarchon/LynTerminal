@@ -190,7 +190,7 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           <button
             type="submit"
             disabled={isVerifying}
-            className="w-full py-3 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-3 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Unlock className="w-4 h-4 stroke-[2.5]" />
             <span>{isVerifying ? "Verifying..." : "Unlock"}</span>
@@ -315,7 +315,7 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
                 <button
                   type="submit"
                   disabled={isResetting}
-                  className="px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50"
                 >
                   {isResetting ? "Resetting..." : "Reset & Unlock"}
                 </button>

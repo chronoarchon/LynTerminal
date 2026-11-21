@@ -129,7 +129,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
           <button
             onClick={handleSeedDemoData}
             disabled={seeding}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
           >
             <Sparkles className={`w-3.5 h-3.5 ${seeding ? "animate-spin" : ""}`} />
             <span>{seeding ? "Simulating..." : "Generate Demo Data"}</span>
@@ -334,7 +334,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedLog(null)}
-                  className="w-full py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="w-full py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Close
                 </button>

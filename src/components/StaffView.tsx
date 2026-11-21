@@ -307,7 +307,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
           {subTab === "employees" && (
             <button
               onClick={handleOpenAddEmployee}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition apple-press"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>+ New Employee</span>
@@ -316,7 +316,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
 
           <button
             onClick={() => handleOpenPaySalary()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1D1D1F] hover:bg-black text-white text-xs font-semibold shadow-xs transition apple-press"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press"
           >
             <Wallet className="w-3.5 h-3.5" />
             <span>Pay Salary</span>
@@ -567,7 +567,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                     <div className="inline-flex items-center gap-1.5">
                       <button
                         onClick={() => handleOpenPaySalary(emp)}
-                        className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white hover:bg-black text-[11px] font-semibold transition apple-press"
+                        className="px-2.5 py-1 rounded-lg bg-[#0071E3] text-white hover:bg-[#0077ED] text-[11px] font-semibold transition apple-press"
                       >
                         Disburse
                       </button>
@@ -737,7 +737,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Save Staff
                 </button>
@@ -857,7 +857,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   Issue Voucher
                 </button>
@@ -921,7 +921,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
               <div className="pt-4 flex gap-2 no-print">
                 <button
                   onClick={() => window.print()}
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Slip</span>

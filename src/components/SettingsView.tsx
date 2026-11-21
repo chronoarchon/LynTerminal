@@ -16,9 +16,8 @@ import {
   ShieldCheck,
   ServerOff,
   Coins,
-  RefreshCw,
 } from "lucide-react";
-import type { Settings, BackupInfo, AuthState, AppUpdateInfo } from "../types";
+import type { Settings, BackupInfo, AuthState } from "../types";
 import { api } from "../services/api";
 import { AppleSelect } from "./common/AppleSelect";
 import { useAppleDialog } from "./common/AppleDialog";
@@ -27,10 +26,6 @@ import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
 import { ManageMoneyModal } from "./ManageMoneyModal";
-
-const UpdateNotificationModal = React.lazy(() =>
-  import("./UpdateNotificationModal").then((m) => ({ default: m.UpdateNotificationModal }))
-);
 
 interface SettingsViewProps {
   settings: Settings | null;
@@ -169,11 +164,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     upi_id: "lynstore@okhdfcbank",
   });
 
-  // Auto-Update states
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const [availableUpdate, setAvailableUpdate] = useState<AppUpdateInfo | null>(null);
-
   useEffect(() => {
     api.getAuthState().then(setAuthState).catch(() => {});
     api.getDashboardSummary().then(setSummary).catch(() => {});
@@ -277,23 +267,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       onSettingsUpdated({ ...formData });
     } catch (err) {
       alert({ title: "Lock Error", message: String(err), type: "error" });
-    }
-  };
-
-  const handleCheckUpdate = async () => {
-    try {
-      setCheckingUpdate(true);
-      const info = await api.checkAppUpdate();
-      if (info && info.has_update) {
-        setAvailableUpdate(info);
-        setUpdateModalOpen(true);
-      } else {
-        toast({ message: `LynTerminal is up to date (v${info.current_version})`, type: "success" });
-      }
-    } catch (err) {
-      alert({ title: "Update Check", message: String(err), type: "error" });
-    } finally {
-      setCheckingUpdate(false);
     }
   };
 
@@ -472,7 +445,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <button
           onClick={() => handleSubmit()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer self-start sm:self-auto disabled:opacity-50"
         >
           <Save className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>{saving ? "Saving..." : "Save Preferences"}</span>
@@ -1085,7 +1058,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="button"
               onClick={() => setIsManageMoneyOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold shadow-2xs transition apple-press cursor-pointer"
             >
               <Coins className="w-3.5 h-3.5 stroke-[2.2]" />
               <span>Manage Money</span>
@@ -1613,7 +1586,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenLicenseModal}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer border border-neutral-300"
               >
                 <span>{licenseStatus?.is_licensed ? "View License" : "Enter Key"}</span>
               </button>
@@ -1623,51 +1596,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 href="https://lynterminal.wintershogun.tech/pricing?checkout=windows"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition apple-press cursor-pointer"
               >
                 <span>Buy License</span>
               </a>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* SECTION: Software Updates */}
-      <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
-        <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-neutral-800" />
-            <h2 className="text-sm font-semibold text-[#1D1D1F]">
-              Software Updates
-            </h2>
-          </div>
-          <span className="text-[11px] font-mono font-semibold text-neutral-700 bg-neutral-100 px-2.5 py-0.5 rounded-full border border-neutral-200">
-            v1.5.3
-          </span>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
-          <div>
-            <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>LynTerminal v1.5.3</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200/50">
-                Current
-              </span>
-            </div>
-            <p className="text-[11px] text-[#86868B] mt-1">
-              Zero data loss updates.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleCheckUpdate}
-            disabled={checkingUpdate}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition apple-press cursor-pointer shrink-0 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdate ? "animate-spin" : ""}`} />
-            <span>{checkingUpdate ? "Checking Releases..." : "Check for Updates"}</span>
-          </button>
         </div>
       </div>
 
@@ -1717,7 +1651,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="button"
                   onClick={confirmCurrencySwitch}
                   disabled={isResettingCurrency}
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isResettingCurrency ? "Switching..." : "Confirm"}
                 </button>
@@ -1826,7 +1760,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="submit"
                   disabled={isChangingPw}
-                  className="px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
                 >
                   {isChangingPw ? "Saving..." : "Save Password"}
                 </button>
@@ -1897,7 +1831,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCharterOpen(false)}
-                className="px-5 py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                className="px-5 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
               >
                 Close
               </button>
@@ -1905,15 +1839,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* UPDATE NOTIFICATION MODAL */}
-      <React.Suspense fallback={null}>
-        <UpdateNotificationModal
-          updateInfo={availableUpdate}
-          isOpen={updateModalOpen}
-          onClose={() => setUpdateModalOpen(false)}
-        />
-      </React.Suspense>
 
       {/* MANAGE MONEY MODAL */}
       <ManageMoneyModal

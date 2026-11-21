@@ -864,6 +864,7 @@ impl DatabaseManager {
             },
         ).map_err(|e| e.to_string())?;
 
+        #[allow(unused_variables)]
         let (first_run_str, last_run_str, is_lic_num, key_str, tier_str, email_str, act_at_str, trial_limit) = row;
         
         let now = chrono::Utc::now();
@@ -898,12 +899,14 @@ impl DatabaseManager {
         };
 
         let trial_deadline = first_run + chrono::Duration::days(trial_limit);
+        #[allow(unused_variables)]
         let days_elapsed = if now <= first_run {
             0
         } else {
             let elapsed_diff = now - first_run;
             ((elapsed_diff.num_seconds() + 43200) / 86400).max(0).min(trial_limit + 30)
         };
+        #[allow(unused_variables)]
         let days_remaining = if now >= trial_deadline {
             0
         } else {
@@ -911,8 +914,10 @@ impl DatabaseManager {
             let rem = (diff.num_seconds() + 86399) / 86400;
             rem.clamp(0, trial_limit)
         };
+        #[allow(unused_variables)]
         let is_expired = !is_licensed && (now >= trial_deadline || is_clock_tampered);
 
+        #[allow(unused_variables)]
         let platform = if cfg!(target_os = "windows") || std::env::consts::OS == "windows" {
             "windows".to_string()
         } else if cfg!(target_os = "macos") || std::env::consts::OS == "macos" {
