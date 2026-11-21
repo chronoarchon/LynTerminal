@@ -1634,7 +1634,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   type="checkbox"
                   checked={preserveCatalogOnReset}
                   onChange={(e) => setPreserveCatalogOnReset(e.target.checked)}
-                  className="rounded text-black focus:ring-0 accent-black"
+                  className="rounded text-[#0071E3] focus:ring-0 accent-[#0071E3]"
                 />
                 <span className="text-neutral-700">Preserve catalog products</span>
               </label>

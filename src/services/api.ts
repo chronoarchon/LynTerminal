@@ -214,19 +214,9 @@ export const api = {
     invoke<boolean>("change_password", { currentPassword, newPassword }),
   getRecoveryCode: () => invoke<string>("get_recovery_code"),
 
-  // Auto-Update Engine & GitHub Releases
+  // App lifecycle & update compatibility (final release, no updates)
   checkAppUpdate: () => invoke<AppUpdateInfo>("check_app_update"),
-  applyAppUpdate: (downloadUrl: string, targetVersion: string) =>
-    invoke<void>("apply_app_update", { downloadUrl, targetVersion }),
   restartApp: () => invoke<void>("restart_app"),
-  createPreUpdateBackup: (version: string) =>
-    invoke<string>("create_pre_update_backup", { version }),
-  downloadUpdateBinary: (downloadUrl: string, targetVersion: string) =>
-    invoke<string>("download_update_binary", { downloadUrl, targetVersion }),
-  verifyUpdateBinary: (targetVersion: string) =>
-    invoke<boolean>("verify_update_binary", { targetVersion }),
-  applyUpdateAndRestart: (targetVersion: string) =>
-    invoke<void>("apply_update_and_restart", { targetVersion }),
 
   // Commercial Licensing & 14-Day Trial Engine
   getLicenseStatus: () => invoke<LicenseStatus>("get_license_status"),

@@ -127,7 +127,7 @@ export const AppleSelect: React.FC<AppleSelectProps> = ({
                   }}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between transition cursor-pointer select-none ${
                     isSelected
-                      ? "bg-black text-white font-bold"
+                      ? "bg-[#0071E3] text-white font-bold"
                       : "text-neutral-700 hover:bg-neutral-100 hover:text-black"
                   }`}
                 >

@@ -121,8 +121,6 @@
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: auto !important;
-    transform: translateZ(0);
-    will-change: scroll-position;
   }
 
 

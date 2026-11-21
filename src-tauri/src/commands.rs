@@ -6313,29 +6313,6 @@ pub fn create_pre_update_backup(
     Ok(path)
 }
 
-#[allow(dead_code)]
-fn compare_semver(remote: &str, current: &str) -> bool {
-    let parse_parts = |s: &str| -> Vec<u64> {
-        s.trim()
-            .trim_start_matches('v')
-            .trim_end_matches('v')
-            .split('.')
-            .filter_map(|p| p.parse::<u64>().ok())
-            .collect()
-    };
-    let r_parts = parse_parts(remote);
-    let c_parts = parse_parts(current);
-
-    for (r, c) in r_parts.iter().zip(c_parts.iter()) {
-        if r > c {
-            return true;
-        } else if r < c {
-            return false;
-        }
-    }
-    r_parts.len() > c_parts.len()
-}
-
 #[tauri::command]
 pub fn check_app_update() -> Result<AppUpdateInfo, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
@@ -6352,219 +6329,35 @@ pub fn check_app_update() -> Result<AppUpdateInfo, String> {
 
 #[tauri::command]
 pub fn download_update_binary(
-    download_url: String,
-    target_version: String,
+    _download_url: String,
+    _target_version: String,
 ) -> Result<String, String> {
-    let temp_dir = std::env::temp_dir();
-    let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
-
-    if target_gz.exists() {
-        let _ = std::fs::remove_file(&target_gz);
-    }
-
-    let candidate_urls = vec![
-        format!("https://lynterminal.wintershogun.tech/lynterminal/lynterminal.gz"),
-        format!("https://wintershogun.tech/lynterminal/lynterminal.gz"),
-        download_url.clone(),
-        format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}/lynterminal.gz", target_version),
-        format!("https://github.com/chronoarchon/LynTerminal/releases/download/v{}v/lynterminal.gz", target_version),
-        format!("https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/bin/lynterminal.gz"),
-    ];
-
-    let mut download_success = false;
-    for url in candidate_urls {
-        if url.is_empty() || url.ends_with(".deb") || url.ends_with(".rpm") {
-            continue;
-        }
-        let dl = std::process::Command::new("curl")
-            .args(&["-fSL", "--max-time", "15", &url, "-o", &target_gz.to_string_lossy()])
-            .output();
-
-        if let Ok(out) = dl {
-            if out.status.success() {
-                if let Ok(meta) = std::fs::metadata(&target_gz) {
-                    if meta.len() >= 50 * 1024 {
-                        download_success = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if !download_success {
-        return Err("Failed to download update binary. Please check network connection.".into());
-    }
-
-    Ok(target_gz.to_string_lossy().to_string())
+    Err("In-app updates are permanently disabled in this release.".into())
 }
 
 #[tauri::command]
 pub fn verify_update_binary(
-    target_version: String,
+    _target_version: String,
 ) -> Result<bool, String> {
-    let temp_dir = std::env::temp_dir();
-    let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
-    let target_bin = temp_dir.join(format!("lynterminal-{}", target_version));
-
-    if !target_gz.exists() {
-        return Err("Downloaded update bundle not found".into());
-    }
-
-    if target_bin.exists() {
-        let _ = std::fs::remove_file(&target_bin);
-    }
-
-    let dec = std::process::Command::new("gzip")
-        .args(&["-dc", &target_gz.to_string_lossy()])
-        .output()
-        .map_err(|e| format!("Failed to decompress update bundle: {}", e))?;
-
-    if !dec.status.success() {
-        return Err("Failed to decompress update binary".into());
-    }
-
-    std::fs::write(&target_bin, &dec.stdout).map_err(|e| e.to_string())?;
-
-    #[cfg(unix)]
-    {
-        use std::io::Read;
-        if let Ok(mut file) = std::fs::File::open(&target_bin) {
-            let mut magic = [0u8; 4];
-            if file.read_exact(&mut magic).is_ok() && &magic != b"\x7fELF" {
-                return Err("Executable verification failed: invalid ELF header".into());
-            }
-        }
-
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&target_bin).map_err(|e| e.to_string())?.permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&target_bin, perms).map_err(|e| e.to_string())?;
-    }
-
-    Ok(true)
+    Err("In-app updates are permanently disabled in this release.".into())
 }
 
-#[allow(unreachable_code)]
 #[tauri::command]
 pub fn apply_update_and_restart(
-    target_version: String,
-    app_handle: tauri::AppHandle,
+    _target_version: String,
+    _app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    let temp_dir = std::env::temp_dir();
-    let target_gz = temp_dir.join(format!("lynterminal-{}.gz", target_version));
-    let target_bin = temp_dir.join(format!("lynterminal-{}", target_version));
-
-    if !target_bin.exists() {
-        return Err("Verified binary not found. Please restart update process.".into());
-    }
-
-    // Deploy to ~/.local/bin/lynterminal; unlinking target first to avoid ETXTBSY on running binary
-    let mut updated_user_bin: Option<std::path::PathBuf> = None;
-    if let Ok(home) = std::env::var("HOME") {
-        let user_bin_dir = std::path::PathBuf::from(&home).join(".local").join("bin");
-        let user_bin = user_bin_dir.join("lynterminal");
-        let legacy_bin = user_bin_dir.join("lyndesk");
-        let _ = std::fs::create_dir_all(&user_bin_dir);
-        let _ = std::fs::remove_file(&user_bin);
-        let _ = std::fs::remove_file(&legacy_bin);
-        if std::fs::copy(&target_bin, &user_bin).is_ok() {
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                if let Ok(meta) = std::fs::metadata(&user_bin) {
-                    let mut perms = meta.permissions();
-                    perms.set_mode(0o755);
-                    let _ = std::fs::set_permissions(&user_bin, perms);
-                }
-            }
-            updated_user_bin = Some(user_bin);
-        }
-    }
-
-    // Also update current_exe() location if different and writable
-    let mut current_updated = false;
-    if let Ok(current_path) = std::env::current_exe() {
-        if let Some(parent) = current_path.parent() {
-            if let Ok(metadata) = std::fs::metadata(parent) {
-                if !metadata.permissions().readonly() {
-                    let _ = std::fs::remove_file(&current_path);
-                    if std::fs::copy(&target_bin, &current_path).is_ok() {
-                        #[cfg(unix)]
-                        {
-                            use std::os::unix::fs::PermissionsExt;
-                            if let Ok(meta) = std::fs::metadata(&current_path) {
-                                let mut perms = meta.permissions();
-                                perms.set_mode(0o755);
-                                let _ = std::fs::set_permissions(&current_path, perms);
-                            }
-                        }
-                        current_updated = true;
-                    }
-                }
-            }
-        }
-    }
-
-    let _ = std::fs::remove_file(&target_gz);
-    let _ = std::fs::remove_file(&target_bin);
-
-    // On Linux/Unix, spawn the updated binary in a detached process group
-    // and cleanly exit the old process to prevent WebKitGTK / Wayland teardown deadlocks.
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        let launch_target = if current_updated {
-            std::env::current_exe().ok()
-        } else {
-            updated_user_bin
-        };
-
-        if let Some(exe) = launch_target {
-            let mut cmd = std::process::Command::new(&exe);
-            cmd.process_group(0);
-            cmd.stdin(std::process::Stdio::null());
-            cmd.stdout(std::process::Stdio::null());
-            cmd.stderr(std::process::Stdio::null());
-            let _ = cmd.spawn();
-            std::thread::sleep(std::time::Duration::from_millis(150));
-            std::process::exit(0);
-        }
-    }
-
-    app_handle.restart();
-    Ok(())
+    Err("In-app updates are permanently disabled in this release.".into())
 }
 
 #[tauri::command]
 pub fn apply_app_update(
-    download_url: String,
-    target_version: String,
-    app_handle: tauri::AppHandle,
-    state: State<'_, Mutex<AppState>>,
+    _download_url: String,
+    _target_version: String,
+    _app_handle: tauri::AppHandle,
+    _state: State<'_, Mutex<AppState>>,
 ) -> Result<(), String> {
-    // 1. Automatic Pre-Update Safety Backup (Zero Data Loss Guarantee)
-    {
-        let app = state.lock().map_err(|e| e.to_string())?;
-        let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-        let path = create_pre_update_backup_internal(&conn, &target_version)?;
-        DatabaseManager::log_audit(
-            &conn,
-            "BACKUP",
-            "PRE_UPDATE",
-            &target_version,
-            &format!("Pre-update safety backup successfully preserved at: {}", path),
-        ).ok();
-    }
-
-    // 2. Download
-    download_update_binary(download_url, target_version.clone())?;
-
-    // 3. Verify
-    verify_update_binary(target_version.clone())?;
-
-    // 4. Apply & Restart
-    apply_update_and_restart(target_version, app_handle)
+    Err("In-app updates are permanently disabled in this release.".into())
 }
 
 #[tauri::command]

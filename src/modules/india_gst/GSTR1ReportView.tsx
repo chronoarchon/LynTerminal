@@ -224,7 +224,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("b2b")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "b2b"
-              ? "bg-black text-white shadow-xs"
+              ? "bg-[#0071E3] text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -236,7 +236,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("b2cs")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "b2cs"
-              ? "bg-black text-white shadow-xs"
+              ? "bg-[#0071E3] text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -248,7 +248,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("b2cl")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "b2cl"
-              ? "bg-black text-white shadow-xs"
+              ? "bg-[#0071E3] text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -260,7 +260,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("hsn")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "hsn"
-              ? "bg-black text-white shadow-xs"
+              ? "bg-[#0071E3] text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >
@@ -272,7 +272,7 @@ export const GSTR1ReportView: React.FC = () => {
           onClick={() => setActiveSubTab("docs")}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === "docs"
-              ? "bg-black text-white shadow-xs"
+              ? "bg-[#0071E3] text-white shadow-xs"
               : "text-neutral-500 hover:text-black hover:bg-neutral-100"
           }`}
         >

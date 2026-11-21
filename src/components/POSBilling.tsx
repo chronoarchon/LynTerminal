@@ -593,7 +593,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>Ticket ({totalCartCount})</span>
             {totalCartCount > 0 && (
-              <span className="w-1.5 h-1.5 rounded-full bg-black" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0071E3]" />
             )}
           </button>
         </div>
@@ -676,7 +676,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       )}
                     </span>
                     {inCart && (
-                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-bold">
+                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#0071E3] text-white text-[10px] font-bold">
                         {inCart.quantity}
                       </span>
                     )}
@@ -868,7 +868,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                         }}
                         className={`w-full text-left px-3 py-2 text-xs rounded-xl hover:bg-[#F5F5F7] flex justify-between items-center cursor-pointer ${
                           selectedPartyId === p.id
-                            ? "bg-black/5 text-black font-bold"
+                            ? "bg-[#0071E3] text-white font-bold"
                             : "text-[#1D1D1F]"
                         }`}
                       >
@@ -1211,7 +1211,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     type="checkbox"
                     checked={previewAfterSale}
                     onChange={(e) => handleTogglePreview(e.target.checked)}
-                    className="rounded text-black accent-black focus:ring-0 cursor-pointer"
+                    className="rounded text-[#0071E3] accent-[#0071E3] focus:ring-0 cursor-pointer"
                   />
                   <span>Show receipt</span>
                 </label>

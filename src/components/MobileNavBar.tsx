@@ -248,7 +248,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                         isActive
-                          ? "bg-black text-white"
+                          ? "bg-[#0071E3] text-white"
                           : "bg-[#F9FAFB] text-black"
                       }`}
                     >

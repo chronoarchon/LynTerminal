@@ -342,7 +342,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   id="privacy-agree"
                   checked={privacyAgreed}
                   onChange={(e) => setPrivacyAgreed(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-black/15 bg-white text-black focus:ring-black/20 accent-black cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-black/15 bg-white text-[#0071E3] focus:ring-[#0071E3]/20 accent-[#0071E3] cursor-pointer"
                 />
                 <label htmlFor="privacy-agree" className="text-xs text-neutral-700 font-medium leading-relaxed cursor-pointer select-none">
                   I agree to the <strong className="text-black">LynTerminal Privacy Policy & Terms</strong>. Business and customer data is stored locally under my control.
@@ -610,7 +610,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   id="key-recorded"
                   checked={keyRecorded}
                   onChange={(e) => setKeyRecorded(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-black/15 bg-white text-black focus:ring-black/20 accent-black cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-black/15 bg-white text-[#0071E3] focus:ring-[#0071E3]/20 accent-[#0071E3] cursor-pointer"
                 />
                 <label htmlFor="key-recorded" className="text-xs text-neutral-700 font-medium leading-relaxed cursor-pointer select-none">
                   I have saved my <strong className="text-black">18-character recovery key</strong> in a secure location.
