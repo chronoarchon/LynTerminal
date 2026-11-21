@@ -28,13 +28,14 @@ curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash
 
 ---
 
-### Distribution Packages (v1.5.1)
+### Distribution Packages (v1.5.4)
 
 | Distribution | Package | Direct Install Command |
 | :--- | :--- | :--- |
-| **Arch Linux / Manjaro / EndeavourOS** | [`lynterminal-1.5.1v-1-x86_64.pkg.tar.zst`](release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst) | `sudo pacman -U release/lynterminal-1.5.1v-1-x86_64.pkg.tar.zst` |
-| **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.5.1_amd64.deb`](release/lynterminal_1.5.1_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.1_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | [`lynterminal-1.5.1-1.x86_64.rpm`](release/lynterminal-1.5.1-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.1-1.x86_64.rpm` |
+| **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.5.4_amd64.deb`](release/lynterminal_1.5.4_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.4_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | [`lynterminal-1.5.4-1.x86_64.rpm`](release/lynterminal-1.5.4-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.4-1.x86_64.rpm` |
+| **Universal Linux Binary** | [`lynterminal.gz`](release/lynterminal.gz) | `gzip -dc release/lynterminal.gz > lynterminal && chmod +x lynterminal && ./lynterminal` |
+| **Windows 10/11 Desktop** | [`lynterminal_1.5.4_x64-setup.exe`](release/lynterminal_1.5.4_x64-setup.exe) | Double-click installer |
 
 ---
 

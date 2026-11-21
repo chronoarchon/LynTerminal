@@ -95,6 +95,6 @@ jobs:
       - name: Upload Native Distribution Packages to GitHub Release
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          find release bin -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" -o -name "*.gz" \) -exec gh release upload "${{ github.ref_name }}" {} --clobber + || true
+          find release bin -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" -o -name "*.gz" \) -exec gh release upload "${{ github.ref_name }}" --clobber {} + || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
