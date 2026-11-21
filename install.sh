@@ -6,7 +6,7 @@
 # =============================================================================
 set -e
 
-VERSION="1.5.3"
+VERSION="1.5.4"
 PRIMARY_URL="https://lynterminal.wintershogun.tech/lynterminal"
 CDN_URL="https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main"
 RAW_URL="https://raw.githubusercontent.com/chronoarchon/LynTerminal@main"

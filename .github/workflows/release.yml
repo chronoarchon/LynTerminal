@@ -81,7 +81,7 @@ jobs:
             curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash
             ```
 
-            ### ✨ Key Highlights in v1.5.3:
+            ### ✨ Key Highlights in v1.5.4:
             - **Linux WebKitGTK Glitch Fix & Hardware Stabilization**: Eradicated screen tearing, black canvas artifacts, and display glitches by default.
             - **Resilient Auto-Updater & Persistent State**: Seamless updater lifecycle with clean process detachment, atomic binary replacement, and persistent state management.
             - **PDF Engine & CSS Counter Fix**: Eliminated `counterIncrement` runtime exceptions; reliable 80mm thermal and A4 bill printing.
