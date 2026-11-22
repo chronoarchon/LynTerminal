@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "LynTerminal — Modern Business OS",
         "width": 1280,
         "height": 820,
@@ -19,7 +20,7 @@
         "minHeight": 540,
         "center": true,
         "resizable": true,
-        "visible": false,
+        "visible": true,
         "backgroundColor": "#F5F5F7"
       }
     ],
