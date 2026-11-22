@@ -42,7 +42,6 @@ interface DashboardViewProps {
   onRefresh?: () => void;
 }
 
-import { mockItems, mockInvoices } from "../browserMock";
 const isMock = typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__;
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -57,8 +56,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currency = currencySymbol || settings.currency_symbol || "$";
   const { alert, toast } = useAppleDialog();
 
-  const [invoices, setInvoices] = useState<Invoice[]>(() => (isMock ? (mockInvoices as any) : []));
-  const [items, setItems] = useState<Item[]>(() => (isMock ? (mockItems as any) : []));
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() =>
     isMock
       ? [

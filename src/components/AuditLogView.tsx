@@ -14,7 +14,6 @@ import type { AuditLog, Settings } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
 
-import { mockAuditLogs } from "../browserMock";
 
 interface AuditLogViewProps {
   settings: Settings | null;
@@ -25,8 +24,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
   settings,
   onRefreshAll,
 }) => {
-  const isMock = typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__;
-  const [logs, setLogs] = useState<AuditLog[]>(() => (isMock ? (mockAuditLogs as any) : []));
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
