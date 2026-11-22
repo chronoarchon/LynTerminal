@@ -1,27 +1,94 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="lynterminal_bg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#18191E" />
-      <stop offset="100%" stop-color="#0E0F12" />
+    <!-- Dark Cyber-Obsidian Canvas -->
+    <linearGradient id="lyn_bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#11141D" />
+      <stop offset="50%" stop-color="#0B0E15" />
+      <stop offset="100%" stop-color="#05070A" />
     </linearGradient>
-    <linearGradient id="lynterminal_stroke" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2997FF" />
-      <stop offset="60%" stop-color="#0071E3" />
-      <stop offset="100%" stop-color="#00C7BE" />
-    </linearGradient>
-  </defs>
-  <!-- Background Squircle -->
-  <rect x="32" y="32" width="448" height="448" rx="104" fill="url(#lynterminal_bg)" />
-  <rect x="32" y="32" width="448" height="448" rx="104" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
 
-  <!-- Continuous Minimalist L Stroke -->
-  <path d="M 188 128 
-           V 334 
-           C 188 358 206 376 230 376 
-           H 352" 
-        fill="none" 
-        stroke="url(#lynterminal_stroke)" 
-        stroke-width="72" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" />
+    <!-- Subtle Radial Glow -->
+    <radialGradient id="lyn_glow" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0071E3" stop-opacity="0.32" />
+      <stop offset="50%" stop-color="#00C7BE" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Electric Cyan to Royal Blue Neon Gradient -->
+    <linearGradient id="lyn_primary_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="45%" stop-color="#0071E3" />
+      <stop offset="100%" stop-color="#00D2C4" />
+    </linearGradient>
+
+    <!-- Terminal Prompt Chevron Gradient -->
+    <linearGradient id="lyn_prompt_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="100%" stop-color="#4FACFE" />
+    </linearGradient>
+
+    <!-- Cursor Accent Gradient -->
+    <linearGradient id="lyn_cursor_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+
+    <!-- Bevel highlight -->
+    <linearGradient id="lyn_bevel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.16" />
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.4" />
+    </linearGradient>
+
+    <!-- Drop Shadow for Foreground Symbol -->
+    <filter id="lyn_shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0071E3" flood-opacity="0.38" />
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#lyn_bg)" />
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#lyn_glow)" />
+  
+  <!-- Outer Rim / Bevel -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="none" stroke="url(#lyn_bevel)" stroke-width="2.5" />
+  <rect x="26" y="26" width="460" height="460" rx="106" fill="none" stroke="rgba(0, 113, 227, 0.15)" stroke-width="1.5" />
+
+  <!-- Terminal Top Status Dots (Subtle Cyber LED accents) -->
+  <circle cx="84" cy="76" r="6" fill="#EF4444" opacity="0.8" />
+  <circle cx="106" cy="76" r="6" fill="#F59E0B" opacity="0.8" />
+  <circle cx="128" cy="76" r="6" fill="#10B981" opacity="0.8" />
+
+  <!-- Terminal Grid Micro-Accents (top right) -->
+  <circle cx="416" cy="76" r="2.5" fill="#38BDF8" opacity="0.4" />
+  <circle cx="430" cy="76" r="2.5" fill="#38BDF8" opacity="0.6" />
+  <circle cx="444" cy="76" r="2.5" fill="#38BDF8" opacity="0.9" />
+
+  <!-- Main Terminal Hero Emblem (Prompt Chevron '>' + Architectural 'L') -->
+  <g filter="url(#lyn_shadow)">
+    <!-- Terminal Prompt Chevron '>' -->
+    <path d="M 124 186
+             L 204 248
+             L 124 310"
+          fill="none"
+          stroke="url(#lyn_prompt_grad)"
+          stroke-width="44"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+
+    <!-- Architectural 'L' for LynTerminal -->
+    <path d="M 264 136
+             V 324
+             C 264 354 286 376 316 376
+             H 404"
+          fill="none"
+          stroke="url(#lyn_primary_grad)"
+          stroke-width="56"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+
+    <!-- Glowing Terminal Underscore Cursor '_' -->
+    <rect x="234" y="360" width="56" height="16" rx="6" fill="url(#lyn_cursor_grad)" />
+  </g>
 </svg>

@@ -1,15 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "LynSans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", "Helvetica Neue", Roboto, Arial, sans-serif;
-  --font-mono: "LynMono", ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
+  --font-sans: "Cascadia Code", "Cascadia Mono", "LynMono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
+  --font-mono: "Cascadia Code", "Cascadia Mono", "LynMono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
 }
 
 /* ============================================================================
-   WINDOWS & LINUX FONT & UI PARITY DECLARATIONS
-   Guarantees identical kerning, baseline metrics, and crisp rendering
-   on Windows WebView2 (Chromium Edge) and Linux WebKitGTK.
+   CASCADIA CODE & MONO TERMINAL FONT DECLARATIONS
+   Guarantees 100% font parity with the terminal environment across
+   Windows WebView2 and Linux WebKitGTK with offline-first local bundling.
    ============================================================================ */
+
+@font-face {
+  font-family: "Cascadia Code";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src:
+    local("Cascadia Code"),
+    local("CascadiaCode"),
+    url("/fonts/CascadiaCode.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cascadia Code";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src:
+    local("Cascadia Code Italic"),
+    local("CascadiaCodeItalic"),
+    url("/fonts/CascadiaCodeItalic.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cascadia Mono";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src:
+    local("Cascadia Mono"),
+    local("CascadiaMono"),
+    url("/fonts/CascadiaMono.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cascadia Mono";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src:
+    local("Cascadia Mono Italic"),
+    local("CascadiaMonoItalic"),
+    url("/fonts/CascadiaMonoItalic.ttf") format("truetype");
+}
 
 @font-face {
   font-family: "LynSans";
@@ -17,14 +61,10 @@
   font-weight: 100 900;
   font-display: swap;
   src:
+    local("Cascadia Code"),
+    local("Cascadia Mono"),
     local("SF Pro Text"),
-    local("SF Pro Display"),
-    local("Inter"),
     local("Segoe UI Variable Text"),
-    local("Segoe UI"),
-    local("Helvetica Neue"),
-    local("Ubuntu"),
-    local("Roboto"),
     local("system-ui");
 }
 
@@ -34,12 +74,10 @@
   font-weight: 400 700;
   font-display: swap;
   src:
-    local("SF Mono"),
     local("Cascadia Code"),
+    local("Cascadia Mono"),
     local("Consolas"),
-    local("Liberation Mono"),
-    local("Menlo"),
-    local("Monaco"),
+    local("SF Mono"),
     local("ui-monospace");
 }
 
@@ -73,8 +111,8 @@
     --lux-success: #10B981;
     --lux-danger: #EF4444;
 
-    --font-sans: "LynSans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", "Helvetica Neue", Roboto, Arial, sans-serif;
-    --font-mono: "LynMono", ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
+    --font-sans: "Cascadia Code", "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+    --font-mono: "Cascadia Code", "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
   }
 
   * {
@@ -93,16 +131,16 @@
     scroll-behavior: auto !important;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+    font-family: var(--font-mono);
   }
 
   body {
     background-color: var(--apple-canvas);
     color: var(--apple-text);
-    font-family: var(--font-sans);
+    font-family: var(--font-mono);
     user-select: none;
     overflow: hidden;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
-    letter-spacing: -0.011em;
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -126,7 +164,7 @@
 
   input, textarea, select {
     user-select: text;
-    font-family: inherit;
+    font-family: var(--font-mono) !important;
   }
 
   /* Clean Minimalist Input & Controls System */
