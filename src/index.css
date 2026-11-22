@@ -1,36 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Cascadia Code", "Cascadia Mono", "LynMono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
-  --font-mono: "Cascadia Code", "Cascadia Mono", "LynMono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
+  --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
 }
 
 /* ============================================================================
-   CASCADIA CODE & MONO TERMINAL FONT DECLARATIONS
-   Guarantees 100% font parity with the terminal environment across
-   Windows WebView2 and Linux WebKitGTK with offline-first local bundling.
+   MODERN ULTRA-CLEAN UI TYPOGRAPHY (Inter & Plus Jakarta Sans)
+   Offline-first local bundling with native variable optical sizing,
+   crisp semi-bold metrics, and tabular figure support for accounting.
    ============================================================================ */
 
 @font-face {
-  font-family: "Cascadia Code";
+  font-family: "Inter";
   font-style: normal;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
   src:
-    local("Cascadia Code"),
-    local("CascadiaCode"),
-    url("/fonts/CascadiaCode.ttf") format("truetype");
+    local("Inter"),
+    local("Inter Variable"),
+    url("/fonts/Inter-Latin.woff2") format("woff2"),
+    url("/fonts/Inter-LatinExt.woff2") format("woff2");
 }
 
 @font-face {
-  font-family: "Cascadia Code";
-  font-style: italic;
-  font-weight: 200 900;
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 400 800;
   font-display: swap;
   src:
-    local("Cascadia Code Italic"),
-    local("CascadiaCodeItalic"),
-    url("/fonts/CascadiaCodeItalic.ttf") format("truetype");
+    local("Plus Jakarta Sans"),
+    url("/fonts/PlusJakartaSans-Latin.woff2") format("woff2");
 }
 
 @font-face {
@@ -45,40 +45,14 @@
 }
 
 @font-face {
-  font-family: "Cascadia Mono";
-  font-style: italic;
+  font-family: "Cascadia Code";
+  font-style: normal;
   font-weight: 200 900;
   font-display: swap;
   src:
-    local("Cascadia Mono Italic"),
-    local("CascadiaMonoItalic"),
-    url("/fonts/CascadiaMonoItalic.ttf") format("truetype");
-}
-
-@font-face {
-  font-family: "LynSans";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src:
     local("Cascadia Code"),
-    local("Cascadia Mono"),
-    local("SF Pro Text"),
-    local("Segoe UI Variable Text"),
-    local("system-ui");
-}
-
-@font-face {
-  font-family: "LynMono";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src:
-    local("Cascadia Code"),
-    local("Cascadia Mono"),
-    local("Consolas"),
-    local("SF Mono"),
-    local("ui-monospace");
+    local("CascadiaCode"),
+    url("/fonts/CascadiaCode.ttf") format("truetype");
 }
 
 @layer base {
@@ -111,8 +85,8 @@
     --lux-success: #10B981;
     --lux-danger: #EF4444;
 
-    --font-sans: "Cascadia Code", "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
-    --font-mono: "Cascadia Code", "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+    --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
   }
 
   * {
@@ -131,16 +105,17 @@
     scroll-behavior: auto !important;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
   }
 
   body {
     background-color: var(--apple-canvas);
     color: var(--apple-text);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     user-select: none;
     overflow: hidden;
-    letter-spacing: -0.005em;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+    letter-spacing: -0.012em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -164,7 +139,7 @@
 
   input, textarea, select {
     user-select: text;
-    font-family: var(--font-mono) !important;
+    font-family: var(--font-sans);
   }
 
   /* Clean Minimalist Input & Controls System */
