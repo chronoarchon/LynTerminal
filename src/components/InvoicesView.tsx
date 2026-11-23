@@ -5,8 +5,8 @@ import {
   X,
   Plus,
   ArrowRight,
-  DollarSign,
 } from "lucide-react";
+import { CurrencyIcon } from "./common/CurrencyIcon";
 import type {
   Invoice,
   InvoiceDetail,
@@ -1175,7 +1175,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center border border-black/[0.08]">
-                  <DollarSign className="w-4 h-4 stroke-[2.5]" />
+                  <CurrencyIcon className="w-4 h-4" strokeWidth={2} />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-black tracking-tight">

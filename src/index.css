@@ -2,7 +2,7 @@
 
 @theme {
   --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+  --font-mono: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
 /* ============================================================================
@@ -86,7 +86,7 @@
     --lux-danger: #EF4444;
 
     --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-    --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+    --font-mono: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }
 
   * {

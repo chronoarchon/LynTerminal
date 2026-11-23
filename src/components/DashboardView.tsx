@@ -21,9 +21,9 @@ import {
   Users,
   Clock,
   Shield,
-  DollarSign,
   Coins,
 } from "lucide-react";
+import { CurrencyIcon } from "./common/CurrencyIcon";
 import type { DashboardSummary, Settings, Party, BankAccount, Invoice, Item } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
@@ -1446,7 +1446,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#0071E3] flex items-center justify-center border border-blue-100">
-                  <DollarSign className="w-4 h-4 stroke-[2.5]" />
+                  <CurrencyIcon className="w-4 h-4" strokeWidth={2} />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-black tracking-tight">

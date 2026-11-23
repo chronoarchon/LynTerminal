@@ -6,7 +6,6 @@ import {
   Minus,
   Trash2,
   CheckCircle2,
-  DollarSign,
   CreditCard,
   Smartphone,
   ChevronDown,
@@ -25,6 +24,7 @@ import { api } from "../services/api";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
+import { CurrencyIcon } from "./common/CurrencyIcon";
 
 interface POSBillingProps {
   settings: Settings;
@@ -1036,7 +1036,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border-black/[0.08] hover:bg-[#F5F5F7]"
                   }`}
                 >
-                  <DollarSign className="w-3.5 h-3.5" />
+                  <CurrencyIcon className="w-3.5 h-3.5" strokeWidth={2} />
                   <span className="text-[11px] truncate">Cash</span>
                 </button>
 
