@@ -60,7 +60,7 @@ if ($wv2Installed) {
 
 # 3. Determine Download URL (Latest GitHub Release Asset)
 $repo = "chronoarchon/LynTerminal"
-$defaultUrl = "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.1/lynterminal_1.6.1_x64-setup.exe"
+$defaultUrl = "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.2/lynterminal_1.6.2_x64-setup.exe"
 $downloadUrl = $defaultUrl
 
 Write-Host "[*] Checking latest release metadata from GitHub..." -ForegroundColor Gray
@@ -72,7 +72,7 @@ try {
         Write-Host "[+] Found release asset: $($exeAsset.name)" -ForegroundColor Green
     }
 } catch {
-    Write-Host "[*] Using direct fallback release URL (v1.6.1)" -ForegroundColor Gray
+    Write-Host "[*] Using direct fallback release URL (v1.6.2)" -ForegroundColor Gray
 }
 
 # 4. Download Binary
