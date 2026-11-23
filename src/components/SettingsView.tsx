@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Save,
   Building,
@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   ServerOff,
   Coins,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import type { Settings, BackupInfo, AuthState } from "../types";
 import { api } from "../services/api";
@@ -205,6 +207,57 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [revealedRecoveryKey, setRevealedRecoveryKey] = useState<string | null>(null);
   const [isCharterOpen, setIsCharterOpen] = useState(false);
+
+  // Store Logo Branding state
+  const [customLogo, setCustomLogo] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lynterminal_custom_logo");
+    }
+    return null;
+  });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const handleLogoUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<string | null>;
+      setCustomLogo(customEvent.detail || null);
+    };
+    window.addEventListener("lynterminal_logo_updated", handleLogoUpdate);
+    return () => window.removeEventListener("lynterminal_logo_updated", handleLogoUpdate);
+  }, []);
+
+  const handleLogoFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert({ title: "Invalid File", message: "Please select an image file (PNG, JPG, SVG, WebP)." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert({ title: "File Too Large", message: "Maximum logo file size is 5MB." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (dataUrl) {
+        try {
+          localStorage.setItem("lynterminal_custom_logo", dataUrl);
+          setCustomLogo(dataUrl);
+          window.dispatchEvent(new CustomEvent("lynterminal_logo_updated", { detail: dataUrl }));
+          toast("Store logo updated successfully!");
+        } catch {
+          alert({ title: "Storage Error", message: "Image is too large for local cache. Please compress the file." });
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    localStorage.removeItem("lynterminal_custom_logo");
+    setCustomLogo(null);
+    window.dispatchEvent(new CustomEvent("lynterminal_logo_updated", { detail: null }));
+    toast("Store logo removed.");
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,6 +519,75 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <h2 className="text-sm font-semibold text-[#1D1D1F]">
             Store Profile & Branding
           </h2>
+        </div>
+
+        {/* Store Logo & Header Branding */}
+        <div className="bg-[#F5F5F7] border border-black/[0.06] rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-white border border-black/[0.08] shadow-xs flex items-center justify-center overflow-hidden">
+              {customLogo ? (
+                <img src={customLogo} alt="Store Logo Preview" className="w-full h-full object-contain p-1" />
+              ) : (
+                <Building className="w-8 h-8 text-neutral-300" />
+              )}
+            </div>
+            {customLogo && (
+              <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-white">
+                Active
+              </span>
+            )}
+          </div>
+
+          <div className="flex-1 text-center sm:text-left space-y-1">
+            <div className="text-xs font-semibold text-[#1D1D1F] flex items-center justify-center sm:justify-start gap-1.5">
+              <span>Store Logo & Receipt Branding</span>
+              <span className="text-[10px] text-neutral-500 font-normal">(PNG, JPG, SVG or WebP)</span>
+            </div>
+            <p className="text-[11px] text-[#86868B]">
+              Appears on your store header, POS screen, 80mm thermal receipts, and A4 tax invoices.
+            </p>
+            <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) handleLogoFile(e.target.files[0]);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 rounded-xl bg-white border border-black/[0.08] hover:bg-neutral-50 text-xs font-semibold text-black transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+              >
+                <Upload className="w-3.5 h-3.5 text-neutral-600" />
+                <span>Upload Logo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("lynterminal_open_image_paste"));
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white border border-black/[0.08] hover:bg-neutral-50 text-xs font-semibold text-black transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+                title="Paste image directly from clipboard (Ctrl+V)"
+              >
+                <span>Paste (Ctrl+V)</span>
+              </button>
+
+              {customLogo && (
+                <button
+                  type="button"
+                  onClick={handleRemoveLogo}
+                  className="px-2.5 py-1.5 rounded-xl bg-white border border-red-200 hover:bg-red-50 text-xs font-semibold text-red-600 transition cursor-pointer shadow-2xs flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

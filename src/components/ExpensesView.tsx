@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus,
   Search,
@@ -7,6 +7,7 @@ import {
   X,
   RefreshCw,
   Repeat,
+  Camera,
 } from "lucide-react";
 import type { Expense, Settings, RecurringBill } from "../types";
 import { api } from "../services/api";
@@ -64,6 +65,21 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   // Expense Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const [previewReceiptModal, setPreviewReceiptModal] = useState<string | null>(null);
+  const receiptInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const handleAttach = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setReceiptImage(customEvent.detail);
+        setIsModalOpen(true);
+      }
+    };
+    window.addEventListener("lynterminal_attach_receipt", handleAttach);
+    return () => window.removeEventListener("lynterminal_attach_receipt", handleAttach);
+  }, []);
 
   const [formData, setFormData] = useState<Partial<Expense>>({
     title: "",
@@ -134,6 +150,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
       payment_method: "Cash",
       notes: "",
     });
+    setReceiptImage(null);
     setIsModalOpen(true);
   };
 
@@ -147,6 +164,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
       payment_method: expense.payment_method,
       notes: expense.notes,
     });
+    const savedReceipt = typeof window !== "undefined" ? localStorage.getItem("lynterminal_receipt_" + expense.id) : null;
+    setReceiptImage(savedReceipt);
     setIsModalOpen(true);
   };
 
@@ -158,7 +177,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     }
 
     try {
-      await api.saveExpense({
+      const saved = await api.saveExpense({
         id: editingExpense ? editingExpense.id : "",
         title: formData.title.trim(),
         category: formData.category || CATEGORIES[0],
@@ -168,7 +187,16 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         notes: formData.notes?.trim() || "",
       });
 
+      if (saved && saved.id) {
+        if (receiptImage) {
+          localStorage.setItem("lynterminal_receipt_" + saved.id, receiptImage);
+        } else {
+          localStorage.removeItem("lynterminal_receipt_" + saved.id);
+        }
+      }
+
       setIsModalOpen(false);
+      setReceiptImage(null);
       await loadExpenses();
       onRefreshSummary();
     } catch (err) {
@@ -180,6 +208,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     if (!confirm("Are you sure you want to delete this expense entry?")) return;
     try {
       await api.deleteExpense(id);
+      localStorage.removeItem("lynterminal_receipt_" + id);
       await loadExpenses();
       onRefreshSummary();
     } catch (err) {
@@ -398,10 +427,28 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   filteredExpenses.map((exp) => (
                     <tr key={exp.id} className="hover:bg-[#FBFBFC] transition-colors">
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-[#1D1D1F]">{exp.title}</div>
-                        {exp.notes && (
-                          <div className="text-[10px] text-[#86868B] line-clamp-1">{exp.notes}</div>
-                        )}
+                        <div className="flex items-center gap-2.5">
+                          {typeof window !== "undefined" && localStorage.getItem("lynterminal_receipt_" + exp.id) && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewReceiptModal(localStorage.getItem("lynterminal_receipt_" + exp.id))}
+                              className="w-7 h-7 rounded-lg overflow-hidden border border-black/10 shrink-0 hover:opacity-80 transition cursor-pointer shadow-2xs group relative"
+                              title="Click to view attached receipt"
+                            >
+                              <img
+                                src={localStorage.getItem("lynterminal_receipt_" + exp.id)!}
+                                alt="Receipt"
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          )}
+                          <div>
+                            <div className="font-semibold text-[#1D1D1F]">{exp.title}</div>
+                            {exp.notes && (
+                              <div className="text-[10px] text-[#86868B] line-clamp-1">{exp.notes}</div>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3.5 px-3">
                         <span className="px-2 py-0.5 rounded-md bg-black/[0.04] text-[11px] font-medium text-[#6E6E73]">
@@ -644,6 +691,76 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400"
                 />
+              </div>
+
+              {/* Receipt Attachment Zone */}
+              <div>
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                  Receipt Proof / Invoice Attachment
+                </label>
+                <div className="flex items-center gap-3 p-3 rounded-2xl border border-black/[0.08] bg-[#F5F5F7]">
+                  {receiptImage ? (
+                    <div className="relative group shrink-0">
+                      <img
+                        src={receiptImage}
+                        alt="Receipt preview"
+                        className="w-14 h-14 rounded-xl object-cover border border-black/10 shadow-2xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setReceiptImage(null)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-xs hover:bg-red-600 transition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl border border-dashed border-neutral-300 bg-white flex items-center justify-center text-neutral-400 shrink-0">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                  )}
+
+                  <div className="flex-1 text-xs">
+                    <div className="font-semibold text-neutral-800">
+                      {receiptImage ? "Receipt Photo Attached" : "Attach Receipt Screenshot"}
+                    </div>
+                    <div className="text-[10px] text-neutral-500 mb-1.5">
+                      Paste from clipboard (Ctrl+V) or browse image file
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={receiptInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            const r = new FileReader();
+                            r.onload = (ev) => setReceiptImage(ev.target?.result as string);
+                            r.readAsDataURL(f);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => receiptInputRef.current?.click()}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-black/10 text-[11px] font-medium text-neutral-700 hover:bg-neutral-50 transition cursor-pointer shadow-2xs"
+                      >
+                        Browse Image
+                      </button>
+                      {receiptImage && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewReceiptModal(receiptImage)}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-black/10 text-[11px] font-medium text-neutral-700 hover:bg-neutral-50 transition cursor-pointer shadow-2xs"
+                        >
+                          View Full
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -895,6 +1012,55 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* FULL RECEIPT LIGHTBOX MODAL */}
+      {previewReceiptModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewReceiptModal(null)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col border border-black/10 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-neutral-50">
+              <span className="text-xs font-semibold text-neutral-800">
+                Expense Receipt Attachment
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewReceiptModal(null)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:text-black hover:bg-black/5 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center bg-neutral-100 overflow-auto">
+              <img
+                src={previewReceiptModal}
+                alt="Full receipt"
+                className="max-h-[70vh] max-w-full object-contain rounded-xl shadow-md"
+              />
+            </div>
+            <div className="p-3 border-t border-black/[0.08] bg-white flex justify-end gap-2">
+              <a
+                href={previewReceiptModal}
+                download="expense-receipt.png"
+                className="px-3 py-1.5 rounded-xl bg-black text-white text-xs font-semibold hover:bg-neutral-800 transition"
+              >
+                Download Receipt
+              </a>
+              <button
+                type="button"
+                onClick={() => setPreviewReceiptModal(null)}
+                className="px-3 py-1.5 rounded-xl border border-black/10 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

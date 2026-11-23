@@ -16,13 +16,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // Safety fallback: Ensure window is revealed even if webview render or IPC delays
+            // Instantly reveal and focus the window upon launch without artificial delay
             if let Some(main_win) = app.get_webview_window("main") {
-                let win_clone = main_win.clone();
-                std::thread::spawn(move || {
-                    std::thread::sleep(std::time::Duration::from_millis(1500));
-                    let _ = win_clone.show();
-                });
+                let _ = main_win.unminimize();
+                let _ = main_win.show();
+                let _ = main_win.set_focus();
             }
             Ok(())
         })

@@ -10,6 +10,17 @@ Built with **Tauri v2**, **Rust**, **React 19**, and **SQLite (WAL mode)**.
 
 ## 📦 Installation
 
+### 1-Line Universal Windows Installer (Windows 10 / 11)
+Open PowerShell and run:
+
+```powershell
+irm https://raw.githubusercontent.com/chronoarchon/LynTerminal/main/install.ps1 | iex
+```
+
+Or download and double-click [`install.cmd`](install.cmd) from the repository.
+
+---
+
 ### 1-Line Universal Linux Installer (Recommended)
 Installs LynTerminal on any Linux distribution (Ubuntu, Debian, Fedora, Arch, Manjaro, openSUSE, etc.):
 
@@ -28,14 +39,14 @@ curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash
 
 ---
 
-### Distribution Packages (v1.5.4)
+### Distribution Packages (v1.6.0)
 
 | Distribution | Package | Direct Install Command |
 | :--- | :--- | :--- |
-| **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.5.4_amd64.deb`](release/lynterminal_1.5.4_amd64.deb) | `sudo apt install ./release/lynterminal_1.5.4_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | [`lynterminal-1.5.4-1.x86_64.rpm`](release/lynterminal-1.5.4-1.x86_64.rpm) | `sudo dnf install ./release/lynterminal-1.5.4-1.x86_64.rpm` |
-| **Universal Linux Binary** | [`lynterminal.gz`](release/lynterminal.gz) | `gzip -dc release/lynterminal.gz > lynterminal && chmod +x lynterminal && ./lynterminal` |
-| **Windows 10/11 Desktop** | [`lynterminal_1.5.4_x64-setup.exe`](release/lynterminal_1.5.4_x64-setup.exe) | Double-click installer |
+| **Windows 10/11 Desktop (x64)** | [`lynterminal_1.6.0_x64-setup.exe`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.0/lynterminal_1.6.0_x64-setup.exe) | Double-click installer or run `install.cmd` |
+| **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.6.0_amd64.deb`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.0/lynterminal_1.6.0_amd64.deb) | `sudo apt install ./lynterminal_1.6.0_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | [`lynterminal-1.6.0-1.x86_64.rpm`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.0/lynterminal-1.6.0-1.x86_64.rpm) | `sudo dnf install ./lynterminal-1.6.0-1.x86_64.rpm` |
+| **Universal Linux Binary** | [`lynterminal.gz`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.0/lynterminal.gz) | `gzip -dc lynterminal.gz > lynterminal && chmod +x lynterminal && ./lynterminal` |
 
 ---
 

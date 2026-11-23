@@ -35,6 +35,12 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
   >("ORIGINAL FOR RECIPIENT");
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [customLogo] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lynterminal_custom_logo");
+    }
+    return null;
+  });
   const docRef = useRef<HTMLDivElement>(null);
   const { alert, toast } = useAppleDialog();
 
@@ -259,6 +265,15 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
             >
               {/* Header branding */}
               <div className="text-center space-y-1 pb-3 border-b border-dashed border-black/20">
+                {customLogo && (
+                  <div className="flex justify-center pb-1">
+                    <img
+                      src={customLogo}
+                      alt="Store Logo"
+                      className="max-h-12 max-w-[120px] object-contain"
+                    />
+                  </div>
+                )}
                 <div className="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-black/5 uppercase text-black border border-black/10 inline-block mb-1">
                   {copyType}
                 </div>
@@ -399,22 +414,31 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
             >
               {/* Top Business & Invoice Title */}
               <div className="flex justify-between items-start pb-6 border-b border-black/[0.08]">
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
-                    {settings.business_name || "LynTerminal Store"}
-                  </h1>
-                  <p className="text-xs text-[#86868B] mt-0.5">
-                    {settings.tagline || "Commercial Retail & Management"}
-                  </p>
-                  <div className="text-xs text-[#86868B] mt-2 space-y-0.5">
-                    {settings.address && <div>{settings.address}</div>}
-                    {settings.phone && <div>Tel: {settings.phone}</div>}
-                    {settings.email && <div>Email: {settings.email}</div>}
-                    {settings.tax_id && (
-                      <div>
-                        {settings.tax_name}: {settings.tax_id}
-                      </div>
-                    )}
+                <div className="flex items-start gap-4">
+                  {customLogo && (
+                    <img
+                      src={customLogo}
+                      alt="Store Logo"
+                      className="w-14 h-14 rounded-2xl object-contain border border-black/10 shrink-0 p-1 bg-white shadow-2xs"
+                    />
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
+                      {settings.business_name || "LynTerminal Store"}
+                    </h1>
+                    <p className="text-xs text-[#86868B] mt-0.5">
+                      {settings.tagline || "Commercial Retail & Management"}
+                    </p>
+                    <div className="text-xs text-[#86868B] mt-2 space-y-0.5">
+                      {settings.address && <div>{settings.address}</div>}
+                      {settings.phone && <div>Tel: {settings.phone}</div>}
+                      {settings.email && <div>Email: {settings.email}</div>}
+                      {settings.tax_id && (
+                        <div>
+                          {settings.tax_name}: {settings.tax_id}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

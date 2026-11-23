@@ -29,6 +29,22 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLicenseModal,
 }) => {
   const { currencyCode } = useCurrency();
+  const [customLogo, setCustomLogo] = React.useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lynterminal_custom_logo");
+    }
+    return null;
+  });
+
+  React.useEffect(() => {
+    const handleLogoUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<string | null>;
+      setCustomLogo(customEvent.detail || null);
+    };
+    window.addEventListener("lynterminal_logo_updated", handleLogoUpdate);
+    return () => window.removeEventListener("lynterminal_logo_updated", handleLogoUpdate);
+  }, []);
+
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
@@ -43,9 +59,23 @@ export const Header: React.FC<HeaderProps> = ({
           <Logo showText={false} size={28} light />
         </div>
 
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#F5F5F7] border border-black/[0.05]">
+        <div
+          className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#F5F5F7] border border-black/[0.05] group transition cursor-pointer hover:bg-neutral-200/70"
+          title="Store Profile & Logo Active (Ctrl+V anywhere to paste image)"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("lynterminal_open_image_paste"));
+          }}
+        >
           <div className="w-2 h-2 rounded-full bg-[#34C759]" />
-          <Store className="w-3.5 h-3.5 text-[#6E6E73]" />
+          {customLogo ? (
+            <img
+              src={customLogo}
+              alt="Store Logo"
+              className="w-4 h-4 rounded-md object-cover border border-black/10 shrink-0 shadow-2xs"
+            />
+          ) : (
+            <Store className="w-3.5 h-3.5 text-[#6E6E73] shrink-0" />
+          )}
           <span className="text-xs font-semibold text-[#1D1D1F] max-w-[140px] sm:max-w-[200px] truncate">
             {settings?.business_name || "LynTerminal Store"}
           </span>

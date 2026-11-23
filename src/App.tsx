@@ -36,6 +36,7 @@ const GSTR3BReportView = lazy(() =>
   import("./modules/india_gst/GSTR3BReportView").then((m) => ({ default: m.GSTR3BReportView }))
 );
 import { TrialActivationModal } from "./components/TrialActivationModal";
+import { ImagePasteModal } from "./components/common/ImagePasteModal";
 
 const SetupWizardModal = lazy(() =>
   import("./components/SetupWizardModal").then((m) => ({ default: m.SetupWizardModal }))
@@ -191,6 +192,8 @@ export function AppContent() {
   }, []);
 
   useEffect(() => {
+    // Instantly reveal and focus window when React mounts
+    api.showMainWindow().catch(() => {});
     loadAllData();
   }, [loadAllData]);
 
@@ -516,6 +519,8 @@ export function AppContent() {
             }}
           />
         )}
+        {/* Universal Clipboard Image Paste Modal */}
+        <ImagePasteModal onNavigateTab={setActiveTab} />
       </div>
 
     </CurrencyProvider>

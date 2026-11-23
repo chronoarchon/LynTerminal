@@ -38,6 +38,12 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   >("ORIGINAL FOR RECIPIENT");
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [customLogo] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lynterminal_custom_logo");
+    }
+    return null;
+  });
   const docRef = useRef<HTMLDivElement>(null);
   const { alert, toast } = useAppleDialog();
 
@@ -317,13 +323,21 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               {/* Supplier & Invoice Meta */}
               <div className="grid grid-cols-2 gap-4 py-4 border-b border-black/[0.1]">
                 {/* Supplier (Seller) Details */}
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase text-neutral-400">
-                    Details of Supplier (Seller)
-                  </div>
-                  <div className="font-bold text-sm text-black">
-                    {gstSettings.legal_name || settings.business_name || "LynTerminal India Enterprises Pvt Ltd"}
-                  </div>
+                <div className="flex items-start gap-3">
+                  {customLogo && (
+                    <img
+                      src={customLogo}
+                      alt="Store Logo"
+                      className="w-12 h-12 rounded-xl object-contain border border-black/10 shrink-0 p-0.5 bg-white shadow-2xs mt-1"
+                    />
+                  )}
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-bold uppercase text-neutral-400">
+                      Details of Supplier (Seller)
+                    </div>
+                    <div className="font-bold text-sm text-black">
+                      {gstSettings.legal_name || settings.business_name || "LynTerminal India Enterprises Pvt Ltd"}
+                    </div>
                   {gstSettings.trade_name && (
                     <div className="text-[11px] font-medium text-neutral-600">
                       Trade Name: {gstSettings.trade_name}
@@ -346,6 +360,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                       PAN: {gstSettings.pan}
                     </div>
                   )}
+                  </div>
                 </div>
 
                 {/* Invoice Metadata */}
