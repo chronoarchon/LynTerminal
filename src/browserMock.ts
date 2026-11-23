@@ -448,10 +448,10 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.5.4",
-            latest_version: "1.5.4",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.5.4/lynterminal_1.5.4_x64-setup.exe",
-            release_notes: "### What's New in v1.5.4\n- **Offline Commercial Licensing**: Seamless Razorpay activation key verification\n- **Windows Native Build**: Robust NSIS installer and high-DPI font rendering\n- **Indian GST Hub**: Enhanced GSTR-1 and GSTR-3B statutory tax compliance reports\n- **Zero UI Latency**: Sub-10ms transaction commits and SQLite WAL concurrency",
+            current_version: "1.6.0",
+            latest_version: "1.6.0",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.0/lynterminal_1.6.0_x64-setup.exe",
+            release_notes: "### What's New in v1.6.0 Final Public Release\n- **Executive Pro Dashboard**: Consolidated financial matrix, 7-day velocity analytics & asset balance sheet\n- **Standard Semi-Bold Typography**: Crisp tabular currency symbols for ₹ (INR) and $ (USD)\n- **Modern Inter & Plus Jakarta Sans Design**: Clean, luxury UI/UX without monospace distortion\n- **Production Hardened**: 6-stage QA validated, sub-10ms SQLite WAL transactions",
             published_at: "2026-11-20T12:00:00Z",
             platform: "windows",
           };

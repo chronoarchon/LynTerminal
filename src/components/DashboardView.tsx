@@ -32,6 +32,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { ManageMoneyModal } from "./ManageMoneyModal";
+import { ExecutiveProDashboard } from "./ExecutiveProDashboard";
 
 interface DashboardViewProps {
   summary: DashboardSummary | null;
@@ -55,6 +56,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const { currencySymbol, formatCurrency } = useCurrency();
   const currency = currencySymbol || settings.currency_symbol || "$";
   const { alert, toast } = useAppleDialog();
+
+  const [dashboardStyle, setDashboardStyle] = useState<"pro" | "classic">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("lynterminal_dashboard_style");
+      if (saved === "classic") return "classic";
+      const p = new URLSearchParams(window.location.search).get("style");
+      if (p === "classic") return "classic";
+    }
+    return "pro";
+  });
+
+  const handleSetStyle = (style: "pro" | "classic") => {
+    setDashboardStyle(style);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lynterminal_dashboard_style", style);
+    }
+  };
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -367,60 +385,96 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const netWorth = summary?.net_worth ?? (totalAssets - totalLiabilities);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto select-none pb-12">
-      
-      {/* Top Header & Quick Action Row */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-black/[0.07]">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1D1D1F]">
-              Executive Overview
-            </h1>
-            <span className="text-[11px] font-semibold text-[#0071E3] bg-[#0071E3]/10 border border-[#0071E3]/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#0071E3]" />
-              Live Operations
-            </span>
+    <div className="select-none">
+      {dashboardStyle === "pro" ? (
+        <ExecutiveProDashboard
+          summary={summary}
+          settings={settings}
+          parties={parties}
+          invoices={invoices}
+          items={items}
+          bankAccounts={bankAccounts}
+          gstSettings={gstSettings}
+          isGstEnabled={isGstEnabled}
+          isIndiaCurrency={isIndiaCurrency}
+          isUpdatingGst={isUpdatingGst}
+          onToggleGst={handleToggleGst}
+          onOpenPaySupplier={handleOpenPaySupplier}
+          onOpenManageMoney={handleOpenManageMoney}
+          onOpenCreditPay={handleOpenDashboardCreditPay}
+          onOpenCustomerPay={handleOpenCustomerCreditPay}
+          onNavigate={onNavigate}
+          onRefresh={onRefresh}
+          onSwitchToClassic={() => handleSetStyle("classic")}
+        />
+      ) : (
+        <div className="space-y-6 max-w-6xl mx-auto pb-12">
+          {/* Top Header & Quick Action Row */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-black/[0.07]">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1D1D1F]">
+                  Executive Overview
+                </h1>
+                <span className="text-[11px] font-semibold text-[#0071E3] bg-[#0071E3]/10 border border-[#0071E3]/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-[#0071E3]" />
+                  Live Operations
+                </span>
+              </div>
+              <p className="text-xs text-[#86868B] mt-1">
+                Real-time liquidity, revenue velocity, inventory valuation, and working capital
+              </p>
+            </div>
+
+            {/* Action Dock */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleOpenPaySupplier()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5 text-rose-500 stroke-[2.5]" />
+                <span>Pay Supplier</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate("expenses")}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              >
+                <ArrowDownLeft className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
+                <span>Record Expense</span>
+              </button>
+
+              <button
+                onClick={() => handleOpenManageMoney("deposit")}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#0071E3] border border-[#0071E3]/30 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              >
+                <Coins className="w-3.5 h-3.5 stroke-[2.5] text-[#0071E3]" />
+                <span>Manage Money</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate("reports")}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-neutral-600" />
+                <span>Daybook</span>
+              </button>
+
+              {/* View Switcher: Pro vs Classic */}
+              <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/80 text-xs ml-1">
+                <button
+                  onClick={() => handleSetStyle("pro")}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-neutral-500 hover:text-neutral-900 transition cursor-pointer flex items-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3 text-[#0071E3]" />
+                  Executive
+                </button>
+                <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-neutral-800 shadow-xs">
+                  Classic
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[#86868B] mt-1">
-            Real-time liquidity, revenue velocity, inventory valuation, and working capital
-          </p>
-        </div>
-
-        {/* Action Dock */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => handleOpenPaySupplier()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
-          >
-            <ArrowUpRight className="w-3.5 h-3.5 text-rose-500 stroke-[2.5]" />
-            <span>Pay Supplier</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate("expenses")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
-          >
-            <ArrowDownLeft className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
-            <span>Record Expense</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenManageMoney("deposit")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#0071E3] border border-[#0071E3]/30 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
-          >
-            <Coins className="w-3.5 h-3.5 stroke-[2.5] text-[#0071E3]" />
-            <span>Manage Money</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate("reports")}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5 text-neutral-600" />
-            <span>Daybook</span>
-          </button>
-        </div>
-      </div>
 
       {/* Indian GST Engine Toggle Switch Card (Active only for INR currency) */}
       {isIndiaCurrency && (
@@ -1279,6 +1333,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           >
             Review Stock
           </button>
+        </div>
+      )}
         </div>
       )}
 
