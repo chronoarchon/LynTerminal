@@ -72,7 +72,7 @@ try {
         Write-Host "[+] Found release asset: $($exeAsset.name)" -ForegroundColor Green
     }
 } catch {
-    Write-Host "[*] Using direct fallback release URL (v1.6.0)" -ForegroundColor Gray
+    Write-Host "[*] Using direct fallback release URL (v1.6.1)" -ForegroundColor Gray
 }
 
 # 4. Download Binary
