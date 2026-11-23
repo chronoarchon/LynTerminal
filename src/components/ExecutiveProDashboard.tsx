@@ -178,9 +178,6 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
                 SQLite WAL 100% Offline
               </span>
             </div>
-            <p className="text-xs text-neutral-500 mt-1 font-medium">
-              Consolidated Executive Financial Matrix · Liquidity Velocity · Statutory Ledger
-            </p>
           </div>
 
           {/* Quick Actions & View Switcher */}
@@ -277,11 +274,17 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
               </div>
               <div>
                 <span className="font-semibold text-neutral-800">
-                  Indian GST Statutory Engine:
-                </span>{" "}
-                <span className="text-neutral-500 font-mono text-[11px]">
-                  {gstSettings?.gstin ? `GSTIN ${gstSettings.gstin}` : "Rule 46 Tax Invoicing & Tally XML"}
+                  Indian GST Statutory Engine
                 </span>
+                {gstSettings?.gstin && gstSettings.gstin !== "27AABCU9603R1ZN" && gstSettings.gstin !== "27AABCU9603R1ZM" ? (
+                  <span className="text-neutral-500 font-mono text-[11px] ml-1.5">
+                    · GSTIN {gstSettings.gstin}
+                  </span>
+                ) : (
+                  <span className="text-neutral-500 text-[11px] ml-1.5">
+                    · Rule 46 Tax Invoicing & Statutory Compliance
+                  </span>
+                )}
               </div>
             </div>
 
@@ -300,7 +303,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
                 onClick={() => onNavigate("gst_hub")}
                 className="text-[11px] font-semibold text-neutral-600 hover:text-neutral-900 flex items-center gap-0.5 cursor-pointer"
               >
-                Tally Hub <ChevronRight className="w-3 h-3" />
+                Accounting Hub <ChevronRight className="w-3 h-3" />
               </button>
             </div>
           </div>

@@ -134,7 +134,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         });
       }
       toast({
-        message: `Indian GST & Tally Engine ${enable ? "Enabled" : "Disabled"}.`,
+        message: `Indian GST & Statutory Accounting Engine ${enable ? "Enabled" : "Disabled"}.`,
         type: "success",
       });
       if (onRefresh) onRefresh();
@@ -486,7 +486,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xs sm:text-sm font-bold text-[#1D1D1F]">
-                  Indian GST & Tally Accounting Engine
+                  Indian GST & Statutory Accounting Engine
                 </h3>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -499,7 +499,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-[#86868B] mt-0.5">
-                Rule 46 CGST/SGST/IGST tax invoices, HSN codes, and Tally Prime XML accounting
+                Rule 46 CGST/SGST/IGST tax invoices, HSN codes, and Standard Accounting XML export
               </p>
             </div>
           </div>

@@ -20,8 +20,8 @@ import { StaffView } from "./components/StaffView";
 import { ReportsView } from "./components/ReportsView";
 import { AuditLogView } from "./components/AuditLogView";
 import { SettingsView } from "./components/SettingsView";
-const TallyAccountingHub = lazy(() =>
-  import("./modules/india_gst/TallyAccountingHub").then((m) => ({ default: m.TallyAccountingHub }))
+const AccountingHub = lazy(() =>
+  import("./modules/india_gst/AccountingHub").then((m) => ({ default: m.AccountingHub }))
 );
 const GSTPOSBilling = lazy(() =>
   import("./modules/india_gst/GSTPOSBilling").then((m) => ({ default: m.GSTPOSBilling }))
@@ -205,7 +205,7 @@ export function AppContent() {
     }
   }, [isGstActive, activeTab]);
 
-  // Global hotkeys (F1 for Tally Hub, F2 for POS, F4 Contra, F5 Payment, F6 Receipt/Credit, F8 GST POS, F9 Purchase, Ctrl+1..0 for tabs)
+  // Global hotkeys (F1 for Accounting Hub, F2 for POS, F4 Contra, F5 Payment, F6 Receipt/Credit, F8 GST POS, F9 Purchase, Ctrl+1..0 for tabs)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
@@ -398,7 +398,7 @@ export function AppContent() {
         );
       case "gst_hub":
         return (
-          <TallyAccountingHub
+          <AccountingHub
             settings={settings}
             gstSettings={gstSettings || ({} as any)}
             onNavigateTab={setActiveTab}

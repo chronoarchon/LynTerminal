@@ -94,7 +94,7 @@ lynterminal-uninstall --purge
   - Itemized HSN/SAC codes and GSTIN verification.
   - Multi-copy bill prints: Original for Recipient, Duplicate for Transporter, Triplicate for Supplier.
   - Statutory report generation for GSTR-1 and GSTR-3B.
-  - XML voucher export for Tally Prime.
+  - XML voucher export for Statutory Accounting ERPs.
 
 - **Customer & Supplier Ledgers (Parties)**:
   - Track receivables (Sundry Debtors) and payables (Sundry Creditors).
@@ -120,7 +120,7 @@ lynterminal-uninstall --purge
 | :--- | :--- |
 | **F2** | Open POS Register |
 | **F8** | Open GST Billing POS |
-| **F1** | Open Tally Hub |
+| **F1** | Open Accounting Hub |
 | **F5** | Record Store Expense |
 | **F6** | Customer Credit Ledger |
 | **F9** | Invoices & Orders |

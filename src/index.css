@@ -435,19 +435,42 @@
 /* Thermal receipt printable mode & standard commercial print */
 @media print {
   @page {
-    margin: 8mm;
+    margin: 6mm;
     size: auto;
   }
-  body {
+  html, body {
     background: white !important;
     color: black !important;
     overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .no-print {
     display: none !important;
   }
   .print-only {
     display: block !important;
+  }
+
+  /* When printing an invoice document, HIDE THE APP ROOT COMPLETELY to prevent page clutter */
+  body:has(#invoice-modal-portal) #root,
+  body.printing-doc #root,
+  body:has([data-printable="true"]) #root {
+    display: none !important;
+  }
+
+  /* Unfurl invoice modal portal container for direct pure document printing */
+  #invoice-modal-portal,
+  .print-isolate {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
   }
 
   /* Unfurl fixed modal backdrop for direct paper printing */
@@ -458,6 +481,8 @@
     padding: 0 !important;
     margin: 0 !important;
     overflow: visible !important;
+    width: 100% !important;
+    height: auto !important;
   }
   .fixed.inset-0 > div {
     max-height: none !important;
@@ -466,6 +491,11 @@
     box-shadow: none !important;
     background: transparent !important;
     overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
   }
   .fixed.inset-0 > div > div:nth-child(2) {
     background: transparent !important;
@@ -473,22 +503,26 @@
     overflow: visible !important;
   }
 
-  /* Printable documents */
+  /* Printable documents: clean, straight lines, perfectly organized */
   [data-printable="true"] {
     box-shadow: none !important;
-    border: none !important;
+    border: 1px solid #E5E7EB !important;
     border-radius: 0 !important;
     margin: 0 auto !important;
-    padding: 0 !important;
-    max-width: 100% !important;
+    padding: 10mm 12mm !important;
+    max-width: 190mm !important;
+    width: 100% !important;
+    background: white !important;
   }
 
   /* Thermal roll receipt formatting */
-  .thermal-receipt {
+  .thermal-receipt,
+  [data-printable="true"].thermal-receipt {
     width: 76mm !important;
     max-width: 76mm !important;
     margin: 0 auto !important;
-    padding: 0 !important;
+    padding: 4mm !important;
+    border: none !important;
     font-size: 11px !important;
     line-height: 1.35 !important;
     font-family: monospace !important;

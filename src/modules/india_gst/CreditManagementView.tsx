@@ -243,7 +243,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
               Credit & Outstanding Management
             </h1>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/5 text-black uppercase tracking-wide">
-              Tally Bill-by-Bill
+              Statutory Bill-by-Bill
             </span>
           </div>
           <p className="text-xs text-[#86868B] mt-0.5">

@@ -85,7 +85,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
       ? [
           {
             id: "gst_hub",
-            label: "Tally Gateway Hub",
+            label: "Accounting Hub",
             description: "F4-F9 accounting vouchers & GST duties ledger",
             icon: Building2,
           },

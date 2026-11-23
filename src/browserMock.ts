@@ -429,7 +429,7 @@ export function initBrowserMock() {
               default_tax_rate: 18.0,
               business_name: "LynTerminal India Flagship",
               address: "108 Brigade Road, Bengaluru, KA 560001",
-              tax_id: "27AABCU9603R1ZM",
+              tax_id: "",
             };
           }
           return mockSettings;
@@ -461,7 +461,7 @@ export function initBrowserMock() {
           const enableGst = urlParams?.get("gst") === "1" || urlParams?.get("tab")?.startsWith("gst") || urlParams?.get("currency") === "INR" || true;
           return {
             is_enabled: enableGst,
-            gstin: "27AABCU9603R1ZM",
+            gstin: "",
             state_code: "27",
             composition_scheme: false,
             filing_frequency: "MONTHLY",
@@ -473,6 +473,45 @@ export function initBrowserMock() {
           return mockParties;
         case "list_invoices":
           return mockInvoices;
+        case "create_invoice": {
+          const payload = _args?.payload || {};
+          const now = new Date().toISOString();
+          const invoiceNum = "INV-" + Math.floor(10000 + Math.random() * 90000);
+          const invoice = {
+            id: "inv-" + Date.now(),
+            invoice_number: invoiceNum,
+            party_id: payload.party_id || null,
+            party_name: payload.party_name || "Walk-in Customer",
+            invoice_date: new Date().toISOString().split("T")[0],
+            due_date: null,
+            subtotal: payload.subtotal || 22.0,
+            discount_amount: payload.discount_amount || 0,
+            tax_amount: payload.tax_amount || 3.96,
+            total_amount: payload.total_amount || 25.96,
+            paid_amount: payload.paid_amount || payload.total_amount || 25.96,
+            payment_method: payload.payment_method || "CASH",
+            status: "PAID" as const,
+            invoice_type: "SALE" as const,
+            notes: payload.notes || "Counter POS Sale",
+            reference: payload.reference || null,
+            created_at: now,
+            updated_at: now,
+          };
+          const items = (payload.items || []).map((it: any, idx: number) => ({
+            id: "ii-" + idx,
+            invoice_id: invoice.id,
+            item_id: it.item_id,
+            item_name: it.item_name,
+            sku: it.sku || "SKU-001",
+            quantity: it.quantity,
+            unit: it.unit,
+            unit_price: it.unit_price,
+            discount_percent: it.discount_percent,
+            tax_rate: it.tax_rate,
+            line_total: it.line_total,
+          }));
+          return { invoice, items };
+        }
         case "get_dashboard_summary":
           return mockSummary;
         case "list_expenses":
@@ -608,6 +647,12 @@ export function initBrowserMock() {
         }
         case "show_main_window":
           return null;
+        case "seed_demo_data": {
+          const days = _args?.days || 90;
+          return `Successfully synthesized ${days} days (3 months) of realistic retail operations, daily POS invoices, customer credit tracking, inventory receipts, and double-entry liquidity ledgers.`;
+        }
+        case "clear_all_data":
+          return "Database purged and re-indexed successfully.";
         default:
           return [];
       }

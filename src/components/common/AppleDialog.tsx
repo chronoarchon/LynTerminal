@@ -200,22 +200,22 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
     <AppleDialogContext.Provider value={{ confirm, prompt, alert, toast }}>
       {children}
 
-      {/* Floating Apple Toasts Container */}
+      {/* Floating Apple Toasts Container (Sleek Black Aesthetic) */}
       <div className="fixed bottom-5 right-5 z-[110] flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2.5 animate-in slide-in-from-bottom-2 fade-in duration-200 bg-white text-black ${
+            className={`pointer-events-auto px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2.5 animate-in slide-in-from-bottom-2 fade-in duration-200 bg-[#161618] text-white ${
               t.type === "success"
-                ? "border-emerald-300"
+                ? "border-emerald-500/30"
                 : t.type === "error"
-                ? "border-red-300"
-                : "border-black/10"
+                ? "border-rose-500/30"
+                : "border-white/10"
             }`}
           >
-            {t.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
-            {t.type === "error" && <XCircle className="w-4 h-4 text-red-600 shrink-0" />}
-            {t.type === "info" && <Info className="w-4 h-4 text-neutral-600 shrink-0" />}
+            {t.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+            {t.type === "error" && <XCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            {t.type === "info" && <Info className="w-4 h-4 text-neutral-400 shrink-0" />}
             <span className="leading-snug">{t.message}</span>
           </div>
         ))}

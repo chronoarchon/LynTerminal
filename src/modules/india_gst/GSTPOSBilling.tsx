@@ -747,7 +747,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
                 <div className="col-span-2">
                   <label className="block text-[10px] text-neutral-600 font-semibold mb-0.5">
-                    Tally Bill Reference Type
+                    Statutory Bill Reference Type
                   </label>
                   <select
                     value={billRefType}

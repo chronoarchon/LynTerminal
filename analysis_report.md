@@ -169,7 +169,7 @@ A unified modal component (`ManageMoneyModal.tsx`) and backend command engine (`
 ## 6. POS Billing & Keyboard Workflow
 
 ### Checkout Ergonomics
-- **Keyboard Shortcuts**: `F2` (New Sale / POS), `F8` (GST Tax POS), `F1` (Tally Accounting Hub), `F5` (Record Expense), `F6` (Customer Credit Ledger), `F9` (Invoices), `Ctrl+1..0` (Instant Tab Switching).
+- **Keyboard Shortcuts**: `F2` (New Sale / POS), `F8` (GST Tax POS), `F1` (Accounting Hub), `F5` (Record Expense), `F6` (Customer Credit Ledger), `F9` (Invoices), `Ctrl+1..0` (Instant Tab Switching).
 - **Pinned Bottom Panel**: Checkout actions and charge button remain pinned to the bottom of the checkout dock, ensuring partial credit tender and custom payment methods never push the charge button off-screen.
 - **Credit Customer Enforcement**: POS billing prohibits credit or partial-credit transactions on walk-in customers, requiring an explicit ledger customer profile for statutory debt tracking.
 - **Compact Credit Action & Tender Spacing**: Simplified credit trigger with no text overflow on long payment titles (e.g. "Bank Transfer / NEFT") using text truncation and clean layout beside `+ Split Tender`.
@@ -199,7 +199,7 @@ During real-world deployment on modern Linux desktops, WebKit2GTK evaluated mode
   1. *Original for Recipient*
   2. *Duplicate for Transporter*
   3. *Triplicate for Supplier*
-- **Tally Prime Interoperability**: Automatic XML voucher synthesis matching Tally Prime schemas for seamless import.
+- **Statutory Accounting ERP Interoperability**: Automatic XML voucher synthesis matching standard statutory accounting schemas for seamless import.
 
 ---
 

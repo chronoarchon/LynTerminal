@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const gstNavItems = [
-    { id: "gst_hub", label: "Tally ERP Hub", icon: Building2, key: "F1" },
+    { id: "gst_hub", label: "Accounting Hub", icon: Building2, key: "F1" },
     { id: "gst_pos", label: "GST POS Billing", icon: ReceiptText, key: "F8" },
     { id: "gst_credit", label: "Debtors & Creditors", icon: Users, key: "F6" },
     { id: "gstr1", label: "GSTR-1 Audit", icon: FileSpreadsheet, key: "G1" },
@@ -118,12 +118,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
 
-          {/* India GST & Tally Section (Conditional: INR currency & GST Enabled) */}
+          {/* India GST & Accounting Section (Conditional: INR currency & GST Enabled) */}
           {showGst && (
             <>
               <div className="pt-3 pb-1 px-3 flex items-center justify-between border-t border-white/[0.08] mt-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868B]">
-                  India GST & Tally
+                  India GST & Accounting
                 </span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white border border-white/10">
                   GST

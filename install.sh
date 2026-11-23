@@ -308,10 +308,10 @@ Terminal=false
 Type=Application
 Icon=lynterminal
 Categories=Office;Finance;PointOfSale;Business;
-Keywords=pos;billing;gst;invoice;terminal;tally;retail;inventory;
+Keywords=pos;billing;gst;invoice;terminal;accounting;retail;inventory;
 StartupWMClass=lynterminal
 StartupNotify=true
-Actions=NewSale;GSTPOS;TallyHub;
+Actions=NewSale;GSTPOS;AccountingHub;
 
 [Desktop Action NewSale]
 Name=New Sale (F2)
@@ -321,9 +321,9 @@ Exec=$HOME/.local/bin/lynterminal --tab pos
 Name=GST Tax Invoice (F8)
 Exec=$HOME/.local/bin/lynterminal --tab gst_pos
 
-[Desktop Action TallyHub]
-Name=Tally ERP Gateway (F1)
-Exec=$HOME/.local/bin/lynterminal --tab tally
+[Desktop Action AccountingHub]
+Name=Statutory Accounting Hub (F1)
+Exec=$HOME/.local/bin/lynterminal --tab gst_hub
 EOF
 chmod +x "$DESKTOP_FILE"
 echo -e "      ${GREEN}✔${RESET} Desktop launcher and application menu registered"
@@ -383,7 +383,7 @@ box_row ""
 box_row "${BOLD}Essential Hotkeys:${RESET}"
 box_row "  ${AMBER}[F2]${RESET}  POS Billing Register"
 box_row "  ${AMBER}[F8]${RESET}  Indian GST Tax Invoices (Rule 46 & 48)"
-box_row "  ${AMBER}[F1]${RESET}  Tally Prime ERP Voucher Hub"
+box_row "  ${AMBER}[F1]${RESET}  Statutory Accounting Voucher Hub"
 box_row ""
 box_row "${BOLD}Uninstall anytime:${RESET}"
 box_row "  ${GRAY}\$ lynterminal-uninstall${RESET} (or add ${AMBER}--purge${RESET} for clean wipe)"

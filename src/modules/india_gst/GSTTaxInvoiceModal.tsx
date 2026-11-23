@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Printer,
   FileDown,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { safeHtml2Canvas } from "../../utils/safeHtml2Canvas";
+import { printPdfDocument } from "../../utils/printPdf";
 import type { CompleteGstInvoice, GstSettings } from "./gstTypes";
 import type { Settings } from "../../types";
 import { amountToIndianWords, getStateByCode } from "./gstUtils";
@@ -40,7 +42,10 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [customLogo] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("lynterminal_custom_logo");
+      return (
+        localStorage.getItem("lynterminal_custom_logo") ||
+        localStorage.getItem("lyndesk_custom_logo")
+      );
     }
     return null;
   });
@@ -53,67 +58,107 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const generatePdfObject = async (): Promise<jsPDF | null> => {
+    if (!docRef.current) return null;
+    const element = docRef.current;
+    const canvas = await safeHtml2Canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#FFFFFF",
+      scrollY: 0,
+      scrollX: 0,
+    });
+
+    let pdf: jsPDF;
+
+    if (docFormat === "thermal") {
+      const imgWidth = 80;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [imgWidth, Math.max(80, imgHeight + 4)],
+      });
+      const imgData = canvas.toDataURL("image/png");
+      pdf.addImage(imgData, "PNG", 0, 2, imgWidth, imgHeight);
+    } else {
+      pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 8;
+      const printWidth = pageWidth - margin * 2;
+      const printHeight = (canvas.height * printWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      if (printHeight <= pageHeight - margin * 2) {
+        pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
+      } else {
+        // Multi-page slicing for GST bills with many line items
+        let heightLeft = printHeight;
+        let position = margin;
+        let page = 1;
+        const usableHeight = pageHeight - margin * 2;
+
+        while (heightLeft > 0) {
+          if (page > 1) {
+            pdf.addPage();
+          }
+          pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
+          heightLeft -= usableHeight;
+          position -= usableHeight;
+          page++;
+        }
+      }
+    }
+    return pdf;
+  };
+
+  const handlePrint = async () => {
+    try {
+      setIsExporting(true);
+      const pdf = await generatePdfObject();
+      if (pdf) {
+        const printed = await printPdfDocument(pdf);
+        if (printed) return;
+      }
+      // Fallback to DOM print isolation
+      document.body.classList.add("printing-doc");
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("printing-doc");
+      }, 1000);
+    } catch {
+      document.body.classList.add("printing-doc");
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("printing-doc");
+      }, 1000);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      document.body.classList.remove("printing-doc");
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, []);
+
   const handleExportPdf = async () => {
     if (!docRef.current) return;
     try {
       setIsExporting(true);
 
-      const element = docRef.current;
-      const canvas = await safeHtml2Canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#FFFFFF",
-        scrollY: 0,
-        scrollX: 0,
-      });
-
-      let pdf: jsPDF;
-
-      if (docFormat === "thermal") {
-        const imgWidth = 80;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: [imgWidth, Math.max(80, imgHeight + 4)],
-        });
-        const imgData = canvas.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 0, 2, imgWidth, imgHeight);
-      } else {
-        pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: "a4",
-        });
-
-        const pageWidth = 210;
-        const pageHeight = 297;
-        const margin = 8;
-        const printWidth = pageWidth - margin * 2;
-        const printHeight = (canvas.height * printWidth) / canvas.width;
-        const imgData = canvas.toDataURL("image/png");
-
-        if (printHeight <= pageHeight - margin * 2) {
-          pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
-        } else {
-          // Multi-page slicing for GST bills with many line items
-          let heightLeft = printHeight;
-          let position = margin;
-          let page = 1;
-          const usableHeight = pageHeight - margin * 2;
-
-          while (heightLeft > 0) {
-            if (page > 1) {
-              pdf.addPage();
-            }
-            pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
-            heightLeft -= usableHeight;
-            position -= usableHeight;
-            page++;
-          }
-        }
-      }
+      const pdf = await generatePdfObject();
+      if (!pdf) throw new Error("Could not synthesize invoice layout");
 
       // Persist client bytes through backend storage
       const arrayBuffer = pdf.output("arraybuffer");
@@ -184,8 +229,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   const hsnSummaryList = Array.from(hsnMap.values());
   const wordsRepresentation = amountToIndianWords(invoice.total_amount);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+  const modalContent = (
+    <div id="invoice-modal-portal">
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150 text-black">
         
         {/* Top Control Bar */}
@@ -268,7 +314,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </button>
 
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -324,12 +370,16 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               <div className="grid grid-cols-2 gap-4 py-4 border-b border-black/[0.1]">
                 {/* Supplier (Seller) Details */}
                 <div className="flex items-start gap-3">
-                  {customLogo && (
+                  {customLogo ? (
                     <img
                       src={customLogo}
                       alt="Store Logo"
                       className="w-12 h-12 rounded-xl object-contain border border-black/10 shrink-0 p-0.5 bg-white shadow-2xs mt-1"
                     />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl border border-black/10 shrink-0 p-0.5 bg-[#18191E] text-white flex items-center justify-center font-bold text-xl shadow-2xs mt-1">
+                      {(gstSettings.legal_name || settings.business_name || "L").charAt(0).toUpperCase()}
+                    </div>
                   )}
                   <div className="space-y-1">
                     <div className="text-[10px] font-bold uppercase text-neutral-400">
@@ -350,7 +400,12 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     Tel: {settings.phone || "+91 98765 43210"} · Email: {settings.email || "billing@lynterminal.in"}
                   </div>
                   <div className="font-mono font-bold text-black pt-1">
-                    GSTIN: <span className="text-black font-semibold">{gstSettings.gstin || "27AABCU9603R1ZN"}</span>
+                    GSTIN:{" "}
+                    <span className="text-black font-semibold">
+                      {gstSettings.gstin && gstSettings.gstin !== "27AABCU9603R1ZN" && gstSettings.gstin !== "27AABCU9603R1ZM"
+                        ? gstSettings.gstin
+                        : (settings.tax_id || "Unregistered")}
+                    </span>
                   </div>
                   <div className="font-mono text-neutral-700">
                     State: {supplierState.name} (Code: {supplierState.code})
@@ -572,22 +627,32 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     </tbody>
                   </table>
 
-                  {/* Bank Details for Direct Payment */}
-                  <div className="pt-2 text-[10px] bg-neutral-50 p-2.5 rounded-xl border border-black/[0.06] space-y-0.5">
-                    <div className="font-bold uppercase text-neutral-600 flex items-center gap-1.5">
-                      <Building2 className="w-3 h-3 text-neutral-700" />
-                      <span>Bank NEFT / RTGS / UPI Details</span>
-                    </div>
-                    <div>Bank: <span className="font-semibold text-black">{gstSettings.bank_name || "HDFC Bank"}</span></div>
-                    <div>A/c No: <span className="font-mono font-bold text-black">{gstSettings.bank_account_no || "50200012345678"}</span></div>
-                    <div>IFSC Code: <span className="font-mono font-bold text-black">{gstSettings.bank_ifsc || "HDFC0000123"}</span></div>
-                    <div>Branch: <span className="text-neutral-700">{gstSettings.bank_branch || "Fort, Mumbai"}</span></div>
-                    {gstSettings.upi_id && (
-                      <div className="pt-0.5 font-mono text-black">
-                        UPI ID: <span className="font-bold">{gstSettings.upi_id}</span>
+                  {/* Bank Details for Direct Payment (Only shown when configured) */}
+                  {(gstSettings.bank_name || gstSettings.bank_account_no || gstSettings.upi_id) && (
+                    <div className="pt-2 text-[10px] bg-neutral-50 p-2.5 rounded-xl border border-solid border-black/15 space-y-0.5">
+                      <div className="font-bold uppercase text-neutral-600 flex items-center gap-1.5">
+                        <Building2 className="w-3 h-3 text-neutral-700" />
+                        <span>Bank NEFT / RTGS / UPI Details</span>
                       </div>
-                    )}
-                  </div>
+                      {gstSettings.bank_name && (
+                        <div>Bank: <span className="font-semibold text-black">{gstSettings.bank_name}</span></div>
+                      )}
+                      {gstSettings.bank_account_no && (
+                        <div>A/c No: <span className="font-mono font-bold text-black">{gstSettings.bank_account_no}</span></div>
+                      )}
+                      {gstSettings.bank_ifsc && (
+                        <div>IFSC Code: <span className="font-mono font-bold text-black">{gstSettings.bank_ifsc}</span></div>
+                      )}
+                      {gstSettings.bank_branch && (
+                        <div>Branch: <span className="text-neutral-700">{gstSettings.bank_branch}</span></div>
+                      )}
+                      {gstSettings.upi_id && (
+                        <div className="pt-0.5 font-mono text-black">
+                          UPI ID: <span className="font-bold">{gstSettings.upi_id}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Numerical Totals */}
@@ -695,20 +760,37 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               data-printable="true"
               className="thermal-receipt mx-auto w-[360px] max-w-full bg-white p-6 rounded-2xl shadow-lg border border-black/[0.1] text-black font-mono text-xs space-y-3 select-text my-2"
             >
-              <div className="text-center space-y-1 pb-3 border-b border-dashed border-black/30">
+              <div className="text-center space-y-1 pb-3 border-b border-solid border-black/20">
+                {customLogo ? (
+                  <div className="flex justify-center pb-1">
+                    <img
+                      src={customLogo}
+                      alt="Store Logo"
+                      className="max-h-12 max-w-[120px] object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex justify-center pb-1">
+                    <div className="w-10 h-10 rounded-xl bg-[#18191E] text-white flex items-center justify-center font-bold text-lg">
+                      {(gstSettings.legal_name || settings.business_name || "L").charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                )}
                 <div className="font-bold text-sm uppercase">
                   {gstSettings.legal_name || settings.business_name}
                 </div>
                 <div className="text-[10px] text-neutral-600">
                   {settings.address}
                 </div>
-                <div className="text-[10px] font-bold text-black font-mono">
-                  GSTIN: {gstSettings.gstin}
-                </div>
+                {gstSettings.gstin && gstSettings.gstin !== "27AABCU9603R1ZN" && gstSettings.gstin !== "27AABCU9603R1ZM" && (
+                  <div className="text-[10px] font-bold text-black font-mono">
+                    GSTIN: {gstSettings.gstin}
+                  </div>
+                )}
                 <div className="text-[10px] text-neutral-600">
                   State: {supplierState.name} ({supplierState.code})
                 </div>
-                <div className="text-xs font-bold pt-1 border-t border-dashed border-black/20 mt-1">
+                <div className="text-xs font-bold pt-1 border-t border-solid border-black/15 mt-1">
                   *** GST TAX INVOICE ***
                 </div>
                 <div className="text-[9px] text-neutral-500 uppercase font-sans">
@@ -716,7 +798,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-1 text-[11px] pb-2 border-b border-dashed border-black/20">
+              <div className="space-y-1 text-[11px] pb-2 border-b border-solid border-black/15">
                 <div className="flex justify-between">
                   <span className="text-neutral-500">INVOICE #:</span>
                   <span className="font-bold">{invoice.invoice_number}</span>
@@ -745,7 +827,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
               {/* Items */}
               <div className="space-y-1 py-1">
-                <div className="flex justify-between text-[10px] font-bold text-neutral-500 border-b border-black/20 pb-1">
+                <div className="flex justify-between text-[10px] font-bold text-neutral-500 border-b border-solid border-black/20 pb-1">
                   <span>ITEM / HSN / QTY</span>
                   <span>AMOUNT</span>
                 </div>
@@ -754,7 +836,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   const itemName = matchedItem?.item_name || (item.item_id ? "Item" : "Goods / Service");
 
                   return (
-                    <div key={idx} className="space-y-0.5 text-[11px] border-b border-dotted border-black/10 pb-1">
+                    <div key={idx} className="space-y-0.5 text-[11px] border-b border-solid border-black/10 pb-1">
                       <div className="font-bold leading-tight">
                         {itemName}
                       </div>
@@ -768,7 +850,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Totals */}
-              <div className="space-y-1 pt-2 border-t border-dashed border-black/20 text-[11px]">
+              <div className="space-y-1 pt-2 border-t border-solid border-black/20 text-[11px]">
                 <div className="flex justify-between text-neutral-600">
                   <span>Taxable Subtotal:</span>
                   <span>₹{invoice.subtotal.toFixed(2)}</span>
@@ -790,7 +872,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     <span>₹{gst_info.igst_amount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-sm pt-1 border-t border-black text-black">
+                <div className="flex justify-between font-bold text-sm pt-1 border-t border-solid border-black/30 text-black">
                   <span>GRAND TOTAL:</span>
                   <span>₹{invoice.total_amount.toFixed(2)}</span>
                 </div>
@@ -807,11 +889,11 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Words */}
-              <div className="pt-2 text-[9px] text-neutral-600 font-sans border-t border-dashed border-black/20">
+              <div className="pt-2 text-[9px] text-neutral-600 font-sans border-t border-solid border-black/15">
                 <span className="font-bold">Words:</span> {wordsRepresentation}
               </div>
 
-              <div className="text-center text-[10px] text-neutral-500 pt-3 border-t border-dashed border-black/20">
+              <div className="text-center text-[10px] text-neutral-500 pt-3 border-t border-solid border-black/15">
                 <p>Thank you for your business!</p>
                 <div className="text-[9px] text-neutral-400 tracking-wider pt-1">
                   *** 100% LEGAL GST COMPLIANT ***
@@ -822,5 +904,10 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
+
+return typeof document !== "undefined"
+  ? createPortal(modalContent, document.body)
+  : modalContent;
 };

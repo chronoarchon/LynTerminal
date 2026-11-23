@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Printer,
   FileDown,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { safeHtml2Canvas } from "../utils/safeHtml2Canvas";
+import { printPdfDocument } from "../utils/printPdf";
 import type { InvoiceDetail, Settings } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
@@ -37,7 +39,10 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [customLogo] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("lynterminal_custom_logo");
+      return (
+        localStorage.getItem("lynterminal_custom_logo") ||
+        localStorage.getItem("lyndesk_custom_logo")
+      );
     }
     return null;
   });
@@ -49,6 +54,102 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const generatePdfObject = async (): Promise<jsPDF | null> => {
+    if (!docRef.current) return null;
+    const element = docRef.current;
+    const canvas = await safeHtml2Canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#FFFFFF",
+      scrollY: 0,
+      scrollX: 0,
+    });
+
+    let pdf: jsPDF;
+
+    if (docFormat === "thermal") {
+      // Continuous thermal slip format (exact height of items)
+      const imgWidth = 80;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [imgWidth, Math.max(80, imgHeight + 4)],
+      });
+      const imgData = canvas.toDataURL("image/png");
+      pdf.addImage(imgData, "PNG", 0, 2, imgWidth, imgHeight);
+    } else {
+      // A4 Commercial Tax Invoice format (210mm x 297mm)
+      pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 10;
+      const printWidth = pageWidth - margin * 2;
+      const printHeight = (canvas.height * printWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      if (printHeight <= pageHeight - margin * 2) {
+        pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
+      } else {
+        // Multi-page slicing for bills with many line items
+        let heightLeft = printHeight;
+        let position = margin;
+        let page = 1;
+        const usableHeight = pageHeight - margin * 2;
+
+        while (heightLeft > 0) {
+          if (page > 1) {
+            pdf.addPage();
+          }
+          pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
+          heightLeft -= usableHeight;
+          position -= usableHeight;
+          page++;
+        }
+      }
+    }
+    return pdf;
+  };
+
+  const handlePrint = async () => {
+    try {
+      setIsExporting(true);
+      const pdf = await generatePdfObject();
+      if (pdf) {
+        const printed = await printPdfDocument(pdf);
+        if (printed) return;
+      }
+      // Fallback to DOM print isolation
+      document.body.classList.add("printing-doc");
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("printing-doc");
+      }, 1000);
+    } catch {
+      document.body.classList.add("printing-doc");
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("printing-doc");
+      }, 1000);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      document.body.classList.remove("printing-doc");
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, []);
 
   const handleExportPdf = async () => {
     if (!docRef.current) return;
@@ -64,64 +165,8 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
       }
 
       // 2. Client-side canvas export for browser download & verification
-      const element = docRef.current;
-      const canvas = await safeHtml2Canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#FFFFFF",
-        scrollY: 0,
-        scrollX: 0,
-      });
-
-      let pdf: jsPDF;
-
-      if (docFormat === "thermal") {
-        // Continuous thermal slip format (exact height of items)
-        const imgWidth = 80;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: [imgWidth, Math.max(80, imgHeight + 4)],
-        });
-        const imgData = canvas.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 0, 2, imgWidth, imgHeight);
-      } else {
-        // A4 Commercial Tax Invoice format (210mm x 297mm)
-        pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: "a4",
-        });
-
-        const pageWidth = 210;
-        const pageHeight = 297;
-        const margin = 10;
-        const printWidth = pageWidth - margin * 2;
-        const printHeight = (canvas.height * printWidth) / canvas.width;
-        const imgData = canvas.toDataURL("image/png");
-
-        if (printHeight <= pageHeight - margin * 2) {
-          pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
-        } else {
-          // Multi-page slicing for bills with many line items
-          let heightLeft = printHeight;
-          let position = margin;
-          let page = 1;
-          const usableHeight = pageHeight - margin * 2;
-
-          while (heightLeft > 0) {
-            if (page > 1) {
-              pdf.addPage();
-            }
-            pdf.addImage(imgData, "PNG", margin, position, printWidth, printHeight);
-            heightLeft -= usableHeight;
-            position -= usableHeight;
-            page++;
-          }
-        }
-      }
+      const pdf = await generatePdfObject();
+      if (!pdf) throw new Error("Could not synthesize invoice layout");
 
       // If backend save didn't return a path, persist the client bytes directly
       if (!savedPath) {
@@ -148,8 +193,9 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+  const modalContent = (
+    <div id="invoice-modal-portal">
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
       <div className="bg-white text-black rounded-3xl shadow-2xl w-full max-w-4xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-150 lux-modal-card">
         
         {/* Top Control Bar (Hidden when printing) */}
@@ -232,7 +278,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               </button>
 
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -264,14 +310,20 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               className="mx-auto w-[360px] max-w-full bg-white p-6 sm:p-8 pb-10 rounded-2xl shadow-lg border border-black/[0.08] text-[#1D1D1F] font-mono text-xs space-y-4 select-text thermal-receipt my-2"
             >
               {/* Header branding */}
-              <div className="text-center space-y-1 pb-3 border-b border-dashed border-black/20">
-                {customLogo && (
+              <div className="text-center space-y-1 pb-3 border-b border-solid border-black/15">
+                {customLogo ? (
                   <div className="flex justify-center pb-1">
                     <img
                       src={customLogo}
                       alt="Store Logo"
                       className="max-h-12 max-w-[120px] object-contain"
                     />
+                  </div>
+                ) : (
+                  <div className="flex justify-center pb-1">
+                    <div className="w-10 h-10 rounded-xl bg-[#18191E] text-white flex items-center justify-center font-bold text-lg">
+                      {settings.business_name ? settings.business_name.charAt(0).toUpperCase() : "L"}
+                    </div>
                   </div>
                 )}
                 <div className="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-black/5 uppercase text-black border border-black/10 inline-block mb-1">
@@ -303,7 +355,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               </div>
 
               {/* Meta details */}
-              <div className="space-y-1 text-[11px] pb-3 border-b border-dashed border-black/20">
+              <div className="space-y-1 text-[11px] pb-3 border-b border-solid border-black/15">
                 <div className="flex justify-between">
                   <span className="text-neutral-500">RECEIPT #:</span>
                   <span className="font-bold font-mono text-black">{invoice.invoice_number}</span>
@@ -332,14 +384,14 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
 
               {/* Itemized list */}
               <div className="space-y-1 py-1">
-                <div className="flex justify-between text-[10px] font-bold text-neutral-500 pb-1.5 border-b border-black/10">
+                <div className="flex justify-between text-[10px] font-bold text-neutral-500 pb-1.5 border-b border-solid border-black/15">
                   <span>ITEM / QTY</span>
                   <span>AMOUNT</span>
                 </div>
                 {items.map((item, idx) => (
                   <div
                     key={item.id || idx}
-                    className="space-y-0.5 py-1.5 border-b border-dashed border-black/10 last:border-0"
+                    className="space-y-0.5 py-1.5 border-b border-solid border-black/10 last:border-0"
                   >
                     <div className="font-medium text-[11px] text-black leading-snug break-words">
                       {item.item_name}
@@ -357,7 +409,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               </div>
 
               {/* Totals Breakdown */}
-              <div className="space-y-1.5 pt-3 border-t border-dashed border-black/20 text-xs">
+              <div className="space-y-1.5 pt-3 border-t border-solid border-black/15 text-xs">
                 <div className="flex justify-between text-neutral-600">
                   <span>Subtotal:</span>
                   <span className="font-mono">
@@ -378,14 +430,14 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                     +{formatCurrency(invoice.tax_amount)}
                   </span>
                 </div>
-                <div className="flex justify-between font-bold text-sm text-black pt-1 border-t border-black/20">
+                <div className="flex justify-between font-bold text-sm text-black pt-1 border-t border-solid border-black/20">
                   <span>TOTAL:</span>
                   <span className="text-base font-mono">
                     {formatCurrency(invoice.total_amount)}
                   </span>
                 </div>
                 <div className="flex justify-between text-[11px] text-neutral-600 pt-0.5">
-                  <span>Tendered / Paid:</span>
+                  <span>Cash Received:</span>
                   <span className="font-mono">
                     {formatCurrency(invoice.paid_amount)}
                   </span>
@@ -393,7 +445,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               </div>
 
               {/* Footer Terms */}
-              <div className="text-center text-[10px] text-neutral-500 space-y-1 pt-2 font-sans border-t border-dashed border-black/20">
+              <div className="text-center text-[10px] text-neutral-500 space-y-1 pt-2 font-sans border-t border-solid border-black/15">
                 <p>
                   {settings.terms_and_conditions ||
                     "Thank you for visiting! Returns accepted within 14 days with original receipt."}
@@ -415,12 +467,16 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               {/* Top Business & Invoice Title */}
               <div className="flex justify-between items-start pb-6 border-b border-black/[0.08]">
                 <div className="flex items-start gap-4">
-                  {customLogo && (
+                  {customLogo ? (
                     <img
                       src={customLogo}
                       alt="Store Logo"
                       className="w-14 h-14 rounded-2xl object-contain border border-black/10 shrink-0 p-1 bg-white shadow-2xs"
                     />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl border border-black/10 shrink-0 p-1 bg-[#18191E] text-white flex items-center justify-center font-bold text-2xl shadow-2xs">
+                      {settings.business_name ? settings.business_name.charAt(0).toUpperCase() : "L"}
+                    </div>
                   )}
                   <div>
                     <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
@@ -580,5 +636,10 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
+
+return typeof document !== "undefined"
+  ? createPortal(modalContent, document.body)
+  : modalContent;
 };

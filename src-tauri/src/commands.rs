@@ -1212,9 +1212,16 @@ pub fn generate_native_invoice_pdf(
         "$"
     };
 
-    // Header
+    // Header - Store Logo Emblem & Information
+    let initial = store_name.chars().next().unwrap_or('L').to_uppercase().to_string();
     current.push_str(&format!(
-        "0 0 0 rg\nBT /F2 18 Tf 40 {:.1} Td ({}) Tj ET\n",
+        "0.1 0.1 0.1 rg\n40 {y_box:.1} 40 40 re f\n1 1 1 rg\nBT /F2 20 Tf 53 {y_text:.1} Td ({initial}) Tj ET\n",
+        y_box = y - 26.0,
+        y_text = y - 18.0,
+        initial = escape_pdf_str(&initial)
+    ));
+    current.push_str(&format!(
+        "0 0 0 rg\nBT /F2 18 Tf 90 {:.1} Td ({}) Tj ET\n",
         y, escape_pdf_str(store_name)
     ));
     current.push_str(&format!(
@@ -1224,7 +1231,7 @@ pub fn generate_native_invoice_pdf(
     y -= 18.0;
 
     current.push_str(&format!(
-        "0.4 0.4 0.4 rg\nBT /F1 9 Tf 40 {:.1} Td ({}) Tj ET\n",
+        "0.4 0.4 0.4 rg\nBT /F1 9 Tf 90 {:.1} Td ({}) Tj ET\n",
         y, escape_pdf_str(tagline)
     ));
     current.push_str(&format!(
@@ -1238,7 +1245,7 @@ pub fn generate_native_invoice_pdf(
         settings.address, settings.phone, settings.tax_name, settings.tax_id
     );
     current.push_str(&format!(
-        "0.5 0.5 0.5 rg\nBT /F1 8 Tf 40 {:.1} Td ({}) Tj ET\n",
+        "0.5 0.5 0.5 rg\nBT /F1 8 Tf 90 {:.1} Td ({}) Tj ET\n",
         y, escape_pdf_str(&contact_info)
     ));
     current.push_str(&format!(

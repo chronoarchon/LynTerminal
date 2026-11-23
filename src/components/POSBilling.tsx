@@ -76,6 +76,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   const [creditPaidMethod, setCreditPaidMethod] = useState<string>("CASH");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [tenderedAmount, setTenderedAmount] = useState<string>("");
+  const cashInputRef = useRef<HTMLInputElement>(null);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -540,10 +541,10 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       )}
 
       
-      {/* Toast Notification */}
+      {/* Toast Notification (Sleek Black Aesthetic) */}
       {successToast && (
-        <div className="fixed top-16 right-4 sm:right-8 z-50 bg-[#0071E3] text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-white/10 animate-in slide-in-from-top duration-200">
-          <div className="w-6 h-6 rounded-full bg-[#34C759]/20 text-[#34C759] flex items-center justify-center">
+        <div className="fixed top-16 right-4 sm:right-8 z-50 bg-[#161618] text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10 animate-in slide-in-from-top duration-200">
+          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
           </div>
           <div>
@@ -1100,37 +1101,47 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                 )}
               </div>
 
-              {/* Cash Quick Tenders */}
+              {/* Cash Tender: Amount Received with Exact or Custom Option */}
               {paymentMethod === "CASH" && !isSplitPayment && (
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center gap-1.5">
                     <input
+                      ref={cashInputRef}
                       type="number"
-                      placeholder="Tendered cash..."
+                      placeholder="Cash Received..."
                       value={tenderedAmount}
                       onChange={(e) => setTenderedAmount(e.target.value)}
                       className="flex-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-semibold focus:outline-none focus:border-black"
                     />
                     <div className="flex gap-1 shrink-0">
-                      {(currency === "₹" || currency.includes("₹")
-                        ? [50, 100, 200, 500]
-                        : [10, 20, 50, 100]
-                      ).map((denom) => (
-                        <button
-                          key={denom}
-                          type="button"
-                          onClick={() => setTenderedAmount(denom.toString())}
-                          className="px-2 py-1 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBED] text-[10px] font-mono font-semibold text-[#1D1D1F] transition apple-press cursor-pointer"
-                        >
-                          {currency}{denom}
-                        </button>
-                      ))}
                       <button
                         type="button"
                         onClick={() => setTenderedAmount(totalAmount.toFixed(2))}
-                        className="px-2 py-1 rounded-lg bg-black/5 hover:bg-black/10 text-[10px] font-semibold text-black transition apple-press cursor-pointer border border-black/10"
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition apple-press cursor-pointer border ${
+                          tenderedAmount === totalAmount.toFixed(2)
+                            ? "bg-[#18181B] text-white border-[#18181B] shadow-xs"
+                            : "bg-[#F5F5F7] hover:bg-[#EBEBED] text-[#1D1D1F] border-black/[0.08]"
+                        }`}
+                        title="Tender Exact Total Amount"
                       >
                         Exact
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tenderedAmount === totalAmount.toFixed(2)) {
+                            setTenderedAmount("");
+                          }
+                          cashInputRef.current?.focus();
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition apple-press cursor-pointer border ${
+                          tenderedAmount !== "" && tenderedAmount !== totalAmount.toFixed(2)
+                            ? "bg-[#18181B] text-white border-[#18181B] shadow-xs"
+                            : "bg-[#F5F5F7] hover:bg-[#EBEBED] text-[#1D1D1F] border-black/[0.08]"
+                        }`}
+                        title="Enter Custom Cash Amount"
+                      >
+                        Custom
                       </button>
                     </div>
                   </div>

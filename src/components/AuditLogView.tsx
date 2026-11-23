@@ -50,10 +50,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
   const handleSeedDemoData = async () => {
     const ok = await confirm({
-      title: "Generate Demo Data",
+      title: "Generate 3-Month Demo Simulation",
       message:
-        "Generate 30 days of realistic commercial business records?\n\nThis will populate products, customers, daily POS sales, purchase restocks, and operating expenses to verify math and accounting.",
-      confirmText: "Generate Data",
+        "Generate 90 days (3 months) of realistic commercial business records?\n\nThis will populate products, customers, daily POS sales, purchase restocks, and operating expenses to verify math and accounting.",
+      confirmText: "Generate 3-Month Data",
     });
 
     if (!ok) return;
@@ -61,11 +61,11 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
     try {
       setSeeding(true);
       setSeedResult(null);
-      const res = await api.seedDemoData(30);
+      const res = await api.seedDemoData(90);
       setSeedResult(res);
       await loadLogs();
       onRefreshAll();
-      toast({ message: "30-day simulation records generated successfully", type: "success" });
+      toast({ message: "90-day (3-month) simulation records generated successfully", type: "success" });
     } catch (err) {
       alert({ title: "Simulation Failed", message: String(err), type: "error" });
     } finally {

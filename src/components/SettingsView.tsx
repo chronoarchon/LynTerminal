@@ -149,7 +149,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Indian GST Profile Form
   const [gstForm, setGstForm] = useState<GstSettings>({
     is_enabled: true,
-    gstin: "27AABCU9603R1ZN",
+    gstin: "",
     legal_name: "LynTerminal Infotech Pvt Ltd",
     trade_name: "LynStore India",
     state_code: "27",
@@ -739,7 +739,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* INDIAN GST & TALLY STATUTORY PROFILE (Visible ONLY when active currency is INR) */}
+      {/* INDIAN GST & STATUTORY ACCOUNTING (Visible ONLY when active currency is INR) */}
       {formData.currency_code === "INR" && (
         <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4 border border-[#FF9500]/30 bg-gradient-to-b from-white to-[#FFF9F2]/20">
           <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
@@ -750,14 +750,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-[#1D1D1F]">
-                    India GST &amp; Tally Statutory Accounting
+                    India GST &amp; Statutory Accounting
                   </h2>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF9500]/10 text-[#FF9500] uppercase tracking-wide">
                     Rule 46 CGST
                   </span>
                 </div>
                 <p className="text-[11px] text-[#86868B] mt-0.5">
-                  Optional GST engine for INR currency: CGST, SGST, IGST tax breakdown, HSN/SAC codes &amp; Tally gateway
+                  Optional GST engine for INR currency: CGST, SGST, IGST tax breakdown, HSN/SAC codes &amp; statutory accounting gateway
                 </p>
               </div>
             </div>
@@ -778,7 +778,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     try {
                       await gstApi.saveGstSettings(updatedGst);
                       toast({
-                        message: val ? "Indian GST & Tally activated" : "Indian GST & Tally turned off",
+                        message: val ? "Indian GST & Statutory Accounting activated" : "Indian GST & Statutory Accounting turned off",
                         type: "info",
                       });
                       onSettingsUpdated({ ...formData, tax_preset: val ? "INDIA_GST" : "CUSTOM" });
@@ -818,7 +818,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     pan: pan || prev.pan,
                   }));
                 }}
-                placeholder="27AABCU9603R1ZN"
+                placeholder="27AAAAA0000A1Z5"
                 className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
               />
               <span className="text-[10px] text-neutral-400 mt-1 block">
