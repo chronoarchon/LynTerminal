@@ -5,14 +5,20 @@
 fn configure_windows_webview2_fallback() {
     use std::path::{Path, PathBuf};
 
-    if std::env::var_os("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER").is_some() {
-        return;
-    }
-
     let is_valid_webview2_dir = |dir: &Path| -> bool {
         dir.join("msedgewebview2.exe").is_file()
             && dir.join("EBWebView").join("x64").join("EmbeddedBrowserWebView.dll").is_file()
     };
+
+    if let Some(existing) = std::env::var_os("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER") {
+        if is_valid_webview2_dir(Path::new(&existing)) {
+            return;
+        }
+        // Existing env var points to a stale/removed EdgeWebView version; clear it so discovery/fallback succeeds.
+        unsafe {
+            std::env::remove_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER");
+        }
+    }
 
     let find_latest_version_in = |base: &Path| -> Option<PathBuf> {
         let entries = std::fs::read_dir(base).ok()?;
