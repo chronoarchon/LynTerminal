@@ -73,8 +73,8 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
       return;
     }
 
-    if (!password) {
-      setUnlockError("Please enter your master password.");
+    if (!/^\d{4}$/.test(password)) {
+      setUnlockError("Please enter your 4-digit PIN.");
       return;
     }
 
@@ -102,8 +102,8 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
       setRecoveryError("Please enter your 18-character recovery key.");
       return;
     }
-    if (newPassword.length < 4) {
-      setRecoveryError("New password must be at least 4 characters long.");
+    if (!/^\d{4}$/.test(newPassword)) {
+      setRecoveryError("New PIN must be exactly 4 digits.");
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -177,11 +177,13 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
+                  inputMode="numeric"
+                  maxLength={4}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Master Password"
+                  onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="4-Digit PIN"
                   autoFocus
-                  className="w-full px-4 py-3 pr-10 rounded-2xl border border-black/10 bg-white focus:border-black focus:ring-1 focus:ring-black/20 text-xs text-black outline-none transition shadow-2xs text-center font-medium placeholder:text-neutral-400"
+                  className="w-full px-4 py-3 pr-10 rounded-2xl border border-black/10 bg-white focus:border-black focus:ring-1 focus:ring-black/20 text-sm font-mono tracking-widest text-black outline-none transition shadow-2xs text-center font-medium placeholder:text-neutral-400 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs"
                 />
                 <button
                   type="button"
@@ -291,10 +293,12 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
                 <div className="relative">
                   <input
                     type={showNewPassword ? "text" : "password"}
+                    inputMode="numeric"
+                    maxLength={4}
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    className="w-full px-3 py-2.5 pr-9 rounded-xl border border-black/10 bg-white focus:border-black text-xs text-black outline-none placeholder:text-neutral-400"
+                    onChange={(e) => setNewPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="4-digit PIN"
+                    className="w-full px-3 py-2.5 pr-9 rounded-xl border border-black/10 bg-white focus:border-black text-xs font-mono tracking-widest text-black outline-none placeholder:text-neutral-400 placeholder:tracking-normal placeholder:font-sans"
                   />
                   <button
                     type="button"
@@ -313,10 +317,12 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
                 <div className="relative">
                   <input
                     type={showConfirmNewPassword ? "text" : "password"}
+                    inputMode="numeric"
+                    maxLength={4}
                     value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    placeholder="Re-enter password"
-                    className="w-full px-3 py-2.5 pr-9 rounded-xl border border-black/10 bg-white focus:border-black text-xs text-black outline-none placeholder:text-neutral-400"
+                    onChange={(e) => setConfirmNewPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="Re-enter 4-digit PIN"
+                    className="w-full px-3 py-2.5 pr-9 rounded-xl border border-black/10 bg-white focus:border-black text-xs font-mono tracking-widest text-black outline-none placeholder:text-neutral-400 placeholder:tracking-normal placeholder:font-sans"
                   />
                   <button
                     type="button"

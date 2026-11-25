@@ -48,7 +48,7 @@ type TimeRange = "today" | "7d" | "30d" | "all";
 
 export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
   summary,
-  settings,
+  settings: _settings,
   parties = [],
   invoices = [],
   items = [],
@@ -413,45 +413,33 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
     <div className="space-y-4 max-w-7xl mx-auto select-none pb-12 text-[#1D1D1F]">
       
       {/* =========================================================================
-          1. BENTO COMMAND HEADER
+          1. BENTO COMMAND HEADER (SINGLE-LINE ACTION BAR)
       ========================================================================== */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          
-          {/* Business Entity Title */}
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#1D1D1F] truncate">
-              {settings.business_name || "Enterprise Operations"}
-            </h1>
-            <p className="text-[11px] text-neutral-400 mt-0.5">
-              Executive Bento Overview · Synced {lastSyncedAt}
-            </p>
+      <div className="bg-white rounded-2xl px-4 py-3 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center justify-between gap-2 overflow-x-auto">
+          {/* Real Time Horizon Selector */}
+          <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/70 text-xs shrink-0">
+            {(["today", "7d", "30d", "all"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setSelectedTimeRange(r)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer whitespace-nowrap ${
+                  selectedTimeRange === r
+                    ? "bg-white text-neutral-900 font-bold shadow-xs"
+                    : "text-neutral-500 hover:text-neutral-800"
+                }`}
+              >
+                {r === "today" ? "Today" : r === "7d" ? "7D" : r === "30d" ? "30D" : "All"}
+              </button>
+            ))}
           </div>
 
-          {/* Quick Actions & Time Range Switcher */}
-          <div className="flex flex-wrap items-center gap-2">
-            
-            {/* Real Time Horizon Selector */}
-            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/70 text-xs">
-              {(["today", "7d", "30d", "all"] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setSelectedTimeRange(r)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-                    selectedTimeRange === r
-                      ? "bg-white text-neutral-900 font-bold shadow-xs"
-                      : "text-neutral-500 hover:text-neutral-800"
-                  }`}
-                >
-                  {r === "today" ? "Today" : r === "7d" ? "7D" : r === "30d" ? "30D" : "All"}
-                </button>
-              ))}
-            </div>
-
+          {/* Quick Actions & Switcher */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Primary Action: POS Sale */}
             <button
               onClick={() => onNavigate("pos")}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer whitespace-nowrap shrink-0"
             >
               <Receipt className="w-3.5 h-3.5" />
               <span>New Sale</span>
@@ -461,7 +449,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
             {/* Pay Supplier */}
             <button
               onClick={() => onOpenPaySupplier()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer whitespace-nowrap shrink-0"
             >
               <ArrowUpRight className="w-3.5 h-3.5 text-rose-500" strokeWidth={2.2} />
               <span>Pay Vendor</span>
@@ -470,7 +458,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
             {/* Record Expense */}
             <button
               onClick={() => onNavigate("expenses")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer whitespace-nowrap shrink-0"
             >
               <ArrowDownLeft className="w-3.5 h-3.5 text-amber-500" strokeWidth={2.2} />
               <span>Expense</span>
@@ -479,21 +467,21 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
             {/* Manage Treasury / Cash Float */}
             <button
               onClick={() => onOpenManageMoney("deposit")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer whitespace-nowrap shrink-0"
             >
               <Coins className="w-3.5 h-3.5 text-blue-600" strokeWidth={2} />
               <span>Treasury</span>
             </button>
 
             {/* View Switcher: Pro vs Classic */}
-            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/70 text-xs">
-              <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-[#0071E3] shadow-xs flex items-center gap-1">
+            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/70 text-xs shrink-0">
+              <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-[#0071E3] shadow-xs flex items-center gap-1 whitespace-nowrap">
                 <Sparkles className="w-3 h-3 text-[#0071E3]" />
                 Executive
               </span>
               <button
                 onClick={onSwitchToClassic}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-neutral-500 hover:text-neutral-900 transition cursor-pointer"
+                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-neutral-500 hover:text-neutral-900 transition cursor-pointer whitespace-nowrap"
                 title="Switch back to Classic Dashboard"
               >
                 Classic
@@ -505,11 +493,11 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
               <button
                 onClick={handleRefreshClick}
                 disabled={isRefreshing}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-neutral-200/70 bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 text-xs font-medium transition cursor-pointer disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-neutral-200/70 bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 text-xs font-medium transition cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
                 title={`Refresh dashboard data (Last synced ${lastSyncedAt})`}
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#0071E3]" : ""}`} />
-                <span className="hidden xl:inline text-[11px]">{isRefreshing ? "Syncing..." : "Sync"}</span>
+                <span className="text-[11px]">{isRefreshing ? "Syncing..." : "Sync"}</span>
               </button>
             )}
           </div>

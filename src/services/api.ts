@@ -212,6 +212,8 @@ export const api = {
     invoke<boolean>("reset_password_with_recovery_code", { recoveryCode, newPassword }),
   changePassword: (currentPassword: string, newPassword: string) =>
     invoke<boolean>("change_password", { currentPassword, newPassword }),
+  disablePassword: (currentPassword: string) =>
+    invoke<boolean>("disable_password", { currentPassword }),
   getRecoveryCode: () => invoke<string>("get_recovery_code"),
 
   // App lifecycle & update compatibility (final release, no updates)

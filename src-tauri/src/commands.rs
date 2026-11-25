@@ -6205,8 +6205,8 @@ pub fn reset_password_with_recovery_code(
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
-    if new_password.len() < 4 {
-        return Err("New password must be at least 4 characters long".into());
+    if new_password.len() != 4 || !new_password.chars().all(|c| c.is_ascii_digit()) {
+        return Err("PIN must be exactly 4 numeric digits".into());
     }
 
     let (username, stored_code) = conn.query_row(
@@ -6255,30 +6255,47 @@ pub fn change_password(
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
-    if new_password.len() < 4 {
-        return Err("New password must be at least 4 characters long".into());
+    if new_password.len() != 4 || !new_password.chars().all(|c| c.is_ascii_digit()) {
+        return Err("PIN must be exactly 4 numeric digits".into());
     }
 
-    let (username, stored_hash, salt) = conn.query_row(
-        "SELECT username, password_hash, password_salt FROM app_auth WHERE id = 1",
+    let (username, stored_hash, salt, stored_recovery) = conn.query_row(
+        "SELECT username, password_hash, password_salt, recovery_code FROM app_auth WHERE id = 1",
         [],
-        |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)),
+        |r| Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, String>(2)?,
+            r.get::<_, String>(3).unwrap_or_default(),
+        )),
     ).map_err(|e| format!("Auth record not found: {}", e))?;
 
-    let check_hash = compute_password_hash(&current_password, &salt);
-    if check_hash != stored_hash {
-        return Err("Current password is incorrect".into());
+    // Only verify current PIN when a PIN is already configured
+    if !stored_hash.trim().is_empty() {
+        let check_hash = compute_password_hash(&current_password, &salt);
+        if check_hash != stored_hash {
+            return Err("Current 4-digit PIN is incorrect".into());
+        }
     }
 
     let new_salt = Uuid::new_v4().to_string();
     let new_hash = compute_password_hash(&new_password, &new_salt);
 
+    // Ensure recovery code exists so View Recovery Key always works
+    let recovery_to_save = if stored_recovery.trim().is_empty() {
+        let raw = Uuid::new_v4().simple().to_string().to_uppercase();
+        format!("LYN-{}-{}-{}-{}", &raw[0..4], &raw[4..8], &raw[8..12], &raw[12..14])
+    } else {
+        stored_recovery
+    };
+
     conn.execute(
         "UPDATE app_auth
          SET password_hash = ?1,
-             password_salt = ?2
+             password_salt = ?2,
+             recovery_code = ?3
          WHERE id = 1",
-        params![new_hash, new_salt],
+        params![new_hash, new_salt, recovery_to_save],
     )
     .map_err(|e| e.to_string())?;
 
@@ -6287,7 +6304,50 @@ pub fn change_password(
         "PASSWORD_CHANGED",
         "AUTH",
         &username,
-        "Master password changed from Settings",
+        "4-digit lock PIN configured from Settings",
+    )
+    .ok();
+
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn disable_password(
+    current_password: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<bool, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+
+    let (username, stored_hash, salt) = conn.query_row(
+        "SELECT username, password_hash, password_salt FROM app_auth WHERE id = 1",
+        [],
+        |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)),
+    ).map_err(|e| format!("Auth record not found: {}", e))?;
+
+    if !stored_hash.trim().is_empty() {
+        let check_hash = compute_password_hash(&current_password, &salt);
+        if check_hash != stored_hash {
+            return Err("Current 4-digit PIN is incorrect".into());
+        }
+    }
+
+    conn.execute(
+        "UPDATE app_auth
+         SET password_hash = '',
+             password_salt = '',
+             is_locked = 0
+         WHERE id = 1",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    DatabaseManager::log_audit(
+        &conn,
+        "PASSWORD_DISABLED",
+        "AUTH",
+        &username,
+        "4-digit lock PIN disabled; reverted to 1-click lock",
     )
     .ok();
 
@@ -6299,12 +6359,26 @@ pub fn get_recovery_code(state: State<'_, Mutex<AppState>>) -> Result<String, St
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
-    conn.query_row(
+    let existing: String = conn.query_row(
         "SELECT recovery_code FROM app_auth WHERE id = 1",
         [],
         |r| r.get::<_, String>(0),
+    ).unwrap_or_default();
+
+    if !existing.trim().is_empty() {
+        return Ok(existing);
+    }
+
+    // Auto-generate and persist an 18-character recovery key if none exists yet
+    let raw = Uuid::new_v4().simple().to_string().to_uppercase();
+    let generated = format!("LYN-{}-{}-{}-{}", &raw[0..4], &raw[4..8], &raw[8..12], &raw[12..14]);
+    conn.execute(
+        "UPDATE app_auth SET recovery_code = ?1 WHERE id = 1",
+        params![generated],
     )
-    .map_err(|e| format!("Could not retrieve recovery code: {}", e))
+    .map_err(|e| format!("Could not save recovery code: {}", e))?;
+
+    Ok(generated)
 }
 
 #[tauri::command]

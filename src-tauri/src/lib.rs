@@ -99,6 +99,7 @@ pub fn run() {
             commands::set_app_locked,
             commands::reset_password_with_recovery_code,
             commands::change_password,
+            commands::disable_password,
             commands::get_recovery_code,
             commands::restart_app,
             commands::create_pre_update_backup,

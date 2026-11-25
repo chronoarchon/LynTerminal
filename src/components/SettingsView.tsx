@@ -200,7 +200,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Security & Master Auth states
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [pwModalMode, setPwModalMode] = useState<"pin" | "forgot">("pin");
   const [oldPassword, setOldPassword] = useState("");
+  const [forgotRecoveryCode, setForgotRecoveryCode] = useState("");
   const [newMasterPassword, setNewMasterPassword] = useState("");
   const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
   const [showOldPw, setShowOldPw] = useState(false);
@@ -262,31 +264,88 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     toast("Store logo removed.");
   };
 
+  const resetPwModalFields = () => {
+    setOldPassword("");
+    setForgotRecoveryCode("");
+    setNewMasterPassword("");
+    setConfirmMasterPassword("");
+    setChangePwError("");
+    setPwModalMode("pin");
+  };
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setChangePwError("");
-    if (!oldPassword) {
-      setChangePwError("Please enter your current master password.");
+    const hasExistingPin = Boolean(authState?.has_account);
+
+    if (pwModalMode === "forgot") {
+      if (!forgotRecoveryCode.trim()) {
+        setChangePwError("Please enter your 18-character recovery key.");
+        return;
+      }
+      if (!/^\d{4}$/.test(newMasterPassword)) {
+        setChangePwError("New PIN must be exactly 4 digits.");
+        return;
+      }
+      if (newMasterPassword !== confirmMasterPassword) {
+        setChangePwError("PINs do not match.");
+        return;
+      }
+      try {
+        setIsChangingPw(true);
+        await api.resetPasswordWithRecoveryCode(forgotRecoveryCode.trim(), newMasterPassword);
+        setIsChangePasswordOpen(false);
+        resetPwModalFields();
+        api.getAuthState().then(setAuthState).catch(() => {});
+        toast({ message: "4-digit PIN reset successfully", type: "success" });
+      } catch (err) {
+        setChangePwError(String(err));
+      } finally {
+        setIsChangingPw(false);
+      }
       return;
     }
-    if (newMasterPassword.length < 4) {
-      setChangePwError("New password must be at least 4 characters.");
+
+    if (hasExistingPin && !/^\d{4}$/.test(oldPassword)) {
+      setChangePwError("Please enter your current 4-digit PIN.");
+      return;
+    }
+    if (!/^\d{4}$/.test(newMasterPassword)) {
+      setChangePwError("PIN must be exactly 4 numeric digits.");
       return;
     }
     if (newMasterPassword !== confirmMasterPassword) {
-      setChangePwError("New passwords do not match.");
+      setChangePwError("PINs do not match.");
       return;
     }
 
     try {
       setIsChangingPw(true);
-      await api.changePassword(oldPassword, newMasterPassword);
+      await api.changePassword(hasExistingPin ? oldPassword : "", newMasterPassword);
       setIsChangePasswordOpen(false);
-      setOldPassword("");
-      setNewMasterPassword("");
-      setConfirmMasterPassword("");
+      resetPwModalFields();
       api.getAuthState().then(setAuthState).catch(() => {});
-      toast({ message: "Master password configured successfully", type: "success" });
+      toast({ message: "4-digit lock PIN saved", type: "success" });
+    } catch (err) {
+      setChangePwError(String(err));
+    } finally {
+      setIsChangingPw(false);
+    }
+  };
+
+  const handleDisablePassword = async () => {
+    setChangePwError("");
+    if (authState?.has_account && !/^\d{4}$/.test(oldPassword)) {
+      setChangePwError("Enter your current 4-digit PIN to disable password lock.");
+      return;
+    }
+    try {
+      setIsChangingPw(true);
+      await api.disablePassword(oldPassword);
+      setIsChangePasswordOpen(false);
+      resetPwModalFields();
+      api.getAuthState().then(setAuthState).catch(() => {});
+      toast({ message: "PIN removed — 1-click lock active", type: "success" });
     } catch (err) {
       setChangePwError(String(err));
     } finally {
@@ -1501,25 +1560,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
           </div>
 
-          {/* Change Password */}
+          {/* Change / Set 4-Digit PIN */}
           <div className="p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05] flex flex-col justify-between space-y-3">
             <div>
-              <div className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-1.5">
-                <KeyRound className="w-4 h-4 text-purple-600" />
-                <span>Master Password</span>
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-1.5">
+                  <KeyRound className="w-4 h-4 text-purple-600" />
+                  <span>4-Digit Lock PIN</span>
+                </div>
+                {authState?.has_account && (
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200/50">
+                    Active
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-[#86868B] mt-1 leading-relaxed">
                 {authState?.has_account
-                  ? "Update the local administrator master password used to unlock LynTerminal."
-                  : "Create an administrator password to protect your store workstation."}
+                  ? "Update, reset, or disable your 4-digit PIN used to unlock LynTerminal."
+                  : "Optional: add a 4-digit numeric PIN to protect your workstation."}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setIsChangePasswordOpen(true)}
+              onClick={() => {
+                resetPwModalFields();
+                setIsChangePasswordOpen(true);
+              }}
               className="w-full py-2 rounded-xl border border-black/[0.08] bg-white hover:bg-neutral-50 text-xs font-semibold text-[#1D1D1F] shadow-2xs transition apple-press cursor-pointer"
             >
-              {authState?.has_account ? "Change Password" : "Create Master Password"}
+              {authState?.has_account ? "Manage 4-Digit PIN" : "Set 4-Digit PIN"}
             </button>
           </div>
 
@@ -1775,9 +1844,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
-      {/* CHANGE MASTER PASSWORD MODAL */}
+      {/* SET / UPDATE / DISABLE 4-DIGIT PIN MODAL */}
       {isChangePasswordOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm border border-black/[0.08] p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150 text-black">
             <div className="flex items-center justify-between border-b border-black/[0.08] pb-3">
               <div className="flex items-center gap-2">
@@ -1785,8 +1854,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-black tracking-tight">Update Password</h3>
-                  <p className="text-[11px] text-neutral-400">Master access key</p>
+                  <h3 className="text-sm font-bold text-black tracking-tight">
+                    {pwModalMode === "forgot"
+                      ? "Reset 4-Digit PIN"
+                      : authState?.has_account
+                      ? "Manage 4-Digit PIN"
+                      : "Set 4-Digit PIN"}
+                  </h3>
+                  <p className="text-[11px] text-neutral-400">
+                    {pwModalMode === "forgot"
+                      ? "Verify 18-char recovery key"
+                      : authState?.has_account
+                      ? "Update or disable lock PIN"
+                      : "4 numeric digits only"}
+                  </p>
                 </div>
               </div>
               <button
@@ -1806,39 +1887,72 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             )}
 
             <form onSubmit={handleChangePassword} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                  Current Password
-                </label>
-                <div className="relative">
+              {pwModalMode === "forgot" ? (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                    18-Char Recovery Key
+                  </label>
                   <input
-                    type={showOldPw ? "text" : "password"}
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    placeholder="Enter current password"
-                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-black/[0.08] bg-white text-xs text-black outline-none focus:border-black placeholder:text-neutral-400"
+                    type="text"
+                    value={forgotRecoveryCode}
+                    onChange={(e) => setForgotRecoveryCode(e.target.value)}
+                    placeholder="LYN-XXXX-XXXX-XXXX-XX"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-mono uppercase tracking-wider text-black outline-none focus:border-black placeholder:text-neutral-400"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowOldPw(!showOldPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
-                  >
-                    {showOldPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
                 </div>
-              </div>
+              ) : (
+                authState?.has_account && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-neutral-700">
+                        Current 4-Digit PIN
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangePwError("");
+                          setPwModalMode("forgot");
+                        }}
+                        className="text-[11px] font-semibold text-[#0071E3] hover:underline cursor-pointer"
+                      >
+                        Forgot PIN?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showOldPw ? "text" : "password"}
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        placeholder="•••• (4 digits)"
+                        className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-black/[0.08] bg-white text-xs font-mono tracking-widest text-black outline-none focus:border-black placeholder:text-neutral-400 placeholder:tracking-normal placeholder:font-sans"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOldPw(!showOldPw)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
+                      >
+                        {showOldPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                  New Password
+                  New 4-Digit PIN
                 </label>
                 <div className="relative">
                   <input
                     type={showNewPw ? "text" : "password"}
+                    inputMode="numeric"
+                    maxLength={4}
                     value={newMasterPassword}
-                    onChange={(e) => setNewMasterPassword(e.target.value)}
-                    placeholder="Min 4 characters"
-                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-black/[0.08] bg-white text-xs text-black outline-none focus:border-black placeholder:text-neutral-400"
+                    onChange={(e) => setNewMasterPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="4 digits (e.g. 1234)"
+                    className="w-full px-3.5 py-2.5 pr-9 rounded-xl border border-black/[0.08] bg-white text-xs font-mono tracking-widest text-black outline-none focus:border-black placeholder:text-neutral-400 placeholder:tracking-normal placeholder:font-sans"
                   />
                   <button
                     type="button"
@@ -1852,32 +1966,60 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                  Confirm Password
+                  Confirm 4-Digit PIN
                 </label>
                 <input
                   type={showNewPw ? "text" : "password"}
+                  inputMode="numeric"
+                  maxLength={4}
                   value={confirmMasterPassword}
-                  onChange={(e) => setConfirmMasterPassword(e.target.value)}
-                  placeholder="Re-enter password"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs text-black outline-none focus:border-black placeholder:text-neutral-400"
+                  onChange={(e) => setConfirmMasterPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="Re-enter 4-digit PIN"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-mono tracking-widest text-black outline-none focus:border-black placeholder:text-neutral-400 placeholder:tracking-normal placeholder:font-sans"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsChangePasswordOpen(false)}
-                  className="px-4 py-2 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 cursor-pointer shadow-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isChangingPw}
-                  className="px-5 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
-                >
-                  {isChangingPw ? "Saving..." : "Save Password"}
-                </button>
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
+                {authState?.has_account && pwModalMode === "pin" ? (
+                  <button
+                    type="button"
+                    disabled={isChangingPw}
+                    onClick={handleDisablePassword}
+                    className="px-3.5 py-2 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold cursor-pointer transition"
+                  >
+                    Disable PIN
+                  </button>
+                ) : pwModalMode === "forgot" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChangePwError("");
+                      setPwModalMode("pin");
+                    }}
+                    className="px-3.5 py-2 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 cursor-pointer"
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePasswordOpen(false)}
+                    className="px-4 py-2 rounded-full border border-black/[0.1] text-xs font-semibold text-black bg-white hover:bg-neutral-100 cursor-pointer shadow-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isChangingPw}
+                    className="px-5 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer"
+                  >
+                    {isChangingPw ? "Saving..." : "Save PIN"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

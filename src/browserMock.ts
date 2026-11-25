@@ -457,7 +457,7 @@ export function initBrowserMock() {
         case "get_auth_state": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
           const isSetup = urlParams?.get("setup") === "1" || urlParams?.get("onboarding") === "1";
-          const hasPassword = urlParams?.get("has_password") === "1";
+          const hasPassword = (window as any).__mockHasPassword ?? (urlParams?.get("has_password") === "1");
           const isLocked = (window as any).__mockAppLocked ?? (urlParams?.get("locked") === "1");
           if (isSetup) {
             return { has_account: false, is_setup_completed: false, is_locked: false };
@@ -468,15 +468,50 @@ export function initBrowserMock() {
           (window as any).__mockAppLocked = Boolean(_args?.locked);
           return true;
         }
+        case "get_recovery_code": {
+          if (!(window as any).__mockRecoveryCode) {
+            (window as any).__mockRecoveryCode = "LYN-7F3A-9B2C-4D8E-1A";
+          }
+          return (window as any).__mockRecoveryCode;
+        }
+        case "change_password": {
+          const newPw = String(_args?.newPassword || "");
+          if (!/^\d{4}$/.test(newPw)) throw new Error("PIN must be exactly 4 numeric digits");
+          (window as any).__mockHasPassword = true;
+          (window as any).__mockPin = newPw;
+          return true;
+        }
+        case "disable_password": {
+          (window as any).__mockHasPassword = false;
+          (window as any).__mockPin = "";
+          (window as any).__mockAppLocked = false;
+          return true;
+        }
+        case "reset_password_with_recovery_code": {
+          const newPw = String(_args?.newPassword || "");
+          if (!/^\d{4}$/.test(newPw)) throw new Error("PIN must be exactly 4 numeric digits");
+          (window as any).__mockHasPassword = true;
+          (window as any).__mockPin = newPw;
+          (window as any).__mockAppLocked = false;
+          return true;
+        }
+        case "verify_unlock_password": {
+          const expected = (window as any).__mockPin || "1234";
+          if (String(_args?.password || "") !== expected) {
+            throw new Error("Incorrect 4-digit PIN");
+          }
+          (window as any).__mockAppLocked = false;
+          return true;
+        }
         case "check_app_update": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.6.6",
-            latest_version: "1.6.6",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.6/lynterminal_1.6.6_x64-setup.exe",
-            release_notes: "### What's New in v1.6.6\n- **Smart Split Tender Auto-Balance (All Currencies)**: Bidirectional Cash <-> Card/Wallet auto-calculation with strict over-total rejection\n- **1-Click Workstation Lock**: Lock and unlock immediately without requiring a master password (optional password still supported)\n- **Clean 2-Step Setup Wizard & Bento Dashboard**: Minimalist onboarding, clean Bento dashboard cards, functional Sync button, and smooth zero-stutter scrolling\n- **GST Seller Integrity & 1-Page Print Fix**: Removes seeded demo supplier/bank leakage and fits 6-item GST tax invoices on 1 A4 page",
+            current_version: "1.6.7",
+            latest_version: "1.6.7",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.7/lynterminal_1.6.7_x64-setup.exe",
+            release_notes: "### What's New in v1.6.7\n- **Single-Line Executive Action Bar**: Cleaner top bar with all quick actions on one line\n- **Smart 4-Digit Lock PIN**: New users can set a 4-digit PIN without being asked for a current password; includes Forgot PIN & Disable PIN\n- **Recovery Key Auto-Provisioning**: View Recovery Key now always generates and displays your 18-char sovereign key",
             published_at: "2026-11-25T15:30:00Z",
             platform: "windows",
           };
