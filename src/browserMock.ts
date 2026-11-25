@@ -468,11 +468,11 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.6.4",
-            latest_version: "1.6.4",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.4/lynterminal_1.6.4_x64-setup.exe",
-            release_notes: "### What's New in v1.6.4\n- **Luxury Minimalist 'L' Icon & Branded Installer**: Updated desktop app & NSIS setup binary icon + Wintershogun Tech Studio publisher metadata\n- **Stale WebView2 Path Recovery**: Automatically clears broken/deleted WEBVIEW2_BROWSER_EXECUTABLE_FOLDER env paths before fallback\n- **Real-Time Executive Analytics**: Authentic Today / 7D / 30D / All calculations and local calendar dates",
-            published_at: "2026-11-25T13:30:00Z",
+            current_version: "1.6.5",
+            latest_version: "1.6.5",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.5/lynterminal_1.6.5_x64-setup.exe",
+            release_notes: "### What's New in v1.6.5\n- **Unified Luxury 'L' Icon Across Shortcuts & Public Sets**: Synced 16x16 to 512x512 PNG & SVG icon sets across Windows, Linux, and website downloads\n- **Automatic Windows Shell Icon Cache Refresh**: NSIS post-install hook clears stale Desktop shortcut icon caches automatically on upgrades",
+            published_at: "2026-11-25T15:30:00Z",
             platform: "windows",
           };
         }

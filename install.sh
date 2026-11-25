@@ -6,7 +6,7 @@
 # =============================================================================
 set -e
 
-VERSION="1.6.4"
+VERSION="1.6.5"
 PRIMARY_URL="https://lynterminal.wintershogun.tech/lynterminal"
 CDN_URL="https://cdn.jsdelivr.net/gh/chronoarchon/LynTerminal@main"
 RAW_URL="https://raw.githubusercontent.com/chronoarchon/LynTerminal@main"
@@ -260,19 +260,24 @@ SVG_ICON="$TEMP_DIR/lynterminal.svg"
 cat << 'EOF' > "$SVG_ICON"
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="lynterminal_bg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#18191E" />
-      <stop offset="100%" stop-color="#0E0F12" />
+    <linearGradient id="lyn_lux_bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#171A23" />
+      <stop offset="52%" stop-color="#0D0F15" />
+      <stop offset="100%" stop-color="#06070A" />
     </linearGradient>
-    <linearGradient id="lynterminal_stroke" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2997FF" />
-      <stop offset="60%" stop-color="#0071E3" />
-      <stop offset="100%" stop-color="#00C7BE" />
+    <radialGradient id="lyn_lux_glow" cx="35%" cy="22%" r="70%">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.20" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lyn_lux_letter" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="55%" stop-color="#E4E7EC" />
+      <stop offset="100%" stop-color="#9CA3AF" />
     </linearGradient>
   </defs>
-  <rect x="32" y="32" width="448" height="448" rx="104" fill="url(#lynterminal_bg)" />
-  <rect x="32" y="32" width="448" height="448" rx="104" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
-  <path d="M 188 128 V 334 C 188 358 206 376 230 376 H 352" fill="none" stroke="url(#lynterminal_stroke)" stroke-width="72" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="20" y="20" width="472" height="472" rx="116" fill="url(#lyn_lux_bg)" />
+  <rect x="20" y="20" width="472" height="472" rx="116" fill="url(#lyn_lux_glow)" />
+  <path d="M 180 132 V 328 C 180 356 200 376 228 376 H 344" fill="none" stroke="url(#lyn_lux_letter)" stroke-width="68" stroke-linecap="round" stroke-linejoin="round" />
 </svg>
 EOF
 
