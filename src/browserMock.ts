@@ -1,3 +1,5 @@
+import { getLocalDateString, getLocalDateOffset } from "./utils/date";
+
 export const mockSettings = {
   id: 1,
   business_name: "LynTerminal Flagship Store",
@@ -238,8 +240,8 @@ export const mockInvoices = [
     invoice_type: "SALE" as const,
     party_id: "pa-1",
     party_name: "Alexander Wright",
-    invoice_date: "2026-11-17",
-    due_date: "2026-11-17",
+    invoice_date: getLocalDateOffset(0),
+    due_date: getLocalDateOffset(0),
     subtotal: 58.75,
     discount_amount: 0.0,
     tax_amount: 4.99,
@@ -248,7 +250,7 @@ export const mockInvoices = [
     status: "PAID",
     payment_method: "CARD",
     notes: "Counter register receipt",
-    created_at: "2026-11-17T14:32:00",
+    created_at: `${getLocalDateOffset(0)}T14:32:00`,
   },
   {
     id: "inv-2",
@@ -256,8 +258,8 @@ export const mockInvoices = [
     invoice_type: "SALE" as const,
     party_id: "pa-2",
     party_name: "Sophia Lin & Partners",
-    invoice_date: "2026-11-17",
-    due_date: "2026-11-24",
+    invoice_date: getLocalDateOffset(2),
+    due_date: getLocalDateOffset(-5),
     subtotal: 133.64,
     discount_amount: 0.0,
     tax_amount: 11.36,
@@ -266,7 +268,7 @@ export const mockInvoices = [
     status: "UNPAID",
     payment_method: "TRANSFER",
     notes: "Office catering & weekly roast beans",
-    created_at: "2026-11-17T11:15:00",
+    created_at: `${getLocalDateOffset(2)}T11:15:00`,
   },
   {
     id: "inv-3",
@@ -274,8 +276,8 @@ export const mockInvoices = [
     invoice_type: "SALE" as const,
     party_id: "pa-3",
     party_name: "Marcus Vance",
-    invoice_date: "2026-11-16",
-    due_date: "2026-11-16",
+    invoice_date: getLocalDateOffset(5),
+    due_date: getLocalDateOffset(5),
     subtotal: 26.73,
     discount_amount: 0.0,
     tax_amount: 2.27,
@@ -284,7 +286,25 @@ export const mockInvoices = [
     status: "PAID",
     payment_method: "CASH",
     notes: "Express counter pickup",
-    created_at: "2026-11-16T16:45:00",
+    created_at: `${getLocalDateOffset(5)}T16:45:00`,
+  },
+  {
+    id: "inv-4",
+    invoice_number: "INV-2026-0039",
+    invoice_type: "SALE" as const,
+    party_id: "pa-1",
+    party_name: "Alexander Wright",
+    invoice_date: getLocalDateOffset(14),
+    due_date: getLocalDateOffset(14),
+    subtotal: 276.50,
+    discount_amount: 0.0,
+    tax_amount: 23.50,
+    total_amount: 300.0,
+    paid_amount: 300.0,
+    status: "PAID",
+    payment_method: "BANK",
+    notes: "Wholesale monthly coffee order",
+    created_at: `${getLocalDateOffset(14)}T10:15:00`,
   },
 ];
 
@@ -307,10 +327,10 @@ export const mockSummary = {
   total_liabilities: 380.0,
   net_worth: 19860.0,
   working_capital: 15350.0,
-  today_revenue: 1485.5,
-  month_revenue: 34820.0,
-  today_orders: 38,
-  month_orders: 812,
+  today_revenue: 63.74,
+  month_revenue: 537.74,
+  today_orders: 1,
+  month_orders: 4,
 };
 
 export const mockExpenses = [
@@ -320,9 +340,9 @@ export const mockExpenses = [
     category: "Store Lease",
     amount: 1400.0,
     payment_method: "BANK",
-    notes: "Prime counter location lease (November)",
-    expense_date: "2026-11-01",
-    created_at: "2026-11-01T09:00:00",
+    notes: "Prime counter location lease",
+    expense_date: getLocalDateOffset(15),
+    created_at: `${getLocalDateOffset(15)}T09:00:00`,
   },
   {
     id: "exp-2",
@@ -331,8 +351,8 @@ export const mockExpenses = [
     amount: 115.0,
     payment_method: "BANK",
     notes: "Commercial gigabit fiber line",
-    expense_date: "2026-11-04",
-    created_at: "2026-11-04T10:30:00",
+    expense_date: getLocalDateOffset(4),
+    created_at: `${getLocalDateOffset(4)}T10:30:00`,
   },
   {
     id: "exp-3",
@@ -341,8 +361,8 @@ export const mockExpenses = [
     amount: 85.0,
     payment_method: "CASH",
     notes: "Receipt paper rolls 80mm & bags",
-    expense_date: "2026-11-10",
-    created_at: "2026-11-10T14:15:00",
+    expense_date: getLocalDateOffset(0),
+    created_at: `${getLocalDateOffset(0)}T14:15:00`,
   },
 ];
 
@@ -448,11 +468,11 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.6.0",
-            latest_version: "1.6.0",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.0/lynterminal_1.6.0_x64-setup.exe",
-            release_notes: "### What's New in v1.6.0 Final Public Release\n- **Executive Pro Dashboard**: Consolidated financial matrix, 7-day velocity analytics & asset balance sheet\n- **Standard Semi-Bold Typography**: Crisp tabular currency symbols for ₹ (INR) and $ (USD)\n- **Modern Inter & Plus Jakarta Sans Design**: Clean, luxury UI/UX without monospace distortion\n- **Production Hardened**: 6-stage QA validated, sub-10ms SQLite WAL transactions",
-            published_at: "2026-11-20T12:00:00Z",
+            current_version: "1.6.3",
+            latest_version: "1.6.3",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal_1.6.3_x64-setup.exe",
+            release_notes: "### What's New in v1.6.3\n- **Real-Time Executive Analytics**: Authentic time-range filtering (Today / 7D / 30D / All), real CoGS & expense calculations\n- **Windows WebView2 Auto-Discovery**: Seamless startup even with per-user or embedded WebView2 installs\n- **UI & Calendar Hardening**: Fixed light/dark contrast edges, local timezone invoice dates, and responsive trial banners",
+            published_at: "2026-11-25T12:00:00Z",
             platform: "windows",
           };
         }
@@ -482,7 +502,7 @@ export function initBrowserMock() {
             invoice_number: invoiceNum,
             party_id: payload.party_id || null,
             party_name: payload.party_name || "Walk-in Customer",
-            invoice_date: new Date().toISOString().split("T")[0],
+            invoice_date: getLocalDateString(),
             due_date: null,
             subtotal: payload.subtotal || 22.0,
             discount_amount: payload.discount_amount || 0,

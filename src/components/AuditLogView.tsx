@@ -187,7 +187,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
             </div>
           </div>
           <p className="text-[11px] text-[#86868B] leading-relaxed font-mono truncate">
-            Path: ~/.local/share/com.lynterminal.app/lynterminal.db
+            Path: %APPDATA%\lynterminal (Win) · ~/.local/share/com.lynterminal.app (Linux)
           </p>
         </div>
 

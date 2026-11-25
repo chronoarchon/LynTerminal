@@ -506,7 +506,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
                             onClick={() => handleSetAttendance(emp.id, "ABSENT")}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
                               status === "ABSENT"
-                                ? "bg-[#FF3B30] text-black"
+                                ? "bg-[#FF3B30] text-white"
                                 : "bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F]"
                             }`}
                           >

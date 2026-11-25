@@ -402,7 +402,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                 setReturnItems([]);
                 setIsCreateReturnOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-black text-xs font-semibold shadow-xs transition apple-press"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-white text-xs font-semibold shadow-xs transition apple-press"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Record Return</span>

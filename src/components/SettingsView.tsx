@@ -1807,8 +1807,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             {changePwError && (
-              <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-xs font-medium text-red-200 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-medium text-red-700 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
                 <span>{changePwError}</span>
               </div>
             )}

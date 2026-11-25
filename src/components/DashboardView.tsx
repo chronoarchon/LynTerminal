@@ -24,8 +24,9 @@ import {
   Coins,
 } from "lucide-react";
 import { CurrencyIcon } from "./common/CurrencyIcon";
-import type { DashboardSummary, Settings, Party, BankAccount, Invoice, Item } from "../types";
+import type { DashboardSummary, Settings, Party, BankAccount, Invoice, Item, Expense } from "../types";
 import { api } from "../services/api";
+import { getLocalDateString } from "../utils/date";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
@@ -42,8 +43,6 @@ interface DashboardViewProps {
   onNavigate: (tab: string) => void;
   onRefresh?: () => void;
 }
-
-const isMock = typeof window !== "undefined" && !(window as any).__TAURI_INTERNALS__;
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   summary,
@@ -76,18 +75,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [items, setItems] = useState<Item[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() =>
-    isMock
-      ? [
-          {
-            id: "ba-1",
-            bank_name: "Silicon Valley Commercial",
-            account_number: "****4821",
-            current_balance: 14800.0,
-          } as any,
-        ]
-      : []
-  );
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [isPaySupplierOpen, setIsPaySupplierOpen] = useState(false);
   const [isManageMoneyOpen, setIsManageMoneyOpen] = useState(false);
   const [manageMoneyTab, setManageMoneyTab] = useState<"deposit" | "transfer" | "manage">("deposit");
@@ -198,8 +187,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       invoice_type: "SALE",
       party_id: cust.id,
       party_name: cust.name,
-      invoice_date: new Date().toISOString().split("T")[0],
-      due_date: new Date().toISOString().split("T")[0],
+      invoice_date: getLocalDateString(),
+      due_date: getLocalDateString(),
       subtotal: cust.current_balance,
       discount_amount: 0,
       tax_amount: 0,
@@ -233,7 +222,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         amount: amt,
         payment_type: "IN",
         payment_method: dashboardPayMethod,
-        payment_date: new Date().toISOString().split("T")[0],
+        payment_date: getLocalDateString(),
         reference: dashboardPayTarget.id ? `Credit Settlement #${dashboardPayTarget.invoice_number}` : `Account Settlement - ${dashboardPayTarget.party_name}`,
         notes: dashboardPayTarget.id ? `Credit settlement for Invoice #${dashboardPayTarget.invoice_number}` : `Customer account settlement`,
       });
@@ -259,14 +248,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const loadData = async () => {
     try {
-      const [invList, itemList, banks] = await Promise.all([
+      const [invList, itemList, banks, expList] = await Promise.all([
         api.listInvoices().catch(() => []),
         api.listItems().catch(() => []),
         api.listBankAccounts().catch(() => []),
+        api.listExpenses().catch(() => []),
       ]);
       setInvoices(invList);
       setItems(itemList);
       setBankAccounts(banks);
+      setExpenses(expList);
       if (banks.length > 0) {
         setSupplierBankId(banks[0].id);
       }
@@ -332,7 +323,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = getLocalDateString(d);
     const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
     const daySales = invoices
       .filter((inv) => inv.invoice_type === "SALE" && inv.invoice_date === dateStr)
@@ -393,6 +384,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           parties={parties}
           invoices={invoices}
           items={items}
+          expenses={expenses}
           bankAccounts={bankAccounts}
           gstSettings={gstSettings}
           isGstEnabled={isGstEnabled}
@@ -555,7 +547,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               const el = document.getElementById("credit-ledger-section");
               if (el) el.scrollIntoView({ behavior: "auto" });
             }}
-            className="px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-black text-xs font-semibold shrink-0 transition apple-press cursor-pointer self-start sm:self-auto"
+            className="px-3.5 py-1.5 rounded-xl bg-[#FF3B30] hover:bg-[#E02E24] text-white text-xs font-semibold shrink-0 transition apple-press cursor-pointer self-start sm:self-auto"
           >
             Review Debtors
           </button>
@@ -565,11 +557,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Primary KPI Highlights (Enhanced Apple Luxury Cards) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
         
-        {/* KPI 1: Today's Revenue */}
+        {/* KPI 1: Total Net Sales */}
         <div className="apple-card p-4 sm:p-5 rounded-2xl apple-card-hover relative overflow-hidden group">
           <div className="absolute top-0 left-0 right-0 h-1 bg-[#0071E3]" />
           <div className="flex items-center justify-between text-[#86868B] text-xs font-medium mb-1.5">
-            <span>Today's Revenue</span>
+            <span>Total Net Sales</span>
             <div className="w-7 h-7 rounded-full bg-blue-50 text-[#0071E3] flex items-center justify-center border border-blue-100">
               <TrendingUp className="w-4 h-4 stroke-[2.5]" />
             </div>
@@ -629,7 +621,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center justify-between text-[11px] text-[#86868B] mt-2 pt-2 border-t border-black/[0.05]">
             <span className="text-sky-600 font-semibold flex items-center gap-1">
               <Building2 className="w-3 h-3" />
-              {bankAccounts.length || 1} connected
+              {bankAccounts.length} connected
             </span>
             <button
               onClick={() => handleOpenManageMoney("transfer")}

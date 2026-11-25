@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { Settings, DashboardSummary, BankAccount } from "../types";
 import { api } from "../services/api";
+import { getLocalDateString } from "../utils/date";
 
 interface ManageMoneyModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export function ManageMoneyModal({
   const [depositSource, setDepositSource] = useState<string>("Cash Float Addition");
   const [depositReference, setDepositReference] = useState<string>("");
   const [depositDate, setDepositDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    getLocalDateString()
   );
   const [depositBankAccountId, setDepositBankAccountId] = useState<string>("");
   const [depositNotes, setDepositNotes] = useState<string>("");
@@ -356,14 +357,14 @@ export function ManageMoneyModal({
           <div
             className={`mx-5 sm:mx-6 mt-3 p-3 rounded-xl flex items-center gap-2 text-xs font-medium animate-in fade-in duration-150 ${
               feedback.type === "success"
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                : "bg-red-500/10 text-red-400 border border-red-500/20"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-red-50 text-red-700 border border-red-200"
             }`}
           >
             {feedback.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
             ) : (
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
             )}
             <span className="flex-1">{feedback.message}</span>
           </div>
@@ -486,7 +487,7 @@ export function ManageMoneyModal({
                       key={amt}
                       type="button"
                       onClick={() => setDepositAmount(String(amt))}
-                      className="px-2.5 py-1 rounded-lg bg-[#F9FAFB] hover:bg-[#232733] border border-black/[0.08] text-[11px] font-mono font-semibold text-black transition cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-[#F9FAFB] hover:bg-neutral-200 border border-black/[0.08] text-[11px] font-mono font-semibold text-black transition cursor-pointer"
                     >
                       +{currencySymbol}{amt}
                     </button>

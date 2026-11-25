@@ -191,10 +191,10 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                 key={stepNum}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   currentStep === stepNum
-                    ? "w-6 bg-white"
+                    ? "w-6 bg-[#0071E3]"
                     : currentStep > stepNum
-                    ? "w-2.5 bg-emerald-400"
-                    : "w-2 bg-white/20"
+                    ? "w-2.5 bg-emerald-500"
+                    : "w-2 bg-black/15"
                 }`}
               />
             ))}
@@ -374,7 +374,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   onClick={() => setSkipAppLock(false)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                     !skipAppLock
-                      ? "border-white bg-[#F9FAFB] shadow-md"
+                      ? "border-[#0071E3] bg-blue-50/30 shadow-sm"
                       : "border-black/[0.08] bg-white hover:border-black/15"
                   }`}
                 >
@@ -407,7 +407,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   onClick={selectSkipAppLock}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                     skipAppLock
-                      ? "border-white bg-[#F9FAFB] shadow-md"
+                      ? "border-[#0071E3] bg-blue-50/30 shadow-sm"
                       : "border-black/[0.08] bg-white hover:border-black/15"
                   }`}
                 >
@@ -869,7 +869,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   type="button"
                   disabled={tourSlide === 0}
                   onClick={() => setTourSlide((prev) => prev - 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] text-xs font-semibold text-black hover:bg-[#232733] disabled:opacity-30 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] text-xs font-semibold text-black hover:bg-neutral-200 disabled:opacity-30 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Previous</span>
@@ -879,7 +879,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   type="button"
                   disabled={tourSlide === 3}
                   onClick={() => setTourSlide((prev) => prev + 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] text-xs font-semibold text-black hover:bg-[#232733] disabled:opacity-30 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F9FAFB] text-xs font-semibold text-black hover:bg-neutral-200 disabled:opacity-30 cursor-pointer"
                 >
                   <span>Next</span>
                   <ArrowRight className="w-3.5 h-3.5" />

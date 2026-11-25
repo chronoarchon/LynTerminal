@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import type { DaybookEntry, DashboardSummary, Item, Settings, CashClosing } from "../types";
 import { api } from "../services/api";
+import { getLocalDateString } from "../utils/date";
 import { useCurrency } from "../context/CurrencyContext";
 
 interface ReportsViewProps {
@@ -17,7 +18,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
   const { currencySymbol, formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState<"daybook" | "pnl" | "stock" | "closings">("daybook");
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    getLocalDateString()
   );
   const [daybookEntries, setDaybookEntries] = useState<DaybookEntry[]>([]);
   const [loadingDaybook, setLoadingDaybook] = useState(false);
@@ -28,7 +29,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
   const [cashClosings, setCashClosings] = useState<CashClosing[]>([]);
   const [loadingClosings, setLoadingClosings] = useState(false);
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
-  const [closingDate, setClosingDate] = useState(new Date().toISOString().split("T")[0]);
+  const [closingDate, setClosingDate] = useState(getLocalDateString());
   const [openingFloat, setOpeningFloat] = useState("100.00");
   const [salesCash, setSalesCash] = useState("0.00");
   const [actualCash, setActualCash] = useState("100.00");
@@ -92,7 +93,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
   const netDayCash = totalInflow - totalOutflow;
 
   const handleOpenClosingModal = () => {
-    setClosingDate(new Date().toISOString().split("T")[0]);
+    setClosingDate(getLocalDateString());
     setSalesCash(totalInflow.toFixed(2));
     const openVal = parseFloat(openingFloat) || 100;
     setActualCash((openVal + totalInflow).toFixed(2));

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Item, Party, Settings, InvoicePayload, InvoiceDetail, LicenseStatus } from "../types";
 import { api } from "../services/api";
+import { getLocalDateString, getLocalDateOffset } from "../utils/date";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
@@ -377,7 +378,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
     setIsSubmitting(true);
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalDateString();
       const selectedParty = parties.find((p) => p.id === selectedPartyId);
       const isPurchase = billMode === "PURCHASE";
       const isQuotation = billMode === "QUOTATION";
@@ -408,7 +409,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           party_id: selectedPartyId ? selectedPartyId : null,
           party_name: partyName,
           estimate_date: today,
-          expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
+          expiry_date: getLocalDateOffset(-15),
           items: quoteItems,
           notes: notes || "Quotation valid for 15 days.",
         });
@@ -512,7 +513,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-[#F5F5F7] overflow-hidden relative select-none">
+    <div className="flex flex-col h-full w-full bg-[#F5F5F7] overflow-hidden relative select-none">
       {/* 14-Day Free Trial Expired Warning Banner — Windows only */}
       {licenseStatus?.is_expired && licenseStatus?.platform !== "linux" && (
         <div className="w-full bg-rose-50 border-b border-rose-200 px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 z-30 shrink-0">
@@ -539,6 +540,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           </div>
         </div>
       )}
+
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
 
       
       {/* Toast Notification (Sleek Black Aesthetic) */}
@@ -1704,6 +1707,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           onClose={() => setCompletedInvoice(null)}
         />
       )}
+      </div>
     </div>
   );
 };

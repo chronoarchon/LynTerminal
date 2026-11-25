@@ -22,6 +22,7 @@ import type {
   CreateGstItemPayload,
 } from "./gstTypes";
 import { gstApi } from "./gstApi";
+import { getLocalDateString, getLocalDateOffset } from "../../utils/date";
 import {
   INDIAN_STATES,
   calculateGstBreakdown,
@@ -275,12 +276,8 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
     try {
       setIsSubmitting(true);
-      const todayStr = new Date().toISOString().split("T")[0];
-
-      // Calculate due date based on credit terms
-      const dueDateObj = new Date();
-      dueDateObj.setDate(dueDateObj.getDate() + (paymentType === "CREDIT" ? creditDays : 0));
-      const dueDateStr = dueDateObj.toISOString().split("T")[0];
+      const todayStr = getLocalDateString();
+      const dueDateStr = getLocalDateOffset(paymentType === "CREDIT" ? -creditDays : 0);
 
       const partyName = selectedParty
         ? selectedParty.name
@@ -371,7 +368,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
   return (
     <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
       {/* 14-Day Free Trial Expired Warning Banner */}
-      {licenseStatus?.is_expired && (
+      {licenseStatus?.is_expired && licenseStatus?.platform !== "linux" && (
         <div className="w-full bg-rose-50 border border-rose-200 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 z-30 shrink-0">
           <div className="flex items-center gap-2 text-xs text-rose-800 font-medium">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -433,7 +430,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         </div>
 
         {/* Product Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-4 gap-3">
           {filteredItems.map((item) => (
             <div
               key={item.id}
@@ -445,7 +442,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                   <span className="text-[10px] font-mono text-neutral-400 uppercase">
                     {item.category}
                   </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-black/5 text-black border border-black/10">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-black/5 text-black border border-black/10 shrink-0">
                     {item.tax_rate ?? 18}% GST
                   </span>
                 </div>
@@ -454,14 +451,14 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 </h4>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-black/[0.04] flex items-center justify-between">
+              <div className="mt-3 pt-2 border-t border-black/[0.04] flex items-end justify-between gap-2 flex-wrap">
                 <div>
                   <div className="text-[10px] text-neutral-400">Sale Rate</div>
                   <div className="font-mono font-bold text-sm text-black">
                     ₹{item.sale_price.toFixed(2)}
                   </div>
                 </div>
-                <span className="text-[10px] text-neutral-500 font-mono">
+                <span className="text-[10px] text-neutral-500 font-mono shrink-0">
                   Stock: {item.stock_quantity}
                 </span>
               </div>

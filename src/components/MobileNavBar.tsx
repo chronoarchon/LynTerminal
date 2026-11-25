@@ -158,7 +158,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     }`}
                   />
                   {tab.badge !== undefined && (
-                    <span className="absolute -top-1 -right-2 min-w-4 h-4 px-1 rounded-full bg-[#FF3B30] text-black text-[9px] font-bold flex items-center justify-center">
+                    <span className="absolute -top-1 -right-2 min-w-4 h-4 px-1 rounded-full bg-[#FF3B30] text-white text-[9px] font-bold flex items-center justify-center">
                       {tab.badge}
                     </span>
                   )}
@@ -208,7 +208,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sheet Handle */}
-            <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
+            <div className="w-10 h-1 rounded-full bg-black/15 mx-auto mb-4" />
 
             <div className="flex items-center justify-between mb-4 px-1">
               <div>
@@ -241,8 +241,8 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     }}
                     className={`flex items-start gap-3 p-3.5 rounded-2xl text-left border transition cursor-pointer ${
                       isActive
-                        ? "bg-white text-black border-white shadow-md font-bold"
-                        : "bg-white text-black border-black/[0.08] hover:border-white/30"
+                        ? "bg-blue-50/70 text-[#0071E3] border-[#0071E3]/30 shadow-sm font-bold"
+                        : "bg-white text-black border-black/[0.08] hover:border-black/20"
                     }`}
                   >
                     <div

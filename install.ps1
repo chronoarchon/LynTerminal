@@ -42,25 +42,44 @@ if (-not $is64Bit) {
 # 2. Check for WebView2 Runtime
 $wv2Installed = $false
 $wv2Keys = @(
-    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-F552-44E6-B60A-9877AEC3E960}",
-    "HKCU:\Software\Microsoft\EdgeUpdate\Clients\{F3017226-F552-44E6-B60A-9877AEC3E960}"
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+    "HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+    "HKCU:\Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 )
 foreach ($k in $wv2Keys) {
     if (Test-Path $k) {
-        $pv = (Get-ItemProperty -Path $k -ErrorAction SilentlyContinue).pv
-        if ($pv) { $wv2Installed = $true; break }
+        $props = Get-ItemProperty -Path $k -ErrorAction SilentlyContinue
+        if ($props.pv -and $props.location) {
+            $exePath = Join-Path $props.location "$($props.pv)\msedgewebview2.exe"
+            if (Test-Path $exePath) {
+                # Only treat HKLM or valid per-user EdgeWebView (not orphaned/preview missing WOW6432Node on HKLM) as verified
+                if ($k -like "HKLM:*" -or (Test-Path "HKCU:\Software\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}")) {
+                    $wv2Installed = $true
+                    break
+                }
+            }
+        }
     }
 }
 
 if ($wv2Installed) {
     Write-Host "[+] Microsoft Edge WebView2 Runtime: Detected" -ForegroundColor Green
 } else {
-    Write-Host "[*] Note: Microsoft Edge WebView2 Runtime is recommended for Tauri applications." -ForegroundColor Yellow
+    Write-Host "[*] Installing Microsoft Edge WebView2 Runtime (required for LynTerminal)..." -ForegroundColor Yellow
+    try {
+        $wv2Installer = Join-Path ([System.IO.Path]::GetTempPath()) "MicrosoftEdgeWebview2Setup.exe"
+        $wcWv = New-Object System.Net.WebClient
+        $wcWv.DownloadFile("https://go.microsoft.com/fwlink/p/?LinkId=2124703", $wv2Installer)
+        Start-Process -FilePath $wv2Installer -ArgumentList "/silent /install" -Wait
+        Write-Host "[+] Microsoft Edge WebView2 Runtime installed." -ForegroundColor Green
+    } catch {
+        Write-Host "[!] Auto-install WebView2 notice: $_. Continuing to LynTerminal setup..." -ForegroundColor Yellow
+    }
 }
 
 # 3. Determine Download URL (Latest GitHub Release Asset)
 $repo = "chronoarchon/LynTerminal"
-$defaultUrl = "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.2/lynterminal_1.6.2_x64-setup.exe"
+$defaultUrl = "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal_1.6.3_x64-setup.exe"
 $downloadUrl = $defaultUrl
 
 Write-Host "[*] Checking latest release metadata from GitHub..." -ForegroundColor Gray
@@ -72,7 +91,7 @@ try {
         Write-Host "[+] Found release asset: $($exeAsset.name)" -ForegroundColor Green
     }
 } catch {
-    Write-Host "[*] Using direct fallback release URL (v1.6.2)" -ForegroundColor Gray
+    Write-Host "[*] Using direct fallback release URL (v1.6.3)" -ForegroundColor Gray
 }
 
 # 4. Download Binary
