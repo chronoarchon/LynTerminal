@@ -27,6 +27,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
+import { sanitizeGstSettings } from "../modules/india_gst/gstDefaults";
 import { ManageMoneyModal } from "./ManageMoneyModal";
 
 interface SettingsViewProps {
@@ -34,6 +35,7 @@ interface SettingsViewProps {
   gstSettings?: GstSettings | null;
   licenseStatus?: import("../types").LicenseStatus | null;
   onSettingsUpdated: (newSettings: Settings) => void;
+  onLockApp?: () => void;
   onOpenLicenseModal?: () => void;
 }
 
@@ -107,16 +109,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   gstSettings,
   licenseStatus,
   onSettingsUpdated,
+  onLockApp,
   onOpenLicenseModal,
 }) => {
   const [formData, setFormData] = useState<Settings>({
     id: 1,
     business_name: "LynTerminal Store",
-    tagline: "Retail, Wholesale & Cafe Management",
-    address: "100 Commercial Way, Suite 10",
-    phone: "+1 (555) 019-2834",
-    email: "contact@store.local",
-    tax_id: "TAX-998822",
+    tagline: "Point of Sale & Business OS",
+    address: "",
+    phone: "",
+    email: "",
+    tax_id: "",
     currency_symbol: "$",
     currency_code: "USD",
     tax_name: "Sales Tax",
@@ -150,20 +153,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [gstForm, setGstForm] = useState<GstSettings>({
     is_enabled: true,
     gstin: "",
-    legal_name: "LynTerminal Infotech Pvt Ltd",
-    trade_name: "LynStore India",
+    legal_name: settings?.business_name || "",
+    trade_name: "",
     state_code: "27",
     state_name: "Maharashtra",
-    pan: "AABCU9603R",
+    pan: "",
     gst_composition: false,
     einvoice_enabled: false,
     eway_bill_threshold: 50000,
     lut_number: "",
-    bank_name: "HDFC Bank",
-    bank_account_no: "50200012345678",
-    bank_ifsc: "HDFC0000128",
-    bank_branch: "Fort, Mumbai",
-    upi_id: "lynstore@okhdfcbank",
+    bank_name: "",
+    bank_account_no: "",
+    bank_ifsc: "",
+    bank_branch: "",
+    upi_id: "",
   });
 
   useEffect(() => {
@@ -172,8 +175,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     gstApi
       .getGstSettings()
       .then((res) => {
-        if (res && res.gstin) {
-          setGstForm(res);
+        if (res) {
+          setGstForm(sanitizeGstSettings(res, settings || undefined));
         }
       })
       .catch(console.error);
@@ -305,19 +308,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const handleManualLock = async () => {
-    if (!authState || !authState.has_account) {
-      alert({
-        title: "Master Password Required",
-        message: "You skipped configuring a master password during setup. Please set a master password before locking your workstation.",
-        type: "warning",
-      });
-      setIsChangePasswordOpen(true);
-      return;
-    }
     try {
-      await api.setAppLocked(true);
-      toast({ message: "Workstation locked successfully", type: "success" });
-      onSettingsUpdated({ ...formData });
+      if (onLockApp) {
+        await onLockApp();
+      } else {
+        await api.setAppLocked(true);
+        onSettingsUpdated({ ...formData });
+      }
+      toast({ message: "Workstation locked", type: "success" });
     } catch (err) {
       alert({ title: "Lock Error", message: String(err), type: "error" });
     }
@@ -1480,32 +1478,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <Lock className="w-4 h-4 text-black" />
                   <span>Lock Workstation</span>
                 </div>
-                {authState?.has_account ? (
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200/50">
-                    Protected
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-semibold border border-amber-200/50">
-                    No Password
-                  </span>
-                )}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                  authState?.has_account
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200/50"
+                    : "text-blue-700 bg-blue-50 border-blue-200/50"
+                }`}>
+                  {authState?.has_account ? "Password Protected" : "1-Click Lock"}
+                </span>
               </div>
               <p className="text-[11px] text-[#86868B] mt-1 leading-relaxed">
                 {authState?.has_account
-                  ? "Immediately lock this screen when stepping away from the counter. Shortcut: Ctrl+L."
-                  : "Lock is disabled until a master password is set."}
+                  ? "Immediately lock this screen when stepping away. Requires password to unlock. Shortcut: Ctrl+L."
+                  : "Immediately lock this screen when stepping away. Click Unlock to resume—no password needed. Shortcut: Ctrl+L."}
               </p>
             </div>
             <button
               type="button"
               onClick={handleManualLock}
-              className={`w-full py-2 rounded-xl border text-xs font-semibold shadow-2xs transition apple-press cursor-pointer ${
-                authState?.has_account
-                  ? "border-black/[0.08] bg-white hover:bg-neutral-50 text-[#1D1D1F]"
-                  : "border-amber-200 bg-amber-50 hover:bg-amber-100/60 text-amber-900"
-              }`}
+              className="w-full py-2 rounded-xl border border-black/[0.08] bg-white hover:bg-neutral-50 text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
             >
-              {authState?.has_account ? "Lock Now (Ctrl+L)" : "Set Password to Lock"}
+              Lock Now (Ctrl+L)
             </button>
           </div>
 

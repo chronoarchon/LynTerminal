@@ -457,21 +457,26 @@ export function initBrowserMock() {
         case "get_auth_state": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
           const isSetup = urlParams?.get("setup") === "1" || urlParams?.get("onboarding") === "1";
-          const isLocked = urlParams?.get("locked") === "1";
+          const hasPassword = urlParams?.get("has_password") === "1";
+          const isLocked = (window as any).__mockAppLocked ?? (urlParams?.get("locked") === "1");
           if (isSetup) {
             return { has_account: false, is_setup_completed: false, is_locked: false };
           }
-          return { has_account: true, is_setup_completed: true, is_locked: isLocked };
+          return { has_account: hasPassword, is_setup_completed: true, is_locked: isLocked };
+        }
+        case "set_app_locked": {
+          (window as any).__mockAppLocked = Boolean(_args?.locked);
+          return true;
         }
         case "check_app_update": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.6.5",
-            latest_version: "1.6.5",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.5/lynterminal_1.6.5_x64-setup.exe",
-            release_notes: "### What's New in v1.6.5\n- **Unified Luxury 'L' Icon Across Shortcuts & Public Sets**: Synced 16x16 to 512x512 PNG & SVG icon sets across Windows, Linux, and website downloads\n- **Automatic Windows Shell Icon Cache Refresh**: NSIS post-install hook clears stale Desktop shortcut icon caches automatically on upgrades",
+            current_version: "1.6.6",
+            latest_version: "1.6.6",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.6/lynterminal_1.6.6_x64-setup.exe",
+            release_notes: "### What's New in v1.6.6\n- **Smart Split Tender Auto-Balance (All Currencies)**: Bidirectional Cash <-> Card/Wallet auto-calculation with strict over-total rejection\n- **1-Click Workstation Lock**: Lock and unlock immediately without requiring a master password (optional password still supported)\n- **Clean 2-Step Setup Wizard & Bento Dashboard**: Minimalist onboarding, clean Bento dashboard cards, functional Sync button, and smooth zero-stutter scrolling\n- **GST Seller Integrity & 1-Page Print Fix**: Removes seeded demo supplier/bank leakage and fits 6-item GST tax invoices on 1 A4 page",
             published_at: "2026-11-25T15:30:00Z",
             platform: "windows",
           };
@@ -482,10 +487,105 @@ export function initBrowserMock() {
           return {
             is_enabled: enableGst,
             gstin: "",
+            legal_name: "",
+            trade_name: "",
             state_code: "27",
-            composition_scheme: false,
-            filing_frequency: "MONTHLY",
+            state_name: "Maharashtra",
+            pan: "",
+            gst_composition: false,
+            einvoice_enabled: false,
+            eway_bill_threshold: 50000,
+            lut_number: "",
+            bank_name: "",
+            bank_account_no: "",
+            bank_ifsc: "",
+            bank_branch: "",
+            upi_id: "",
           };
+        }
+        case "get_party_gst_profile":
+        case "get_item_gst_profile":
+          return null;
+        case "create_gst_invoice": {
+          const payload = _args?.payload || {};
+          const now = new Date().toISOString();
+          const invoiceId = "gst-inv-" + Date.now();
+          const invoiceNumber = "INV-" + Math.floor(10000 + Math.random() * 90000);
+          const invoice = {
+            id: invoiceId,
+            invoice_number: invoiceNumber,
+            party_id: payload.party_id || null,
+            party_name: payload.party_name || "Cash Walk-in Consumer",
+            invoice_date: payload.invoice_date || getLocalDateString(),
+            due_date: payload.due_date || getLocalDateString(),
+            subtotal: payload.subtotal ?? 0,
+            discount_amount: payload.discount_amount ?? 0,
+            tax_amount: payload.total_tax ?? 0,
+            total_amount: payload.total_amount ?? 0,
+            paid_amount: payload.paid_amount ?? payload.total_amount ?? 0,
+            payment_method: payload.payment_method || "CASH",
+            status: "PAID" as const,
+            invoice_type: payload.invoice_type || ("SALE" as const),
+            notes: payload.notes || "",
+            reference: payload.reference || null,
+            created_at: now,
+            updated_at: now,
+          };
+          const rawItems = payload.items || [];
+          const items = rawItems.map((it: any, idx: number) => ({
+            id: "gst-ii-" + idx,
+            invoice_id: invoiceId,
+            item_id: it.item_id ?? null,
+            item_name: it.item_name || `Item ${idx + 1}`,
+            sku: it.sku || "SKU-001",
+            quantity: it.quantity ?? 1,
+            unit: it.unit || "pcs",
+            unit_price: it.rate ?? 0,
+            discount_percent: 0,
+            tax_rate: it.tax_rate ?? 0,
+            line_total: it.line_total ?? 0,
+          }));
+          const gst_items = rawItems.map((it: any, idx: number) => ({
+            id: "gst-gi-" + idx,
+            invoice_id: invoiceId,
+            item_id: it.item_id ?? null,
+            hsn_code: it.hsn_code || "8471",
+            quantity: it.quantity ?? 1,
+            unit: it.unit || "pcs",
+            rate: it.rate ?? 0,
+            discount_amount: it.discount_amount ?? 0,
+            taxable_amount: it.taxable_amount ?? 0,
+            tax_rate: it.tax_rate ?? 0,
+            cgst_rate: it.cgst_rate ?? 0,
+            cgst_amount: it.cgst_amount ?? 0,
+            sgst_rate: it.sgst_rate ?? 0,
+            sgst_amount: it.sgst_amount ?? 0,
+            igst_rate: it.igst_rate ?? 0,
+            igst_amount: it.igst_amount ?? 0,
+            cess_rate: it.cess_rate ?? 0,
+            cess_amount: it.cess_amount ?? 0,
+            line_total: it.line_total ?? 0,
+          }));
+          const gst_info = {
+            invoice_id: invoiceId,
+            place_of_supply: payload.place_of_supply || "Maharashtra (27)",
+            pos_state_code: payload.pos_state_code || "27",
+            pos_state_name: payload.pos_state_name || "Maharashtra",
+            supplier_gstin: "",
+            customer_gstin: payload.customer_gstin || "",
+            is_interstate: Boolean(payload.is_interstate),
+            is_reverse_charge: Boolean(payload.is_reverse_charge),
+            cgst_amount: payload.cgst_amount ?? 0,
+            sgst_amount: payload.sgst_amount ?? 0,
+            igst_amount: payload.igst_amount ?? 0,
+            cess_amount: payload.cess_amount ?? 0,
+            round_off: payload.round_off ?? 0,
+            eway_bill_no: payload.eway_bill_no || null,
+            vehicle_no: payload.vehicle_no || null,
+            transporter_name: payload.transporter_name || null,
+            bill_reference_type: payload.bill_reference_type || "New Ref",
+          };
+          return { invoice, items, gst_info, gst_items };
         }
         case "list_items":
           return mockItems;

@@ -44,30 +44,34 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
   const [recoveryError, setRecoveryError] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
-  // Safeguard: If Lock Screen mounts when no password hash exists in storage, automatically bypass/unlock immediately
-  React.useEffect(() => {
-    if (isLocked) {
-      if (authState && !authState.has_account) {
-        api.setAppLocked(false).finally(() => {
-          onUnlocked();
-        });
-      } else {
-        api.getAuthState().then((auth) => {
-          if (!auth.has_account) {
-            api.setAppLocked(false).finally(() => {
-              onUnlocked();
-            });
-          }
-        }).catch(() => {});
-      }
-    }
-  }, [isLocked, authState, onUnlocked]);
+  const hasPassword = Boolean(authState?.has_account);
 
   if (!isLocked) return null;
+
+  const handleQuickUnlock = async () => {
+    try {
+      setIsVerifying(true);
+      await api.setAppLocked(false);
+      onUnlocked();
+      toast({
+        message: "Workstation unlocked",
+        type: "success",
+      });
+    } catch (err) {
+      setUnlockError(String(err));
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const handleUnlock = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setUnlockError("");
+
+    if (!hasPassword) {
+      await handleQuickUnlock();
+      return;
+    }
 
     if (!password) {
       setUnlockError("Please enter your master password.");
@@ -166,52 +170,72 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           </div>
         )}
 
-        {/* Password Form */}
-        <form onSubmit={handleUnlock} className="w-full mt-4 space-y-3">
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Master Password"
-              autoFocus
-              className="w-full px-4 py-3 pr-10 rounded-2xl border border-black/10 bg-white focus:border-black focus:ring-1 focus:ring-black/20 text-xs text-black outline-none transition shadow-2xs text-center font-medium placeholder:text-neutral-400"
-            />
+        {/* Unlock Action: Password Form if configured, or 1-click Unlock by default */}
+        {hasPassword ? (
+          <>
+            <form onSubmit={handleUnlock} className="w-full mt-4 space-y-3">
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Master Password"
+                  autoFocus
+                  className="w-full px-4 py-3 pr-10 rounded-2xl border border-black/10 bg-white focus:border-black focus:ring-1 focus:ring-black/20 text-xs text-black outline-none transition shadow-2xs text-center font-medium placeholder:text-neutral-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isVerifying}
+                className="w-full py-3 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Unlock className="w-4 h-4 stroke-[2.5]" />
+                <span>{isVerifying ? "Verifying..." : "Unlock"}</span>
+              </button>
+            </form>
+
+            {/* Forgot Password Trigger */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setIsRecoveryOpen(true)}
+                className="text-xs text-neutral-500 hover:text-black transition font-medium inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Reset with Recovery Key</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="w-full mt-5 space-y-3">
+            <p className="text-xs text-neutral-500">
+              Click below to unlock and resume your session.
+            </p>
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer"
-              title={showPassword ? "Hide password" : "Show password"}
+              onClick={handleQuickUnlock}
+              disabled={isVerifying}
+              autoFocus
+              className="w-full py-3 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <Unlock className="w-4 h-4 stroke-[2.5]" />
+              <span>{isVerifying ? "Unlocking..." : "Unlock Workstation"}</span>
             </button>
           </div>
-
-          <button
-            type="submit"
-            disabled={isVerifying}
-            className="w-full py-3 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            <Unlock className="w-4 h-4 stroke-[2.5]" />
-            <span>{isVerifying ? "Verifying..." : "Unlock"}</span>
-          </button>
-        </form>
-
-        {/* Forgot Password Trigger */}
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={() => setIsRecoveryOpen(true)}
-            className="text-xs text-neutral-500 hover:text-black transition font-medium inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Reset with Recovery Key</span>
-          </button>
-        </div>
+        )}
 
         {/* System security tag */}
-        <div className="mt-8 text-[11px] text-neutral-400 font-mono">
-          LynTerminal Offline · Local SQLite WAL
+        <div className="mt-8 text-[11px] text-neutral-400 font-medium">
+          LynTerminal · Secure Session
         </div>
       </div>
 

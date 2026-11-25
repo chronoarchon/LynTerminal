@@ -1,7 +1,7 @@
 [package]
 name = "lynterminal"
-version = "1.6.5"
-description = "LynTerminal v1.6.5 — Modern Offline-First Business Management OS & Indian GST Accounting Terminal"
+version = "1.6.6"
+description = "LynTerminal v1.6.6 — Modern Offline-First Business Management OS & Indian GST Accounting Terminal"
 authors = ["Wintershogun Tech Studio <support@wintershogun.tech>"]
 homepage = "https://lynterminal.wintershogun.tech"
 edition = "2024"

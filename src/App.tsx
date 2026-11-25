@@ -116,16 +116,13 @@ export function AppContent() {
   });
 
   const handleLockApp = useCallback(async () => {
-    if (!authState || !authState.has_account) {
-      return;
-    }
     try {
       await api.setAppLocked(true);
       setIsLocked(true);
     } catch (e) {
       console.error("Lock error:", e);
     }
-  }, [authState]);
+  }, []);
 
   const handleUnlocked = useCallback(() => {
     setIsLocked(false);
@@ -393,6 +390,7 @@ export function AppContent() {
             gstSettings={gstSettings}
             licenseStatus={licenseStatus}
             onSettingsUpdated={handleSettingsUpdated}
+            onLockApp={handleLockApp}
             onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
         );
@@ -461,7 +459,7 @@ export function AppContent() {
                 setActiveTab(isGstActive ? "gst_pos" : "pos");
               }
             }}
-            onLockApp={authState?.has_account ? handleLockApp : undefined}
+            onLockApp={handleLockApp}
             onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
 
@@ -469,7 +467,7 @@ export function AppContent() {
             className={`flex-1 min-w-0 ${
               activeTab === "pos" || activeTab === "gst_pos"
                 ? "h-[calc(100vh-3.5rem)] overflow-hidden p-0"
-                : "overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"
+                : "main-scroll-container overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"
             }`}
           >
             <Suspense fallback={<ViewFallback />}>

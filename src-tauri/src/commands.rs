@@ -6096,6 +6096,26 @@ pub fn complete_setup(
             params![b_name, tagline, currency_symbol, currency_code],
         )
         .map_err(|e| format!("Failed to update settings during onboarding: {}", e))?;
+
+        // Sync fresh store identity to GST profile if it only contains seeded placeholder values
+        conn.execute(
+            "UPDATE gst_settings
+             SET legal_name = ?1,
+                 trade_name = '',
+                 gstin = '',
+                 pan = '',
+                 bank_name = '',
+                 bank_account_no = '',
+                 bank_ifsc = '',
+                 bank_branch = '',
+                 upi_id = '',
+                 updated_at = ?2
+             WHERE id = 1
+               AND (gstin IN ('27AABCU9603R1ZN', '27AABCU9603R1ZM')
+                    OR legal_name = 'LynTerminal India Enterprises Pvt Ltd')",
+            params![b_name, now],
+        )
+        .ok();
     }
 
     DatabaseManager::log_audit(
@@ -6157,16 +6177,6 @@ pub fn set_app_locked(
 ) -> Result<bool, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-
-    if locked {
-        let hash: String = conn
-            .query_row("SELECT password_hash FROM app_auth WHERE id = 1", [], |r| r.get(0))
-            .unwrap_or_default();
-        if hash.trim().is_empty() {
-            // Cannot lock if app lock / password is not configured
-            return Err("Cannot lock workstation: No master password configured. Please set a password first.".into());
-        }
-    }
 
     let val = if locked { 1 } else { 0 };
     conn.execute("UPDATE app_auth SET is_locked = ?1 WHERE id = 1", params![val])

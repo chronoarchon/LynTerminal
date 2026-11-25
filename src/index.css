@@ -92,9 +92,6 @@
   * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    scroll-behavior: auto !important;
   }
 
   html, body {
@@ -102,9 +99,8 @@
     width: 100%;
     margin: 0;
     padding: 0;
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
     overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
     font-family: var(--font-sans);
   }
 
@@ -118,22 +114,28 @@
     letter-spacing: -0.012em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    image-rendering: -webkit-optimize-contrast;
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.16) transparent;
   }
 
-  /* Frictionless native kinetic scrolling for WebKitGTK and Chromium */
+  /* Primary app scroller: GPU-composited, zero-stutter native scroll */
+  .main-scroll-container {
+    overscroll-behavior-y: contain;
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: auto;
+  }
+
+  /* Nested scrollable panels must chain wheel events to parent when reaching bounds */
   .overflow-y-auto,
   .overflow-x-auto,
   .overflow-auto,
   [class*="overflow-y-auto"],
   [class*="overflow-x-auto"],
   [class*="overflow-auto"] {
-    overscroll-behavior-y: contain;
+    overscroll-behavior: auto;
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
   }
 
 
@@ -435,7 +437,7 @@
 /* Thermal receipt printable mode & standard commercial print */
 @media print {
   @page {
-    margin: 6mm;
+    margin: 5mm;
     size: auto;
   }
   html, body {
@@ -446,12 +448,23 @@
     width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .no-print {
     display: none !important;
   }
   .print-only {
     display: block !important;
+  }
+  .print-avoid-break,
+  [data-printable="true"] tr,
+  [data-printable="true"] thead {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  [data-printable="true"] thead {
+    display: table-header-group !important;
   }
 
   /* When printing an invoice document, HIDE THE APP ROOT COMPLETELY to prevent page clutter */
@@ -503,14 +516,14 @@
     overflow: visible !important;
   }
 
-  /* Printable documents: clean, straight lines, perfectly organized */
+  /* Printable documents: crisp single-sheet fit without wasted border margins */
   [data-printable="true"] {
     box-shadow: none !important;
-    border: 1px solid #E5E7EB !important;
+    border: none !important;
     border-radius: 0 !important;
     margin: 0 auto !important;
-    padding: 10mm 12mm !important;
-    max-width: 190mm !important;
+    padding: 4mm 6mm !important;
+    max-width: 198mm !important;
     width: 100% !important;
     background: white !important;
   }

@@ -40,7 +40,7 @@ interface ExecutiveProDashboardProps {
   onOpenCreditPay: (inv: Invoice) => void;
   onOpenCustomerPay: (cust: Party) => void;
   onNavigate: (tab: string) => void;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<void>;
   onSwitchToClassic: () => void;
 }
 
@@ -72,6 +72,21 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
   const [transactionFilter, setTransactionFilter] = useState<"ALL" | "CASH" | "CARD" | "CREDIT">("ALL");
   const [rightPanelTab, setRightPanelTab] = useState<"debtors" | "inventory">("debtors");
   const [searchTx, setSearchTx] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string>(() =>
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  );
+
+  const handleRefreshClick = async () => {
+    if (!onRefresh || isRefreshing) return;
+    try {
+      setIsRefreshing(true);
+      await onRefresh();
+      setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 300);
+    }
+  };
 
   const todayStr = getLocalDateString();
 
@@ -395,35 +410,29 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
       : "Net Operating Profit";
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto select-none pb-14 text-[#1D1D1F]">
+    <div className="space-y-4 max-w-7xl mx-auto select-none pb-12 text-[#1D1D1F]">
       
       {/* =========================================================================
-          1. EXECUTIVE COMMAND HEADER
+          1. BENTO COMMAND HEADER
       ========================================================================== */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
-          {/* Business Entity Title & Live Indicators */}
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1D1D1F]">
-                {settings.business_name || "Enterprise Operations"}
-              </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live Terminal
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-100 text-neutral-600 border border-neutral-200/60 font-mono">
-                SQLite WAL Offline
-              </span>
-            </div>
+          {/* Business Entity Title */}
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#1D1D1F] truncate">
+              {settings.business_name || "Enterprise Operations"}
+            </h1>
+            <p className="text-[11px] text-neutral-400 mt-0.5">
+              Executive Bento Overview · Synced {lastSyncedAt}
+            </p>
           </div>
 
           {/* Quick Actions & Time Range Switcher */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             
             {/* Real Time Horizon Selector */}
-            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/80 text-xs mr-1">
+            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/70 text-xs">
               {(["today", "7d", "30d", "all"] as const).map((r) => (
                 <button
                   key={r}
@@ -442,17 +451,17 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
             {/* Primary Action: POS Sale */}
             <button
               onClick={() => onNavigate("pos")}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-sm transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
             >
               <Receipt className="w-3.5 h-3.5" />
-              <span>New POS Sale</span>
+              <span>New Sale</span>
               <kbd className="px-1.5 py-0.5 text-[10px] bg-white/20 rounded font-mono font-normal">F2</kbd>
             </button>
 
             {/* Pay Supplier */}
             <button
               onClick={() => onOpenPaySupplier()}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/80 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer"
             >
               <ArrowUpRight className="w-3.5 h-3.5 text-rose-500" strokeWidth={2.2} />
               <span>Pay Vendor</span>
@@ -461,23 +470,23 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
             {/* Record Expense */}
             <button
               onClick={() => onNavigate("expenses")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/80 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer"
             >
               <ArrowDownLeft className="w-3.5 h-3.5 text-amber-500" strokeWidth={2.2} />
-              <span>Record Expense</span>
+              <span>Expense</span>
             </button>
 
             {/* Manage Treasury / Cash Float */}
             <button
               onClick={() => onOpenManageMoney("deposit")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/80 text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200/70 text-xs font-semibold transition apple-press cursor-pointer"
             >
               <Coins className="w-3.5 h-3.5 text-blue-600" strokeWidth={2} />
               <span>Treasury</span>
             </button>
 
             {/* View Switcher: Pro vs Classic */}
-            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/80 text-xs ml-1">
+            <div className="flex items-center p-0.5 bg-neutral-100 rounded-xl border border-neutral-200/70 text-xs">
               <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-[#0071E3] shadow-xs flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-[#0071E3]" />
                 Executive
@@ -491,14 +500,16 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
               </button>
             </div>
 
-            {/* Refresh */}
+            {/* Functional Refresh Button */}
             {onRefresh && (
               <button
-                onClick={onRefresh}
-                className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 transition cursor-pointer"
-                title="Refresh metrics"
+                onClick={handleRefreshClick}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-neutral-200/70 bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 text-xs font-medium transition cursor-pointer disabled:opacity-60"
+                title={`Refresh dashboard data (Last synced ${lastSyncedAt})`}
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#0071E3]" : ""}`} />
+                <span className="hidden xl:inline text-[11px]">{isRefreshing ? "Syncing..." : "Sync"}</span>
               </button>
             )}
           </div>
@@ -515,7 +526,9 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
                 <span className="font-semibold text-neutral-800">
                   Indian GST Statutory Engine
                 </span>
-                {gstSettings?.gstin && gstSettings.gstin !== "27AABCU9603R1ZN" && gstSettings.gstin !== "27AABCU9603R1ZM" ? (
+                {gstSettings?.gstin &&
+                gstSettings.gstin !== "27AABCU9603R1ZN" &&
+                gstSettings.gstin !== "27AABCU9603R1ZM" ? (
                   <span className="text-neutral-500 font-mono text-[11px] ml-1.5">
                     · GSTIN {gstSettings.gstin}
                   </span>
@@ -711,12 +724,12 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
       </div>
 
       {/* =========================================================================
-          3. VISUAL ANALYTICS & CAPITAL ALLOCATION (2:1 GRID)
+          3. VISUAL ANALYTICS & CAPITAL ALLOCATION (2:1 BENTO GRID)
       ========================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
         {/* Left (2 cols): Responsive Revenue Velocity Chart */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-6 border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
               <div>
@@ -813,7 +826,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
         </div>
 
         {/* Right (1 col): Reconciled Capital & Balance Sheet */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-5 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
               <div>
@@ -918,12 +931,12 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
       </div>
 
       {/* =========================================================================
-          4. DUAL OPERATIONAL COMMAND GRID (1:1 SPLIT)
+          4. DUAL OPERATIONAL COMMAND GRID (1:1 BENTO SPLIT)
       ========================================================================== */}
-      <div id="executive-operational-grid" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div id="executive-operational-grid" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* Left Column: Live Sales & Counter Activity Stream */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+        <div className="bg-white rounded-2xl p-5 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-3.5">
             <div>
@@ -1060,7 +1073,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
         </div>
 
         {/* Right Column: Debtors Watchlist & Inventory Health Tabbed Panel */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+        <div className="bg-white rounded-2xl p-5 border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
           
           <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
             <div className="flex items-center gap-3">

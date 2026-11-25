@@ -26,6 +26,13 @@ import { InvoiceDocModal } from "./InvoiceDocModal";
 import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
 import { CurrencyIcon } from "./common/CurrencyIcon";
+import {
+  calculateCounterSplit,
+  createInitialSplit,
+  formatSplitPaymentDescription,
+  roundCurrency,
+  validateSplitTender,
+} from "../utils/splitTender";
 
 interface POSBillingProps {
   settings: Settings;
@@ -281,6 +288,38 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
   const tenderedNum = parseFloat(tenderedAmount) || totalAmount;
   const changeDue = Math.max(0, tenderedNum - totalAmount);
+  const roundedBillTotal = roundCurrency(totalAmount);
+  const splitValidation = useMemo(
+    () =>
+      validateSplitTender(splitCash, splitCard, roundedBillTotal, formatCurrency),
+    [splitCash, splitCard, roundedBillTotal, formatCurrency]
+  );
+
+  // Rebalance split amounts automatically whenever cart total changes
+  useEffect(() => {
+    if (!isSplitPayment) return;
+    if (roundedBillTotal <= 0) {
+      setSplitCash("0.00");
+      setSplitCard("0.00");
+      return;
+    }
+    const existingCash = Number(splitCash);
+    if (splitCash.trim() !== "" && Number.isFinite(existingCash) && existingCash >= 0) {
+      const clampedCash = Math.min(roundedBillTotal, roundCurrency(existingCash));
+      const remCard = roundCurrency(roundedBillTotal - clampedCash);
+      const nextCash = clampedCash.toFixed(2);
+      const nextCard = remCard.toFixed(2);
+      if (nextCash !== splitCash || nextCard !== splitCard) {
+        setSplitCash(nextCash);
+        setSplitCard(nextCard);
+      }
+    } else {
+      const init = createInitialSplit(roundedBillTotal);
+      setSplitCash(init.cash);
+      setSplitCard(init.card);
+    }
+  }, [isSplitPayment, roundedBillTotal]);
+
   const totalCartCount = cart.reduce((sum, ci) => sum + ci.quantity, 0);
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
@@ -427,9 +466,23 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       if (isPurchase) {
         paymentMethodDesc = paymentMethod === "CARD" ? "Bank Wire" : "Cash";
       } else if (isSplitPayment) {
-        const cVal = parseFloat(splitCash) || 0;
-        const cardVal = parseFloat(splitCard) || Math.max(0, totalAmount - cVal);
-        paymentMethodDesc = `Split (${currency}${cVal.toFixed(2)} Cash + ${currency}${cardVal.toFixed(2)} Card)`;
+        if (!splitValidation.isValid) {
+          appleAlert({
+            title: "Invalid Split Tender",
+            message:
+              splitValidation.error ||
+              `Cash + Card/Wallet must equal ${formatCurrency(roundedBillTotal)}.`,
+            type: "warning",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        paymentMethodDesc = formatSplitPaymentDescription(
+          currency,
+          splitValidation.cashAmount,
+          splitValidation.cardAmount,
+          "Card"
+        );
       } else if (paymentMethod === "CARD") {
         paymentMethodDesc = "Card";
       } else if (paymentMethod === "CUSTOM_1") {
@@ -1178,9 +1231,15 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setIsSplitPayment(!isSplitPayment);
-                      if (!isSplitPayment && paymentMethod === "CREDIT") {
-                        setPaymentMethod("CASH");
+                      const next = !isSplitPayment;
+                      setIsSplitPayment(next);
+                      if (next) {
+                        if (paymentMethod === "CREDIT") {
+                          setPaymentMethod("CASH");
+                        }
+                        const init = createInitialSplit(roundedBillTotal);
+                        setSplitCash(init.cash);
+                        setSplitCard(init.card);
                       }
                     }}
                     className={`text-[11px] font-medium transition cursor-pointer py-1 px-1.5 rounded-lg ${
@@ -1232,27 +1291,78 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               </div>
 
               {isSplitPayment && (
-                <div className="p-2.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] space-y-1.5 text-xs">
+                <div className="p-2.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] space-y-2 text-xs">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-[#6E6E73]">Cash:</span>
+                    <span className="text-[11px] text-[#6E6E73]">Cash ({currency}):</span>
                     <input
                       type="number"
+                      min="0"
+                      max={roundedBillTotal}
+                      step="0.01"
+                      inputMode="decimal"
+                      aria-label="Split Cash Amount"
                       placeholder={`${currency} Cash`}
                       value={splitCash}
-                      onChange={(e) => setSplitCash(e.target.value)}
-                      className="w-24 px-2 py-1 rounded-lg border border-black/[0.08] bg-white text-right font-mono"
+                      onChange={(e) => {
+                        const next = calculateCounterSplit(
+                          "cash",
+                          e.target.value,
+                          roundedBillTotal
+                        );
+                        setSplitCash(next.cash);
+                        setSplitCard(next.card);
+                      }}
+                      className={`w-28 px-2 py-1 rounded-lg border bg-white text-right font-mono focus:outline-none ${
+                        splitValidation.isValid
+                          ? "border-black/[0.08] focus:border-[#0071E3]"
+                          : "border-rose-400 focus:border-rose-500 text-rose-700"
+                      }`}
                     />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-[#6E6E73]">Card / Wallet:</span>
+                    <span className="text-[11px] text-[#6E6E73]">Card / Wallet ({currency}):</span>
                     <input
                       type="number"
+                      min="0"
+                      max={roundedBillTotal}
+                      step="0.01"
+                      inputMode="decimal"
+                      aria-label="Split Card Amount"
                       placeholder={`${currency} Card`}
                       value={splitCard}
-                      onChange={(e) => setSplitCard(e.target.value)}
-                      className="w-24 px-2 py-1 rounded-lg border border-black/[0.08] bg-white text-right font-mono"
+                      onChange={(e) => {
+                        const next = calculateCounterSplit(
+                          "card",
+                          e.target.value,
+                          roundedBillTotal
+                        );
+                        setSplitCash(next.cash);
+                        setSplitCard(next.card);
+                      }}
+                      className={`w-28 px-2 py-1 rounded-lg border bg-white text-right font-mono focus:outline-none ${
+                        splitValidation.isValid
+                          ? "border-black/[0.08] focus:border-[#0071E3]"
+                          : "border-rose-400 focus:border-rose-500 text-rose-700"
+                      }`}
                     />
                   </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-black/[0.06] text-[10px] font-mono">
+                    <span className="text-[#6E6E73] font-sans">
+                      Combined Split:
+                    </span>
+                    <span
+                      className={`font-bold ${
+                        splitValidation.isValid ? "text-emerald-700" : "text-rose-600"
+                      }`}
+                    >
+                      {formatCurrency(splitValidation.combinedTotal)} / {formatCurrency(roundedBillTotal)}
+                    </span>
+                  </div>
+                  {!splitValidation.isValid && splitValidation.error && (
+                    <div className="text-[10px] font-semibold text-rose-600 leading-tight">
+                      {splitValidation.error}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1447,7 +1557,11 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           <div className="p-3 pt-2 bg-white border-t border-black/[0.05] shrink-0">
             <button
               onClick={handleCheckout}
-              disabled={cart.length === 0 || isSubmitting}
+              disabled={
+                cart.length === 0 ||
+                isSubmitting ||
+                (billMode === "SALE" && isSplitPayment && !splitValidation.isValid)
+              }
               className={`w-full py-3.5 rounded-full font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-sm transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 licenseStatus?.is_expired && licenseStatus?.platform !== "linux"
                   ? "bg-red-600 hover:bg-red-700"

@@ -30,6 +30,13 @@ import {
 } from "./gstUtils";
 import { GSTTaxInvoiceModal } from "./GSTTaxInvoiceModal";
 import { useAppleDialog } from "../../components/common/AppleDialog";
+import {
+  calculateCounterSplit,
+  createInitialSplit,
+  formatSplitPaymentDescription,
+  roundCurrency,
+  validateSplitTender,
+} from "../../utils/splitTender";
 
 interface GSTPOSBillingProps {
   settings: Settings;
@@ -78,8 +85,10 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
   // Payment & Credit Mode
   const [paymentType, setPaymentType] = useState<
-    "CREDIT" | "CASH" | "UPI" | "CARD" | "BANK"
+    "CREDIT" | "CASH" | "UPI" | "CARD" | "BANK" | "SPLIT"
   >("CASH");
+  const [splitCash, setSplitCash] = useState<string>("");
+  const [splitCard, setSplitCard] = useState<string>("");
   const [paidAmountStr, setPaidAmountStr] = useState<string>("");
   const [refNumber, setRefNumber] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -210,6 +219,9 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
     setRefNumber("");
     setNotes("");
     setPartyCreditLimit(0);
+    setSplitCash("");
+    setSplitCard("");
+    if (paymentType === "SPLIT") setPaymentType("CASH");
   };
 
   // Calculations with Place of Supply logic
@@ -249,6 +261,41 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
   const dueBalance = Math.max(0, roundedGrandTotal - effectivePaidAmount);
 
+  const splitValidation = useMemo(
+    () =>
+      validateSplitTender(
+        splitCash,
+        splitCard,
+        roundedGrandTotal,
+        (n) => `₹${n.toFixed(2)}`
+      ),
+    [splitCash, splitCard, roundedGrandTotal]
+  );
+
+  useEffect(() => {
+    if (paymentType !== "SPLIT") return;
+    if (roundedGrandTotal <= 0) {
+      setSplitCash("0.00");
+      setSplitCard("0.00");
+      return;
+    }
+    const existingCash = Number(splitCash);
+    if (splitCash.trim() !== "" && Number.isFinite(existingCash) && existingCash >= 0) {
+      const clampedCash = Math.min(roundedGrandTotal, roundCurrency(existingCash));
+      const remCard = roundCurrency(roundedGrandTotal - clampedCash);
+      const nextCash = clampedCash.toFixed(2);
+      const nextCard = remCard.toFixed(2);
+      if (nextCash !== splitCash || nextCard !== splitCard) {
+        setSplitCash(nextCash);
+        setSplitCard(nextCard);
+      }
+    } else {
+      const init = createInitialSplit(roundedGrandTotal);
+      setSplitCash(init.cash);
+      setSplitCard(init.card);
+    }
+  }, [paymentType, roundedGrandTotal]);
+
   // Credit Limit Warning Check
   const isCreditOverLimit = useMemo(() => {
     if (!selectedParty || paymentType !== "CREDIT") return false;
@@ -261,6 +308,17 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
   const handleCheckout = async () => {
     if (cart.length === 0) {
       alert({ title: "Cart Empty", message: "Please add products to the bill", type: "warning" });
+      return;
+    }
+
+    if (paymentType === "SPLIT" && !splitValidation.isValid) {
+      alert({
+        title: "Invalid Split Tender",
+        message:
+          splitValidation.error ||
+          `Cash + Card/UPI must equal ₹${roundedGrandTotal.toFixed(2)}.`,
+        type: "warning",
+      });
       return;
     }
 
@@ -327,6 +385,13 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         payment_method:
           paymentType === "CREDIT"
             ? `Credit (${creditDays} Days)`
+            : paymentType === "SPLIT"
+            ? formatSplitPaymentDescription(
+                "₹",
+                splitValidation.cashAmount,
+                splitValidation.cardAmount,
+                "Card/UPI"
+              )
             : paymentType,
         notes: notes || (paymentType === "CREDIT" ? "Credit Tax Invoice" : "GST POS Cash Sale"),
         reference: refNumber.trim() || null,
@@ -700,7 +765,90 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 <span>Credit</span>
               </button>
             </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (paymentType === "SPLIT") {
+                    setPaymentType("CASH");
+                  } else {
+                    const init = createInitialSplit(roundedGrandTotal);
+                    setSplitCash(init.cash);
+                    setSplitCard(init.card);
+                    setPaymentType("SPLIT");
+                  }
+                }}
+                className={`text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer ${
+                  paymentType === "SPLIT"
+                    ? "bg-[#0071E3] text-white shadow-xs"
+                    : "text-neutral-500 hover:text-black bg-white border border-black/[0.08]"
+                }`}
+              >
+                {paymentType === "SPLIT" ? "✓ Split Tender (Cash + Card/UPI)" : "+ Split Tender (Cash + Card/UPI)"}
+              </button>
+            </div>
           </div>
+
+          {paymentType === "SPLIT" && (
+            <div className="p-2.5 bg-white rounded-xl border border-black/[0.08] space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-neutral-600">Cash (₹):</span>
+                <input
+                  type="number"
+                  min="0"
+                  max={roundedGrandTotal}
+                  step="0.01"
+                  inputMode="decimal"
+                  aria-label="GST Split Cash Amount"
+                  value={splitCash}
+                  onChange={(e) => {
+                    const next = calculateCounterSplit("cash", e.target.value, roundedGrandTotal);
+                    setSplitCash(next.cash);
+                    setSplitCard(next.card);
+                  }}
+                  className={`w-28 px-2 py-1 rounded-lg border bg-white text-right font-mono font-bold focus:outline-none ${
+                    splitValidation.isValid
+                      ? "border-black/[0.12] focus:border-[#0071E3]"
+                      : "border-rose-400 focus:border-rose-500 text-rose-700"
+                  }`}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-neutral-600">Card / UPI (₹):</span>
+                <input
+                  type="number"
+                  min="0"
+                  max={roundedGrandTotal}
+                  step="0.01"
+                  inputMode="decimal"
+                  aria-label="GST Split Card Amount"
+                  value={splitCard}
+                  onChange={(e) => {
+                    const next = calculateCounterSplit("card", e.target.value, roundedGrandTotal);
+                    setSplitCash(next.cash);
+                    setSplitCard(next.card);
+                  }}
+                  className={`w-28 px-2 py-1 rounded-lg border bg-white text-right font-mono font-bold focus:outline-none ${
+                    splitValidation.isValid
+                      ? "border-black/[0.12] focus:border-[#0071E3]"
+                      : "border-rose-400 focus:border-rose-500 text-rose-700"
+                  }`}
+                />
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-black/[0.06] text-[10px] font-mono">
+                <span className="text-neutral-500 font-sans">Combined Split:</span>
+                <span className={`font-bold ${splitValidation.isValid ? "text-emerald-700" : "text-rose-600"}`}>
+                  ₹{splitValidation.combinedTotal.toFixed(2)} / ₹{roundedGrandTotal.toFixed(2)}
+                </span>
+              </div>
+              {!splitValidation.isValid && splitValidation.error && (
+                <div className="text-[10px] font-semibold text-rose-600">
+                  {splitValidation.error}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Credit Sale Customization */}
           {paymentType === "CREDIT" && (
@@ -816,7 +964,11 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
           <div className="p-3 pt-2 bg-white border-t border-black/[0.05] shrink-0">
             <button
               onClick={handleCheckout}
-              disabled={isSubmitting || cart.length === 0}
+              disabled={
+                isSubmitting ||
+                cart.length === 0 ||
+                (paymentType === "SPLIT" && !splitValidation.isValid)
+              }
               className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-md transition apple-press cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
                 licenseStatus?.is_expired
                   ? "bg-rose-600 hover:bg-rose-700"

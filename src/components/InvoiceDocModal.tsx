@@ -17,6 +17,7 @@ import type { InvoiceDetail, Settings } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
+import { isDemoTaxId } from "../modules/india_gst/gstDefaults";
 
 interface InvoiceDocModalProps {
   invoiceDetail: InvoiceDetail;
@@ -90,19 +91,25 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
 
       const pageWidth = 210;
       const pageHeight = 297;
-      const margin = 10;
+      const margin = 7;
+      const usableHeight = pageHeight - margin * 2;
       const printWidth = pageWidth - margin * 2;
       const printHeight = (canvas.height * printWidth) / canvas.width;
       const imgData = canvas.toDataURL("image/png");
 
-      if (printHeight <= pageHeight - margin * 2) {
+      if (printHeight <= usableHeight) {
         pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
+      } else if (printHeight <= usableHeight * 1.15) {
+        // Fit near-single-page A4 receipts onto 1 page cleanly without orphan footer slices
+        const scale = usableHeight / printHeight;
+        const scaledWidth = printWidth * scale;
+        const xOffset = (pageWidth - scaledWidth) / 2;
+        pdf.addImage(imgData, "PNG", xOffset, margin, scaledWidth, usableHeight);
       } else {
         // Multi-page slicing for bills with many line items
         let heightLeft = printHeight;
         let position = margin;
         let page = 1;
-        const usableHeight = pageHeight - margin * 2;
 
         while (heightLeft > 0) {
           if (page > 1) {
@@ -347,7 +354,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                     Tel: {settings.phone}
                   </div>
                 )}
-                {settings.tax_id && (
+                {settings.tax_id && !isDemoTaxId(settings.tax_id) && (
                   <div className="text-[10px] text-neutral-500">
                     {settings.tax_name}: {settings.tax_id}
                   </div>
@@ -437,7 +444,12 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between text-[11px] text-neutral-600 pt-0.5">
-                  <span>Cash Received:</span>
+                  <span>
+                    {invoice.payment_method.toLowerCase().includes("cash") &&
+                    !invoice.payment_method.toLowerCase().includes("split")
+                      ? "Cash Received:"
+                      : "Amount Paid:"}
+                  </span>
                   <span className="font-mono">
                     {formatCurrency(invoice.paid_amount)}
                   </span>
@@ -465,31 +477,31 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               className="mx-auto w-full max-w-2xl bg-white p-8 sm:p-10 pb-12 rounded-3xl shadow-lg border border-black/[0.08] text-[#1D1D1F] select-text my-2"
             >
               {/* Top Business & Invoice Title */}
-              <div className="flex justify-between items-start pb-6 border-b border-black/[0.08]">
+              <div className="flex justify-between items-start pb-4 border-b border-black/[0.08] print-avoid-break">
                 <div className="flex items-start gap-4">
                   {customLogo ? (
                     <img
                       src={customLogo}
                       alt="Store Logo"
-                      className="w-14 h-14 rounded-2xl object-contain border border-black/10 shrink-0 p-1 bg-white shadow-2xs"
+                      className="w-12 h-12 rounded-2xl object-contain border border-black/10 shrink-0 p-1 bg-white shadow-2xs"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-2xl border border-black/10 shrink-0 p-1 bg-[#18191E] text-white flex items-center justify-center font-bold text-2xl shadow-2xs">
+                    <div className="w-12 h-12 rounded-2xl border border-black/10 shrink-0 p-1 bg-[#18191E] text-white flex items-center justify-center font-bold text-xl shadow-2xs">
                       {settings.business_name ? settings.business_name.charAt(0).toUpperCase() : "L"}
                     </div>
                   )}
                   <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1D1D1F]">
                       {settings.business_name || "LynTerminal Store"}
                     </h1>
                     <p className="text-xs text-[#86868B] mt-0.5">
                       {settings.tagline || "Commercial Retail & Management"}
                     </p>
-                    <div className="text-xs text-[#86868B] mt-2 space-y-0.5">
+                    <div className="text-xs text-[#86868B] mt-1.5 space-y-0.5">
                       {settings.address && <div>{settings.address}</div>}
                       {settings.phone && <div>Tel: {settings.phone}</div>}
                       {settings.email && <div>Email: {settings.email}</div>}
-                      {settings.tax_id && (
+                      {settings.tax_id && !isDemoTaxId(settings.tax_id) && (
                         <div>
                           {settings.tax_name}: {settings.tax_id}
                         </div>
@@ -570,7 +582,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               </div>
 
               {/* Totals & Terms */}
-              <div className="pt-5 border-t border-black/[0.08] flex justify-between items-start gap-6">
+              <div className="pt-4 border-t border-black/[0.08] flex justify-between items-start gap-6 print-avoid-break">
                 <div className="flex-1 max-w-xs space-y-3">
                   <div>
                     <div className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">
@@ -620,7 +632,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
               </div>
 
               {/* Authorized Signatory Section */}
-              <div className="pt-8 border-t border-black/[0.06] mt-8 flex justify-between items-end">
+              <div className="pt-6 border-t border-black/[0.06] mt-6 flex justify-between items-end print-avoid-break">
                 <div className="text-[10px] text-[#86868B] font-mono">
                   LynTerminal Business Engine · Offline Verified
                 </div>

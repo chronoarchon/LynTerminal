@@ -396,7 +396,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           onOpenCreditPay={handleOpenDashboardCreditPay}
           onOpenCustomerPay={handleOpenCustomerCreditPay}
           onNavigate={onNavigate}
-          onRefresh={onRefresh}
+          onRefresh={async () => {
+            await loadData();
+            if (onRefresh) await onRefresh();
+          }}
           onSwitchToClassic={() => handleSetStyle("classic")}
         />
       ) : (

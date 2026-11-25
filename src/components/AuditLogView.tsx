@@ -2,9 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   RefreshCw,
   Trash2,
-  Sparkles,
   HardDrive,
-  CheckCircle,
   Eye,
   X,
   Search,
@@ -26,11 +24,9 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 }) => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const { confirm, prompt, alert, toast } = useAppleDialog();
+  const { prompt, alert, toast } = useAppleDialog();
 
   const loadLogs = async () => {
     try {
@@ -47,31 +43,6 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
   useEffect(() => {
     loadLogs();
   }, []);
-
-  const handleSeedDemoData = async () => {
-    const ok = await confirm({
-      title: "Generate 3-Month Demo Simulation",
-      message:
-        "Generate 90 days (3 months) of realistic commercial business records?\n\nThis will populate products, customers, daily POS sales, purchase restocks, and operating expenses to verify math and accounting.",
-      confirmText: "Generate 3-Month Data",
-    });
-
-    if (!ok) return;
-
-    try {
-      setSeeding(true);
-      setSeedResult(null);
-      const res = await api.seedDemoData(90);
-      setSeedResult(res);
-      await loadLogs();
-      onRefreshAll();
-      toast({ message: "90-day (3-month) simulation records generated successfully", type: "success" });
-    } catch (err) {
-      alert({ title: "Simulation Failed", message: String(err), type: "error" });
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const handleClearData = async () => {
     const confirmName = await prompt({
@@ -119,45 +90,20 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
             System & Security Audit
           </h1>
           <p className="text-xs text-[#86868B] mt-0.5">
-            Tamper-evident activity journal for {settings?.business_name || "Store"}, local database maintenance, and QA simulator
+            Tamper-evident activity journal for {settings?.business_name || "Store"} and local database maintenance
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSeedDemoData}
-            disabled={seeding}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${seeding ? "animate-spin" : ""}`} />
-            <span>{seeding ? "Simulating..." : "Generate Demo Data"}</span>
-          </button>
-
-          <button
             onClick={loadLogs}
-            className="p-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F] transition"
+            className="p-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F] transition cursor-pointer"
             title="Refresh logs"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
-
-      {seedResult && (
-        <div className="p-4 rounded-2xl bg-[#34C759]/10 border border-[#34C759]/20 flex items-start gap-3">
-          <CheckCircle className="w-5 h-5 text-[#34C759] shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <div className="text-xs font-bold text-[#1D1D1F]">Demo Records Seeded Successfully</div>
-            <div className="text-[11px] text-[#6E6E73] mt-0.5">{seedResult}</div>
-          </div>
-          <button
-            onClick={() => setSeedResult(null)}
-            className="text-[#86868B] hover:text-[#1D1D1F]"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Architecture Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">

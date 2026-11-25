@@ -17,6 +17,7 @@ import { printPdfDocument } from "../../utils/printPdf";
 import type { CompleteGstInvoice, GstSettings } from "./gstTypes";
 import type { Settings } from "../../types";
 import { amountToIndianWords, getStateByCode } from "./gstUtils";
+import { sanitizeGstSettings, isDemoTaxId } from "./gstDefaults";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 import { api } from "../../services/api";
 
@@ -91,19 +92,25 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
       const pageWidth = 210;
       const pageHeight = 297;
-      const margin = 8;
+      const margin = 6;
+      const usableHeight = pageHeight - margin * 2;
       const printWidth = pageWidth - margin * 2;
       const printHeight = (canvas.height * printWidth) / canvas.width;
       const imgData = canvas.toDataURL("image/png");
 
-      if (printHeight <= pageHeight - margin * 2) {
+      if (printHeight <= usableHeight) {
         pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight);
+      } else if (printHeight <= usableHeight * 1.15) {
+        // Fit near-single-page A4 invoices cleanly onto 1 sheet without stranding Terms on Page 2
+        const scale = usableHeight / printHeight;
+        const scaledWidth = printWidth * scale;
+        const xOffset = (pageWidth - scaledWidth) / 2;
+        pdf.addImage(imgData, "PNG", xOffset, margin, scaledWidth, usableHeight);
       } else {
         // Multi-page slicing for GST bills with many line items
         let heightLeft = printHeight;
         let position = margin;
         let page = 1;
-        const usableHeight = pageHeight - margin * 2;
 
         while (heightLeft > 0) {
           if (page > 1) {
@@ -185,10 +192,19 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
     }
   };
 
+  const effectiveGst = sanitizeGstSettings(gstSettings, settings);
+  const sellerLegalName =
+    effectiveGst.legal_name || settings.business_name || "Your Business";
+  const sellerGstin =
+    effectiveGst.gstin ||
+    (!isDemoTaxId(settings.tax_id) ? settings.tax_id : "") ||
+    "Unregistered";
+  const isRegisteredSeller = sellerGstin !== "Unregistered";
+
   const isInterstate = gst_info.is_interstate;
-  const supplierState = getStateByCode(gstSettings.state_code) || {
-    name: gstSettings.state_name || "Maharashtra",
-    code: gstSettings.state_code || "27",
+  const supplierState = getStateByCode(effectiveGst.state_code) || {
+    name: effectiveGst.state_name || "Maharashtra",
+    code: effectiveGst.state_code || "27",
   };
   const posState = getStateByCode(gst_info.pos_state_code) || {
     name: gst_info.pos_state_name || "Maharashtra",
@@ -343,13 +359,13 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
             <div
               ref={docRef}
               data-printable="true"
-              className="mx-auto w-full max-w-3xl bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-black/[0.1] text-[#1D1D1F] select-text my-2 text-xs font-sans print:m-0 print:border-none print:shadow-none"
+              className="mx-auto w-full max-w-3xl bg-white p-5 sm:p-6 rounded-2xl shadow-xl border border-black/[0.1] text-[#1D1D1F] select-text my-2 text-xs font-sans print:m-0 print:p-0 print:border-none print:shadow-none"
             >
               {/* Top Banner Marking */}
-              <div className="flex justify-between items-center pb-3 border-b-2 border-black/80">
+              <div className="flex justify-between items-center pb-2 border-b-2 border-black/80 print-avoid-break">
                 <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px] text-black">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>GSTIN Registered Enterprise</span>
+                  <ShieldCheck className={`w-4 h-4 ${isRegisteredSeller ? "text-emerald-600" : "text-neutral-500"}`} />
+                  <span>{isRegisteredSeller ? "GSTIN Registered Enterprise" : "Commercial Tax Invoice"}</span>
                 </div>
                 <div className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-black/5 uppercase text-black border border-black/10">
                   {copyType}
@@ -357,8 +373,8 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Title & Header */}
-              <div className="text-center py-4 border-b border-black/[0.1]">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-black">
+              <div className="text-center py-2.5 border-b border-black/[0.1] print-avoid-break">
+                <h1 className="text-lg sm:text-xl font-black tracking-tight uppercase text-black">
                   TAX INVOICE
                 </h1>
                 <p className="text-[10px] text-neutral-500 font-medium tracking-wide">
@@ -367,54 +383,58 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Supplier & Invoice Meta */}
-              <div className="grid grid-cols-2 gap-4 py-4 border-b border-black/[0.1]">
+              <div className="grid grid-cols-2 gap-4 py-3 border-b border-black/[0.1] print-avoid-break">
                 {/* Supplier (Seller) Details */}
                 <div className="flex items-start gap-3">
                   {customLogo ? (
                     <img
                       src={customLogo}
                       alt="Store Logo"
-                      className="w-12 h-12 rounded-xl object-contain border border-black/10 shrink-0 p-0.5 bg-white shadow-2xs mt-1"
+                      className="w-11 h-11 rounded-xl object-contain border border-black/10 shrink-0 p-0.5 bg-white shadow-2xs mt-0.5"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl border border-black/10 shrink-0 p-0.5 bg-[#18191E] text-white flex items-center justify-center font-bold text-xl shadow-2xs mt-1">
-                      {(gstSettings.legal_name || settings.business_name || "L").charAt(0).toUpperCase()}
+                    <div className="w-11 h-11 rounded-xl border border-black/10 shrink-0 p-0.5 bg-[#18191E] text-white flex items-center justify-center font-bold text-lg shadow-2xs mt-0.5">
+                      {sellerLegalName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <div className="text-[10px] font-bold uppercase text-neutral-400">
                       Details of Supplier (Seller)
                     </div>
                     <div className="font-bold text-sm text-black">
-                      {gstSettings.legal_name || settings.business_name || "LynTerminal India Enterprises Pvt Ltd"}
+                      {sellerLegalName}
                     </div>
-                  {gstSettings.trade_name && (
-                    <div className="text-[11px] font-medium text-neutral-600">
-                      Trade Name: {gstSettings.trade_name}
+                    {effectiveGst.trade_name && effectiveGst.trade_name !== sellerLegalName && (
+                      <div className="text-[11px] font-medium text-neutral-600">
+                        Trade Name: {effectiveGst.trade_name}
+                      </div>
+                    )}
+                    {settings.address && (
+                      <div className="text-neutral-600 leading-snug">
+                        {settings.address}
+                      </div>
+                    )}
+                    {(settings.phone || settings.email) && (
+                      <div className="text-neutral-600">
+                        {settings.phone ? `Tel: ${settings.phone}` : ""}
+                        {settings.phone && settings.email ? " · " : ""}
+                        {settings.email ? `Email: ${settings.email}` : ""}
+                      </div>
+                    )}
+                    <div className="font-mono font-bold text-black pt-0.5">
+                      GSTIN:{" "}
+                      <span className="text-black font-semibold">
+                        {sellerGstin}
+                      </span>
                     </div>
-                  )}
-                  <div className="text-neutral-600 leading-snug">
-                    {settings.address || "100 Commercial Hub, Central Business District"}
-                  </div>
-                  <div className="text-neutral-600">
-                    Tel: {settings.phone || "+91 98765 43210"} · Email: {settings.email || "billing@lynterminal.in"}
-                  </div>
-                  <div className="font-mono font-bold text-black pt-1">
-                    GSTIN:{" "}
-                    <span className="text-black font-semibold">
-                      {gstSettings.gstin && gstSettings.gstin !== "27AABCU9603R1ZN" && gstSettings.gstin !== "27AABCU9603R1ZM"
-                        ? gstSettings.gstin
-                        : (settings.tax_id || "Unregistered")}
-                    </span>
-                  </div>
-                  <div className="font-mono text-neutral-700">
-                    State: {supplierState.name} (Code: {supplierState.code})
-                  </div>
-                  {gstSettings.pan && (
                     <div className="font-mono text-neutral-700">
-                      PAN: {gstSettings.pan}
+                      State: {supplierState.name} (Code: {supplierState.code})
                     </div>
-                  )}
+                    {effectiveGst.pan && (
+                      <div className="font-mono text-neutral-700">
+                        PAN: {effectiveGst.pan}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -462,7 +482,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Recipient (Billed To & Shipped To) */}
-              <div className="grid grid-cols-2 gap-4 py-4 border-b border-black/[0.1] bg-neutral-50/60 p-3 rounded-xl mt-3">
+              <div className="grid grid-cols-2 gap-4 py-2.5 border-b border-black/[0.1] bg-neutral-50/60 p-2.5 rounded-xl mt-2.5 print-avoid-break">
                 {/* Billed To */}
                 <div className="space-y-1">
                   <div className="text-[10px] font-bold uppercase text-neutral-400">
@@ -512,25 +532,25 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Items Table */}
-              <div className="py-4 overflow-x-auto">
+              <div className="py-2.5 overflow-x-auto">
                 <table className="w-full text-[11px] border-collapse">
                   <thead>
                     <tr className="border-b-2 border-black/[0.15] bg-neutral-100 text-neutral-700 text-[10px] font-bold uppercase">
-                      <th className="py-2 px-1 text-center w-7">#</th>
-                      <th className="py-2 px-2 text-left">Description of Goods / Services</th>
-                      <th className="py-2 px-1 text-center font-mono">HSN/SAC</th>
-                      <th className="py-2 px-1 text-center">Qty</th>
-                      <th className="py-2 px-1 text-right">Rate (₹)</th>
-                      <th className="py-2 px-1 text-right">Taxable (₹)</th>
+                      <th className="py-1.5 px-1 text-center w-7">#</th>
+                      <th className="py-1.5 px-2 text-left">Description of Goods / Services</th>
+                      <th className="py-1.5 px-1 text-center font-mono">HSN/SAC</th>
+                      <th className="py-1.5 px-1 text-center">Qty</th>
+                      <th className="py-1.5 px-1 text-right">Rate (₹)</th>
+                      <th className="py-1.5 px-1 text-right">Taxable (₹)</th>
                       {!isInterstate ? (
                         <>
-                          <th className="py-2 px-1 text-right">CGST</th>
-                          <th className="py-2 px-1 text-right">SGST</th>
+                          <th className="py-1.5 px-1 text-right">CGST</th>
+                          <th className="py-1.5 px-1 text-right">SGST</th>
                         </>
                       ) : (
-                        <th className="py-2 px-1 text-right">IGST</th>
+                        <th className="py-1.5 px-1 text-right">IGST</th>
                       )}
-                      <th className="py-2 px-2 text-right">Total (₹)</th>
+                      <th className="py-1.5 px-2 text-right">Total (₹)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/[0.06]">
@@ -540,42 +560,42 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
                       return (
                         <tr key={item.id || idx} className="hover:bg-neutral-50/50">
-                          <td className="py-2 px-1 text-center font-mono text-neutral-400">
+                          <td className="py-1.5 px-1 text-center font-mono text-neutral-400">
                             {idx + 1}
                           </td>
-                          <td className="py-2 px-2 font-medium text-black">
+                          <td className="py-1.5 px-2 font-medium text-black">
                             {itemName}
                           </td>
-                          <td className="py-2 px-1 text-center font-mono text-neutral-600">
+                          <td className="py-1.5 px-1 text-center font-mono text-neutral-600">
                             {item.hsn_code || "8471"}
                           </td>
-                          <td className="py-2 px-1 text-center font-mono text-neutral-700 whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-center font-mono text-neutral-700 whitespace-nowrap">
                             {item.quantity} {item.unit}
                           </td>
-                          <td className="py-2 px-1 text-right font-mono text-neutral-700">
+                          <td className="py-1.5 px-1 text-right font-mono text-neutral-700">
                             {item.rate.toFixed(2)}
                           </td>
-                          <td className="py-2 px-1 text-right font-mono font-semibold text-black">
+                          <td className="py-1.5 px-1 text-right font-mono font-semibold text-black">
                             {item.taxable_amount.toFixed(2)}
                           </td>
                           {!isInterstate ? (
                             <>
-                              <td className="py-2 px-1 text-right font-mono text-neutral-600">
-                                <div>{item.cgst_amount.toFixed(2)}</div>
-                                <div className="text-[9px] text-neutral-400">({item.cgst_rate}%)</div>
+                              <td className="py-1.5 px-1 text-right font-mono text-neutral-600">
+                                <span>{item.cgst_amount.toFixed(2)}</span>
+                                <span className="text-[9px] text-neutral-400 ml-0.5">({item.cgst_rate}%)</span>
                               </td>
-                              <td className="py-2 px-1 text-right font-mono text-neutral-600">
-                                <div>{item.sgst_amount.toFixed(2)}</div>
-                                <div className="text-[9px] text-neutral-400">({item.sgst_rate}%)</div>
+                              <td className="py-1.5 px-1 text-right font-mono text-neutral-600">
+                                <span>{item.sgst_amount.toFixed(2)}</span>
+                                <span className="text-[9px] text-neutral-400 ml-0.5">({item.sgst_rate}%)</span>
                               </td>
                             </>
                           ) : (
-                            <td className="py-2 px-1 text-right font-mono text-neutral-600">
-                              <div>{item.igst_amount.toFixed(2)}</div>
-                              <div className="text-[9px] text-neutral-400">({item.igst_rate}%)</div>
+                            <td className="py-1.5 px-1 text-right font-mono text-neutral-600">
+                              <span>{item.igst_amount.toFixed(2)}</span>
+                              <span className="text-[9px] text-neutral-400 ml-0.5">({item.igst_rate}%)</span>
                             </td>
                           )}
-                          <td className="py-2 px-2 text-right font-mono font-bold text-black">
+                          <td className="py-1.5 px-2 text-right font-mono font-bold text-black">
                             {item.line_total.toFixed(2)}
                           </td>
                         </tr>
@@ -586,9 +606,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* HSN Summary Table & Invoice Totals */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t-2 border-black/[0.15]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t-2 border-black/[0.15] print-avoid-break">
                 {/* HSN Tax Summary Table (Mandatory statutory disclosure) */}
-                <div className="space-y-2">
+                <div className="space-y-2 print-avoid-break">
                   <div className="text-[10px] font-bold uppercase text-neutral-500 tracking-wider">
                     HSN / SAC Tax Summary
                   </div>
@@ -628,27 +648,27 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   </table>
 
                   {/* Bank Details for Direct Payment (Only shown when configured) */}
-                  {(gstSettings.bank_name || gstSettings.bank_account_no || gstSettings.upi_id) && (
-                    <div className="pt-2 text-[10px] bg-neutral-50 p-2.5 rounded-xl border border-solid border-black/15 space-y-0.5">
+                  {(effectiveGst.bank_name || effectiveGst.bank_account_no || effectiveGst.upi_id) && (
+                    <div className="pt-2 text-[10px] bg-neutral-50 p-2.5 rounded-xl border border-solid border-black/15 space-y-0.5 print-avoid-break">
                       <div className="font-bold uppercase text-neutral-600 flex items-center gap-1.5">
                         <Building2 className="w-3 h-3 text-neutral-700" />
                         <span>Bank NEFT / RTGS / UPI Details</span>
                       </div>
-                      {gstSettings.bank_name && (
-                        <div>Bank: <span className="font-semibold text-black">{gstSettings.bank_name}</span></div>
+                      {effectiveGst.bank_name && (
+                        <div>Bank: <span className="font-semibold text-black">{effectiveGst.bank_name}</span></div>
                       )}
-                      {gstSettings.bank_account_no && (
-                        <div>A/c No: <span className="font-mono font-bold text-black">{gstSettings.bank_account_no}</span></div>
+                      {effectiveGst.bank_account_no && (
+                        <div>A/c No: <span className="font-mono font-bold text-black">{effectiveGst.bank_account_no}</span></div>
                       )}
-                      {gstSettings.bank_ifsc && (
-                        <div>IFSC Code: <span className="font-mono font-bold text-black">{gstSettings.bank_ifsc}</span></div>
+                      {effectiveGst.bank_ifsc && (
+                        <div>IFSC Code: <span className="font-mono font-bold text-black">{effectiveGst.bank_ifsc}</span></div>
                       )}
-                      {gstSettings.bank_branch && (
-                        <div>Branch: <span className="text-neutral-700">{gstSettings.bank_branch}</span></div>
+                      {effectiveGst.bank_branch && (
+                        <div>Branch: <span className="text-neutral-700">{effectiveGst.bank_branch}</span></div>
                       )}
-                      {gstSettings.upi_id && (
+                      {effectiveGst.upi_id && (
                         <div className="pt-0.5 font-mono text-black">
-                          UPI ID: <span className="font-bold">{gstSettings.upi_id}</span>
+                          UPI ID: <span className="font-bold">{effectiveGst.upi_id}</span>
                         </div>
                       )}
                     </div>
@@ -656,7 +676,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                 </div>
 
                 {/* Numerical Totals */}
-                <div className="space-y-1.5 text-xs font-mono">
+                <div className="space-y-1 text-xs font-mono print-avoid-break">
                   <div className="flex justify-between py-1 text-neutral-600 border-b border-black/[0.06]">
                     <span className="font-sans">Taxable Value</span>
                     <span>₹{invoice.subtotal.toFixed(2)}</span>
@@ -721,7 +741,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Amount in Words (Mandatory Legal Clause) */}
-              <div className="mt-4 p-3 bg-neutral-100 rounded-xl border border-black/[0.08]">
+              <div className="mt-3 p-2.5 bg-neutral-100 rounded-xl border border-black/[0.08] print-avoid-break">
                 <div className="text-[10px] font-bold uppercase text-neutral-500">
                   Total Amount in Words
                 </div>
@@ -731,8 +751,8 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               </div>
 
               {/* Terms & Conditions & Signatory Box */}
-              <div className="mt-6 pt-4 border-t border-black/[0.1] grid grid-cols-2 gap-6 items-end">
-                <div className="space-y-1 text-[10px] text-neutral-500">
+              <div className="mt-3 pt-3 border-t border-black/[0.1] grid grid-cols-2 gap-6 items-end print-avoid-break">
+                <div className="space-y-0.5 text-[10px] text-neutral-500">
                   <div className="font-bold text-neutral-700 uppercase">
                     Terms & Conditions
                   </div>
@@ -741,9 +761,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   <p>3. This is a computer generated legal tax invoice under Rule 46 of CGST Act.</p>
                 </div>
 
-                <div className="text-right space-y-8">
+                <div className="text-right space-y-5">
                   <div className="text-[11px] font-bold text-black">
-                    For {gstSettings.legal_name || settings.business_name || "LynTerminal India Enterprises Pvt Ltd"}
+                    For {sellerLegalName}
                   </div>
                   <div className="text-[10px] font-semibold text-neutral-500 border-t border-dashed border-neutral-400 inline-block pt-1 min-w-[160px] text-center">
                     Authorized Signatory
@@ -772,19 +792,21 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                 ) : (
                   <div className="flex justify-center pb-1">
                     <div className="w-10 h-10 rounded-xl bg-[#18191E] text-white flex items-center justify-center font-bold text-lg">
-                      {(gstSettings.legal_name || settings.business_name || "L").charAt(0).toUpperCase()}
+                      {sellerLegalName.charAt(0).toUpperCase()}
                     </div>
                   </div>
                 )}
                 <div className="font-bold text-sm uppercase">
-                  {gstSettings.legal_name || settings.business_name}
+                  {sellerLegalName}
                 </div>
-                <div className="text-[10px] text-neutral-600">
-                  {settings.address}
-                </div>
-                {gstSettings.gstin && gstSettings.gstin !== "27AABCU9603R1ZN" && gstSettings.gstin !== "27AABCU9603R1ZM" && (
+                {settings.address && (
+                  <div className="text-[10px] text-neutral-600">
+                    {settings.address}
+                  </div>
+                )}
+                {isRegisteredSeller && (
                   <div className="text-[10px] font-bold text-black font-mono">
-                    GSTIN: {gstSettings.gstin}
+                    GSTIN: {sellerGstin}
                   </div>
                 )}
                 <div className="text-[10px] text-neutral-600">
