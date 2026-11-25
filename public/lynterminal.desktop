@@ -1,9 +1,9 @@
 [Desktop Entry]
-Version=1.6.3
+Version=1.6.4
 Type=Application
 Name=LynTerminal
-GenericName=POS & GST Accounting OS v1.6.3
-Comment=LynTerminal v1.6.3 — Modern Offline-First Business Management, Indian GST Billing & Statutory Accounting Terminal
+GenericName=POS & GST Accounting OS v1.6.4
+Comment=LynTerminal v1.6.4 by Wintershogun Tech Studio — Modern Offline-First Business Management & Indian GST Terminal
 Exec=lynterminal
 Icon=lynterminal
 Terminal=false

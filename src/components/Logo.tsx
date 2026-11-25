@@ -59,19 +59,31 @@ export const Logo: React.FC<LogoProps> = ({
           <svg
             viewBox="0 0 512 512"
             fill="none"
-            className="w-full h-full p-1"
+            className="w-full h-full"
           >
             <defs>
-              <linearGradient id="lynterminalLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="lynterminalLogoBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#171A23" />
+                <stop offset="55%" stopColor="#0D0F15" />
+                <stop offset="100%" stopColor="#06070A" />
+              </linearGradient>
+              <radialGradient id="lynterminalLogoGlow" cx="35%" cy="22%" r="70%">
+                <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+              </radialGradient>
+              <linearGradient id="lynterminalLogoGradient" x1="15%" y1="0%" x2="85%" y2="100%">
                 <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="100%" stopColor="#D4D4D8" />
+                <stop offset="55%" stopColor="#E4E7EC" />
+                <stop offset="100%" stopColor="#9CA3AF" />
               </linearGradient>
             </defs>
+            <rect width="512" height="512" rx="116" fill="url(#lynterminalLogoBg)" />
+            <rect width="512" height="512" rx="116" fill="url(#lynterminalLogoGlow)" />
             <path
-              d="M 188 128 V 334 C 188 358 206 376 230 376 H 352"
+              d="M 180 132 V 328 C 180 356 200 376 228 376 H 344"
               fill="none"
               stroke="url(#lynterminalLogoGradient)"
-              strokeWidth="76"
+              strokeWidth="68"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -96,7 +108,7 @@ export const Logo: React.FC<LogoProps> = ({
                   : "bg-white/[0.1] text-[#A1A1A6]"
               }`}
             >
-              v1.6.3
+              v1.6.4
             </span>
           </div>
           <span

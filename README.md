@@ -39,14 +39,14 @@ curl -fsSL https://lynterminal.wintershogun.tech/install.sh | bash
 
 ---
 
-### Distribution Packages (v1.6.3)
+### Distribution Packages (v1.6.4)
 
 | Distribution | Package | Direct Install Command |
 | :--- | :--- | :--- |
-| **Windows 10/11 Desktop (x64)** | [`lynterminal_1.6.3_x64-setup.exe`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal_1.6.3_x64-setup.exe) | Double-click installer or run `install.cmd` |
-| **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.6.3_amd64.deb`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal_1.6.3_amd64.deb) | `sudo apt install ./lynterminal_1.6.3_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | [`lynterminal-1.6.3-1.x86_64.rpm`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal-1.6.3-1.x86_64.rpm) | `sudo dnf install ./lynterminal-1.6.3-1.x86_64.rpm` |
-| **Universal Linux Binary** | [`lynterminal.gz`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal.gz) | `gzip -dc lynterminal.gz > lynterminal && chmod +x lynterminal && ./lynterminal` |
+| **Windows 10/11 Desktop (x64)** | [`lynterminal_1.6.4_x64-setup.exe`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.4/lynterminal_1.6.4_x64-setup.exe) | Double-click installer or run `install.cmd` |
+| **Ubuntu / Debian / Linux Mint** | [`lynterminal_1.6.4_amd64.deb`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.4/lynterminal_1.6.4_amd64.deb) | `sudo apt install ./lynterminal_1.6.4_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | [`lynterminal-1.6.4-1.x86_64.rpm`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.4/lynterminal-1.6.4-1.x86_64.rpm) | `sudo dnf install ./lynterminal-1.6.4-1.x86_64.rpm` |
+| **Universal Linux Binary** | [`lynterminal.gz`](https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.4/lynterminal.gz) | `gzip -dc lynterminal.gz > lynterminal && chmod +x lynterminal && ./lynterminal` |
 
 ---
 

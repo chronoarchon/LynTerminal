@@ -1,8 +1,9 @@
 [package]
 name = "lynterminal"
-version = "1.6.3"
-description = "LynTerminal v1.6.3 — Modern Offline-First Business Management OS & Indian GST Accounting Terminal"
-authors = ["chronoarchon <chronoarchon@users.noreply.github.com>"]
+version = "1.6.4"
+description = "LynTerminal v1.6.4 — Modern Offline-First Business Management OS & Indian GST Accounting Terminal"
+authors = ["Wintershogun Tech Studio <support@wintershogun.tech>"]
+homepage = "https://lynterminal.wintershogun.tech"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

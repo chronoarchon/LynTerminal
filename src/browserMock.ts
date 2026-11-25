@@ -468,11 +468,11 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.6.3",
-            latest_version: "1.6.3",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.3/lynterminal_1.6.3_x64-setup.exe",
-            release_notes: "### What's New in v1.6.3\n- **Real-Time Executive Analytics**: Authentic time-range filtering (Today / 7D / 30D / All), real CoGS & expense calculations\n- **Windows WebView2 Auto-Discovery**: Seamless startup even with per-user or embedded WebView2 installs\n- **UI & Calendar Hardening**: Fixed light/dark contrast edges, local timezone invoice dates, and responsive trial banners",
-            published_at: "2026-11-25T12:00:00Z",
+            current_version: "1.6.4",
+            latest_version: "1.6.4",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.4/lynterminal_1.6.4_x64-setup.exe",
+            release_notes: "### What's New in v1.6.4\n- **Luxury Minimalist 'L' Icon & Branded Installer**: Updated desktop app & NSIS setup binary icon + Wintershogun Tech Studio publisher metadata\n- **Stale WebView2 Path Recovery**: Automatically clears broken/deleted WEBVIEW2_BROWSER_EXECUTABLE_FOLDER env paths before fallback\n- **Real-Time Executive Analytics**: Authentic Today / 7D / 30D / All calculations and local calendar dates",
+            published_at: "2026-11-25T13:30:00Z",
             platform: "windows",
           };
         }
