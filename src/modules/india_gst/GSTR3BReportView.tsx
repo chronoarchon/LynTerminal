@@ -4,6 +4,7 @@ import {
   Calendar,
   RefreshCw,
   FileSpreadsheet,
+  FileText,
   TrendingDown,
   TrendingUp,
   Scale,
@@ -11,6 +12,8 @@ import {
 import type { Gstr3bReportData } from "./gstTypes";
 import { gstApi } from "./gstApi";
 import { generateGstr3bCsv } from "./gstUtils";
+import { buildGstr3bPdf } from "./gstPdfReports";
+import { printPdfDocument } from "../../utils/printPdf";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 
 export const GSTR3BReportView: React.FC = () => {
@@ -76,6 +79,45 @@ export const GSTR3BReportView: React.FC = () => {
     }
   };
 
+  const handleSavePdf = () => {
+    if (!reportData) return;
+    try {
+      const pdf = buildGstr3bPdf(reportData);
+      pdf.save(`GSTR3B_Return_${reportData.gstin || "REPORT"}_${reportData.fp}.pdf`);
+      toast({
+        message: "GSTR-3B Statutory Return PDF saved",
+        type: "success",
+      });
+    } catch (e) {
+      alert({
+        title: "PDF Export Error",
+        message: "Failed to generate PDF: " + String(e),
+        type: "error",
+      });
+    }
+  };
+
+  const handlePrintReturn = async () => {
+    if (!reportData) return;
+    try {
+      const pdf = buildGstr3bPdf(reportData);
+      const ok = await printPdfDocument(pdf);
+      if (!ok) {
+        alert({
+          title: "Print Error",
+          message: "Unable to open PDF print spooler. Please use Save PDF instead.",
+          type: "error",
+        });
+      }
+    } catch (e) {
+      alert({
+        title: "Print Error",
+        message: "Failed to prepare GSTR-3B print return: " + String(e),
+        type: "error",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -132,8 +174,18 @@ export const GSTR3BReportView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            onClick={handleSavePdf}
+            disabled={!reportData || loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#FF3B30]" />
+            <span>Save PDF</span>
+          </button>
+
+          <button
+            onClick={handlePrintReturn}
+            disabled={!reportData || loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Return</span>

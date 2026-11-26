@@ -13,6 +13,8 @@ import {
 import type { Gstr1ReportData } from "./gstTypes";
 import { gstApi } from "./gstApi";
 import { generateGstr1PortalJson, generateGstr1Csv } from "./gstUtils";
+import { buildGstr1AuditPdf } from "./gstPdfReports";
+import { printPdfDocument } from "../../utils/printPdf";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 
 export const GSTR1ReportView: React.FC = () => {
@@ -106,6 +108,45 @@ export const GSTR1ReportView: React.FC = () => {
     }
   };
 
+  const handleSavePdf = () => {
+    if (!reportData) return;
+    try {
+      const pdf = buildGstr1AuditPdf(reportData);
+      pdf.save(`GSTR1_Audit_${reportData.gstin || "REPORT"}_${reportData.fp}.pdf`);
+      toast({
+        message: "GSTR-1 CA Audit PDF saved cleanly",
+        type: "success",
+      });
+    } catch (e) {
+      alert({
+        title: "PDF Export Error",
+        message: "Failed to generate PDF: " + String(e),
+        type: "error",
+      });
+    }
+  };
+
+  const handlePrintReport = async () => {
+    if (!reportData) return;
+    try {
+      const pdf = buildGstr1AuditPdf(reportData);
+      const ok = await printPdfDocument(pdf);
+      if (!ok) {
+        alert({
+          title: "Print Error",
+          message: "Unable to open PDF print spooler. Please use Save PDF instead.",
+          type: "error",
+        });
+      }
+    } catch (e) {
+      alert({
+        title: "Print Error",
+        message: "Failed to prepare GSTR-1 print report: " + String(e),
+        type: "error",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header & Period Control */}
@@ -162,8 +203,18 @@ export const GSTR1ReportView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-xs transition apple-press cursor-pointer"
+            onClick={handleSavePdf}
+            disabled={!reportData || loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#FF3B30]" />
+            <span>Save PDF</span>
+          </button>
+
+          <button
+            onClick={handlePrintReport}
+            disabled={!reportData || loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-xs transition apple-press cursor-pointer disabled:opacity-50"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print</span>
