@@ -938,12 +938,16 @@ pub fn create_invoice_internal(
         }
     }
 
+    let audit_currency: String = tx
+        .query_row("SELECT currency_symbol FROM settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap_or_else(|_| "$".into());
+
     DatabaseManager::log_audit(
         &tx,
         "CREATE",
         "INVOICE",
         &invoice_id,
-        &format!("Created {} #{} for ${:.2}", payload.invoice_type, invoice_number, payload.total_amount),
+        &format!("Created {} #{} for {}{:.2}", payload.invoice_type, invoice_number, audit_currency, payload.total_amount),
     )
     .ok();
 
@@ -1187,6 +1191,28 @@ fn escape_pdf_str(s: &str) -> String {
     out
 }
 
+fn pdf_currency_label(symbol: &str, code: &str) -> String {
+    let trimmed = symbol.trim();
+    if trimmed.is_empty() {
+        return if code.trim().is_empty() {
+            "$".into()
+        } else {
+            format!("{} ", code.trim())
+        };
+    }
+    if trimmed == "₹" {
+        return "Rs.".into();
+    }
+    if trimmed.is_ascii() {
+        return trimmed.to_string();
+    }
+    if !code.trim().is_empty() {
+        format!("{} ", code.trim())
+    } else {
+        "$".into()
+    }
+}
+
 pub fn generate_native_invoice_pdf(
     detail: &InvoiceDetail,
     settings: &Settings,
@@ -1206,11 +1232,8 @@ pub fn generate_native_invoice_pdf(
     } else {
         "Commercial Retail & Management"
     };
-    let currency_sym = if !settings.currency_symbol.is_empty() {
-        &settings.currency_symbol
-    } else {
-        "$"
-    };
+    let currency_sym_owned = pdf_currency_label(&settings.currency_symbol, &settings.currency_code);
+    let currency_sym = currency_sym_owned.as_str();
 
     // Header - Store Logo Emblem & Information
     let initial = store_name.chars().next().unwrap_or('L').to_uppercase().to_string();
@@ -2077,7 +2100,22 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
                 continue;
             }
 
-            let num_str: String = part.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
+            let mut num_str = String::new();
+            let mut started = false;
+            let mut seen_dot = false;
+            for c in part.chars() {
+                if c.is_ascii_digit() {
+                    started = true;
+                    num_str.push(c);
+                } else if started && c == '.' && !seen_dot {
+                    seen_dot = true;
+                    num_str.push(c);
+                } else if started && c == ',' {
+                    continue;
+                } else if started {
+                    break;
+                }
+            }
             if let Ok(val) = num_str.parse::<f64>() {
                 if has_cash {
                     cash_part += val;
@@ -3387,7 +3425,7 @@ pub fn void_or_delete_invoice(
             mapped
         };
 
-        // 1. Put items back into stock!
+        // 1. Reverse stock movements!
         for (item_id_opt, item_name, qty) in &items {
             if let Some(it_id) = item_id_opt.as_ref() {
                 if invoice_type == "SALE" {
@@ -3418,35 +3456,87 @@ pub fn void_or_delete_invoice(
                             format!("{}: Invoice #{} ({})", mov_type, invoice_number, reason),
                         ],
                     ).ok();
+                } else if invoice_type == "PURCHASE" || invoice_type == "RETURN" {
+                    tx.execute(
+                        "UPDATE items SET stock_quantity = stock_quantity - ?1 WHERE id = ?2",
+                        params![qty, it_id],
+                    ).ok();
+
+                    let current: f64 = tx
+                        .query_row("SELECT stock_quantity FROM items WHERE id = ?1", params![it_id], |r| r.get(0))
+                        .unwrap_or(0.0);
+
+                    let mov_type = if action == "RETURN" { "PURCHASE_RETURN" } else { "CANCEL_REVERT" };
+                    tx.execute(
+                        "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                                      quantity_after, movement_type, reference_id,
+                                                      timestamp, notes)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                        params![
+                            Uuid::new_v4().to_string(),
+                            it_id,
+                            item_name,
+                            -qty,
+                            current,
+                            mov_type,
+                            invoice_number,
+                            now,
+                            format!("{}: Invoice #{} ({})", mov_type, invoice_number, reason),
+                        ],
+                    ).ok();
                 }
             }
         }
 
-        // 2. Adjust customer ledger if needed
+        // 2. Adjust customer/vendor ledger if needed
         if let Some(p_id) = party_id.as_ref() {
+            let unpaid = total_amount - paid_amount;
             if action == "RETURN" {
-                let unpaid = total_amount - paid_amount;
-                if unpaid > 0.0 {
-                    tx.execute(
-                        "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
-                        params![unpaid, p_id],
-                    ).ok();
+                if unpaid.abs() > 0.0001 {
+                    if invoice_type == "SALE" {
+                        tx.execute(
+                            "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+                            params![unpaid, p_id],
+                        ).ok();
+                    } else if invoice_type == "PURCHASE" {
+                        tx.execute(
+                            "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
+                            params![unpaid, p_id],
+                        ).ok();
+                    }
                 }
                 if paid_amount > 0.0 {
+                    let refund_type = if invoice_type == "PURCHASE" { "IN" } else { "OUT" };
                     tx.execute(
                         "INSERT INTO payments (id, invoice_id, party_id, party_name, amount,
                                               payment_type, payment_method, payment_date, reference, notes)
-                         VALUES (?1, ?2, ?3, ?4, ?5, 'OUT', 'REFUND', ?6, ?7, 'Refund for Sales Return')",
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'REFUND', ?7, ?8, 'Refund for Return')",
                         params![
                             Uuid::new_v4().to_string(),
                             invoice_id,
                             p_id,
-                            "Customer",
+                            "Party",
                             paid_amount,
+                            refund_type,
                             now,
                             invoice_number,
                         ],
                     ).ok();
+                }
+            } else {
+                // CANCEL / Permanent Delete: reverse unpaid balance impact
+                if unpaid.abs() > 0.0001 {
+                    if invoice_type == "SALE" {
+                        tx.execute(
+                            "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+                            params![unpaid, p_id],
+                        ).ok();
+                    } else if invoice_type == "PURCHASE" || invoice_type == "RETURN" {
+                        tx.execute(
+                            "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
+                            params![unpaid, p_id],
+                        ).ok();
+                    }
                 }
             }
         }
@@ -3465,7 +3555,12 @@ pub fn void_or_delete_invoice(
                 &format!("Sales Return for #{} - Restocked items. Reason: {}", invoice_number, reason),
             ).ok();
         } else {
-            // Cancel / Permanent Delete
+            // Cancel / Permanent Delete: remove associated settlements and payments too
+            tx.execute("DELETE FROM bill_settlements WHERE invoice_id = ?1", params![invoice_id]).ok();
+            tx.execute("DELETE FROM payments WHERE invoice_id = ?1", params![invoice_id]).ok();
+            tx.execute("DELETE FROM gst_invoice_items WHERE invoice_id = ?1", params![invoice_id]).ok();
+            tx.execute("DELETE FROM gst_invoices WHERE invoice_id = ?1", params![invoice_id]).ok();
+            tx.execute("DELETE FROM invoice_items WHERE invoice_id = ?1", params![invoice_id]).ok();
             tx.execute("DELETE FROM invoices WHERE id = ?1", params![invoice_id])
                 .map_err(|e| e.to_string())?;
 
@@ -5926,20 +6021,16 @@ pub fn update_opening_capital(
     get_settings_internal(&conn)
 }
 
-#[tauri::command]
-pub fn switch_currency_and_reset_data(
+pub fn switch_currency_and_reset_data_internal(
+    conn: &mut Connection,
     payload: SwitchCurrencyPayload,
-    state: State<'_, Mutex<AppState>>,
 ) -> Result<Settings, String> {
-    let app = state.lock().map_err(|e| e.to_string())?;
-    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-
-    // 1. Perform automated safety backup before clearing anything
-    let _ = create_database_backup_internal(&conn);
-
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
-    // 2. Clear all financial transactions to prevent mixed-currency corruption
+    // Clear all financial transactions to prevent mixed-currency corruption
+    tx.execute("DELETE FROM bill_settlements", []).ok();
+    tx.execute("DELETE FROM gst_invoice_items", []).ok();
+    tx.execute("DELETE FROM gst_invoices", []).ok();
     tx.execute("DELETE FROM invoice_items", []).ok();
     tx.execute("DELETE FROM invoices", []).ok();
     tx.execute("DELETE FROM payments", []).ok();
@@ -5953,21 +6044,35 @@ pub fn switch_currency_and_reset_data(
     tx.execute("DELETE FROM purchase_returns", []).ok();
     tx.execute("DELETE FROM salary_payments", []).ok();
     tx.execute("DELETE FROM employee_attendance", []).ok();
+    tx.execute("DELETE FROM cash_bank_transfers", []).ok();
+    tx.execute("DELETE FROM loan_transactions", []).ok();
+    tx.execute("DELETE FROM business_loans", []).ok();
+    tx.execute("DELETE FROM recurring_bills", []).ok();
+    tx.execute("DELETE FROM bank_accounts", []).ok();
 
-    // Reset customer & supplier balances to 0 or opening
+    // Reset customer & supplier balances to 0
     tx.execute("UPDATE parties SET current_balance = 0.0, opening_balance = 0.0", []).ok();
 
     // If preserve_catalog is false, clear products too
     if !payload.preserve_catalog {
+        tx.execute("DELETE FROM gst_items", []).ok();
         tx.execute("DELETE FROM items", []).ok();
     }
 
-    // 3. Update settings with new currency
+    // Update settings with new currency and reset opening/capital balances
     tx.execute(
-        "UPDATE settings SET currency_code = ?1, currency_symbol = ?2 WHERE id = 1",
+        "UPDATE settings SET currency_code = ?1, currency_symbol = ?2, opening_cash = 0.0, opening_bank = 0.0, capital_cash = 0.0, capital_bank = 0.0 WHERE id = 1",
         params![payload.new_currency_code.trim(), payload.new_currency_symbol.trim()],
     )
     .map_err(|e| e.to_string())?;
+
+    // Sync GST module enablement with INR vs non-INR currency
+    let is_inr = payload.new_currency_code.trim().eq_ignore_ascii_case("INR");
+    tx.execute(
+        "UPDATE gst_settings SET is_enabled = ?1 WHERE id = 1",
+        params![if is_inr { 1 } else { 0 }],
+    )
+    .ok();
 
     DatabaseManager::log_audit(
         &tx,
@@ -5980,7 +6085,21 @@ pub fn switch_currency_and_reset_data(
 
     tx.commit().map_err(|e| e.to_string())?;
 
-    get_settings_internal(&conn)
+    get_settings_internal(conn)
+}
+
+#[tauri::command]
+pub fn switch_currency_and_reset_data(
+    payload: SwitchCurrencyPayload,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Settings, String> {
+    let app = state.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+
+    // 1. Perform automated safety backup before clearing anything
+    let _ = create_database_backup_internal(&conn);
+
+    switch_currency_and_reset_data_internal(&mut conn, payload)
 }
 
 // ----------------------------------------------------------------------------

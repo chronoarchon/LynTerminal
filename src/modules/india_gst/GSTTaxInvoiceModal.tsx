@@ -678,15 +678,23 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                 {/* Numerical Totals */}
                 <div className="space-y-1 text-xs font-mono print-avoid-break">
                   <div className="flex justify-between py-1 text-neutral-600 border-b border-black/[0.06]">
-                    <span className="font-sans">Taxable Value</span>
+                    <span className="font-sans">
+                      {invoice.discount_amount > 0 ? "Gross Subtotal" : "Taxable Value"}
+                    </span>
                     <span>₹{invoice.subtotal.toFixed(2)}</span>
                   </div>
 
                   {invoice.discount_amount > 0 && (
-                    <div className="flex justify-between py-1 text-emerald-600 border-b border-black/[0.06]">
-                      <span className="font-sans">Discount</span>
-                      <span>-₹{invoice.discount_amount.toFixed(2)}</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between py-1 text-emerald-600 border-b border-black/[0.06]">
+                        <span className="font-sans">Discount</span>
+                        <span>-₹{invoice.discount_amount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 text-neutral-700 font-semibold border-b border-black/[0.06]">
+                        <span className="font-sans">Net Taxable Value</span>
+                        <span>₹{Math.max(0, invoice.subtotal - invoice.discount_amount).toFixed(2)}</span>
+                      </div>
+                    </>
                   )}
 
                   {!isInterstate ? (
@@ -874,9 +882,21 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               {/* Totals */}
               <div className="space-y-1 pt-2 border-t border-solid border-black/20 text-[11px]">
                 <div className="flex justify-between text-neutral-600">
-                  <span>Taxable Subtotal:</span>
+                  <span>{invoice.discount_amount > 0 ? "Gross Subtotal:" : "Taxable Subtotal:"}</span>
                   <span>₹{invoice.subtotal.toFixed(2)}</span>
                 </div>
+                {invoice.discount_amount > 0 && (
+                  <>
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Discount:</span>
+                      <span>-₹{invoice.discount_amount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-neutral-700 font-semibold">
+                      <span>Taxable Value:</span>
+                      <span>₹{Math.max(0, invoice.subtotal - invoice.discount_amount).toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
                 {!isInterstate ? (
                   <>
                     <div className="flex justify-between text-neutral-600">
@@ -892,6 +912,20 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   <div className="flex justify-between text-neutral-600">
                     <span>IGST:</span>
                     <span>₹{gst_info.igst_amount.toFixed(2)}</span>
+                  </div>
+                )}
+                {gst_info.cess_amount > 0 && (
+                  <div className="flex justify-between text-neutral-600">
+                    <span>Cess:</span>
+                    <span>₹{gst_info.cess_amount.toFixed(2)}</span>
+                  </div>
+                )}
+                {Math.abs(gst_info.round_off) >= 0.005 && (
+                  <div className="flex justify-between text-neutral-600">
+                    <span>Round Off:</span>
+                    <span>
+                      {gst_info.round_off >= 0 ? "+" : "-"}₹{Math.abs(gst_info.round_off).toFixed(2)}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-sm pt-1 border-t border-solid border-black/30 text-black">

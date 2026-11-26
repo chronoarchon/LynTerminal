@@ -11,6 +11,7 @@ import {
 import type { GstSettings, Gstr3bReportData } from "./gstTypes";
 import type { Settings } from "../../types";
 import { gstApi } from "./gstApi";
+import { formatLocalDate } from "../../utils/dateUtils";
 
 export interface AccountingHubProps {
   settings: Settings;
@@ -27,12 +28,8 @@ export const AccountingHub: React.FC<AccountingHubProps> = ({
   const [loading, setLoading] = useState(false);
 
   const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+  const firstDay = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const lastDay = formatLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
   const fetchLedgers = () => {
     setLoading(true);

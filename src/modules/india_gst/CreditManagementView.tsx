@@ -16,6 +16,7 @@ import type { PartyCreditAging, PendingBill, BillSettlementPayload } from "./gst
 import type { Party, Settings } from "../../types";
 import { gstApi } from "./gstApi";
 import { useAppleDialog } from "../../components/common/AppleDialog";
+import { formatLocalDate } from "../../utils/dateUtils";
 import { amountToIndianWords } from "./gstUtils";
 
 interface CreditManagementViewProps {
@@ -43,7 +44,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
   const [settlementAmount, setSettlementAmount] = useState<string>("");
   const [settlementMethod, setSettlementMethod] = useState<string>("UPI");
   const [settlementDate, setSettlementDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    formatLocalDate()
   );
   const [settlementRef, setSettlementRef] = useState<string>("");
   const [settlementNotes, setSettlementNotes] = useState<string>("");

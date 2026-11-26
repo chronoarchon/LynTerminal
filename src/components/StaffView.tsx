@@ -19,6 +19,7 @@ import type {
   StaffSummaryStats,
   Settings,
 } from "../types";
+import { formatLocalDate } from "../utils/dateUtils";
 import { api } from "../services/api";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
@@ -39,7 +40,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
   const [loading, setLoading] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    formatLocalDate()
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("ALL");
@@ -55,7 +56,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
     monthly_salary: 0,
     salary_type: "MONTHLY",
     status: "ACTIVE",
-    joining_date: new Date().toISOString().split("T")[0],
+    joining_date: formatLocalDate(),
     notes: "",
   });
 
@@ -64,8 +65,8 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
     employee_id: "",
     amount: 0,
     payment_source: "CASH",
-    payment_date: new Date().toISOString().split("T")[0],
-    for_month: new Date().toISOString().slice(0, 7),
+    payment_date: formatLocalDate(),
+    for_month: formatLocalDate().slice(0, 7),
     days_present: 30,
     bonus: 0,
     deductions: 0,
@@ -170,7 +171,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
       monthly_salary: 0,
       salary_type: "MONTHLY",
       status: "ACTIVE",
-      joining_date: new Date().toISOString().split("T")[0],
+      joining_date: formatLocalDate(),
       notes: "",
     });
     setIsEmployeeModalOpen(true);
@@ -230,8 +231,8 @@ export const StaffView: React.FC<StaffViewProps> = ({ settings, onRefreshAll }) 
       employee_id: target.id,
       amount: target.monthly_salary,
       payment_source: "CASH",
-      payment_date: new Date().toISOString().split("T")[0],
-      for_month: new Date().toISOString().slice(0, 7),
+      payment_date: formatLocalDate(),
+      for_month: formatLocalDate().slice(0, 7),
       days_present: 30,
       bonus: 0,
       deductions: 0,

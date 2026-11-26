@@ -13,6 +13,7 @@ import type { Expense, Settings, RecurringBill } from "../types";
 import { api } from "../services/api";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
+import { formatLocalDate } from "../utils/dateUtils";
 
 interface ExpensesViewProps {
   settings: Settings | null;
@@ -85,7 +86,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     title: "",
     category: CATEGORIES[0],
     amount: 0,
-    expense_date: new Date().toISOString().split("T")[0],
+    expense_date: formatLocalDate(),
     payment_method: "Cash",
     notes: "",
   });
@@ -96,7 +97,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const [selectedBillToPay, setSelectedBillToPay] = useState<RecurringBill | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paySource, setPaySource] = useState<"CASH" | "BANK">("CASH");
-  const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [payDate, setPayDate] = useState(formatLocalDate());
   const [payRef, setPayRef] = useState("");
   const [payNotes, setPayNotes] = useState("");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
@@ -146,7 +147,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
       title: "",
       category: CATEGORIES[0],
       amount: 0,
-      expense_date: new Date().toISOString().split("T")[0],
+      expense_date: formatLocalDate(),
       payment_method: "Cash",
       notes: "",
     });
@@ -182,7 +183,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         title: formData.title.trim(),
         category: formData.category || CATEGORIES[0],
         amount: Number(formData.amount),
-        expense_date: formData.expense_date || new Date().toISOString().split("T")[0],
+        expense_date: formData.expense_date || formatLocalDate(),
         payment_method: formData.payment_method || "Cash",
         notes: formData.notes?.trim() || "",
       });
@@ -224,7 +225,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         : ""
     );
     setPaySource("CASH");
-    setPayDate(new Date().toISOString().split("T")[0]);
+    setPayDate(formatLocalDate());
     setPayRef("");
     setPayNotes(`Settlement for ${bill.title}`);
     setIsPayBillModalOpen(true);

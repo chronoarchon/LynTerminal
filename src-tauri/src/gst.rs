@@ -281,6 +281,7 @@ pub struct Gstr1HsnSummary {
     pub hsn_code: String,
     pub description: String,
     pub uqc: String,
+    pub tax_rate: f64,
     pub total_quantity: f64,
     pub total_value: f64,
     pub taxable_value: f64,
@@ -357,6 +358,12 @@ pub struct Gstr3bReportData {
     pub net_igst_payable: f64,
     pub net_cgst_payable: f64,
     pub net_sgst_payable: f64,
+    pub net_cess_payable: f64,
+    pub itc_utilized_igst: f64,
+    pub itc_utilized_cgst: f64,
+    pub itc_utilized_sgst: f64,
+    pub itc_utilized_cess: f64,
+    pub total_itc_utilized: f64,
     pub total_tax_payable: f64,
     pub total_itc_available: f64,
     pub net_cash_payable: f64,
@@ -592,14 +599,29 @@ pub fn create_gst_invoice_internal(
         )
         .unwrap_or_else(|_| "INV-".into());
 
-    let max_num: i64 = tx
-        .query_row(
-            "SELECT COALESCE(MAX(CAST(SUBSTR(invoice_number, LENGTH(?1) + 1) AS INTEGER)), 0)
-             FROM invoices WHERE invoice_number LIKE ?1 || '%'",
-            params![prefix],
-            |r| r.get(0),
-        )
-        .unwrap_or(0);
+    let max_num: i64 = {
+        let mut num_stmt = tx
+            .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1 || '%'")
+            .map_err(|e| e.to_string())?;
+        let prefix_len = prefix.len();
+        let nums = num_stmt
+            .query_map(params![prefix], |r| r.get::<_, String>(0))
+            .map_err(|e| e.to_string())?;
+        let mut highest = 0i64;
+        for inv_num in nums.filter_map(Result::ok) {
+            if inv_num.len() > prefix_len {
+                let suffix = &inv_num[prefix_len..];
+                if suffix.chars().all(|c| c.is_ascii_digit()) {
+                    if let Ok(n) = suffix.parse::<i64>() {
+                        if n > highest {
+                            highest = n;
+                        }
+                    }
+                }
+            }
+        }
+        highest
+    };
 
     let invoice_number = format!("{}{:05}", prefix, max_num + 1);
 
@@ -711,6 +733,13 @@ pub fn create_gst_invoice_internal(
             _ => None,
         };
 
+        let gross_line = item_payload.rate * item_payload.quantity;
+        let disc_pct = if gross_line > 0.0 && item_payload.discount_amount > 0.0 {
+            ((item_payload.discount_amount / gross_line) * 100.0).min(100.0)
+        } else {
+            0.0
+        };
+
         tx.execute(
             "INSERT INTO invoice_items (
                 id, invoice_id, item_id, item_name, quantity, unit,
@@ -724,11 +753,7 @@ pub fn create_gst_invoice_internal(
                 item_payload.quantity,
                 item_payload.unit,
                 item_payload.rate,
-                if item_payload.taxable_amount > 0.0 && item_payload.discount_amount > 0.0 {
-                    (item_payload.discount_amount / (item_payload.rate * item_payload.quantity)) * 100.0
-                } else {
-                    0.0
-                },
+                disc_pct,
                 item_payload.tax_rate,
                 item_payload.line_total,
             ],
@@ -800,7 +825,7 @@ pub fn create_gst_invoice_internal(
                     ],
                 )
                 .ok();
-            } else if payload.invoice_type == "PURCHASE" {
+            } else if payload.invoice_type == "PURCHASE" || payload.invoice_type == "RETURN" {
                 tx.execute(
                     "UPDATE items SET stock_quantity = stock_quantity + ?1 WHERE id = ?2",
                     params![item_payload.quantity, it_id],
@@ -815,6 +840,12 @@ pub fn create_gst_invoice_internal(
                     )
                     .unwrap_or(0.0);
 
+                let (mov_type, mov_note) = if payload.invoice_type == "RETURN" {
+                    ("RETURN", format!("GST Credit Note / Return #{}", invoice_number))
+                } else {
+                    ("PURCHASE", format!("GST Inward Bill #{}", invoice_number))
+                };
+
                 tx.execute(
                     "INSERT INTO stock_movements (
                         id, item_id, item_name, change_quantity, quantity_after,
@@ -826,10 +857,10 @@ pub fn create_gst_invoice_internal(
                         item_payload.item_name,
                         item_payload.quantity,
                         current,
-                        "PURCHASE",
+                        mov_type,
                         invoice_number,
                         now,
-                        format!("GST Inward Bill #{}", invoice_number),
+                        mov_note,
                     ],
                 )
                 .ok();
@@ -844,7 +875,7 @@ pub fn create_gst_invoice_internal(
             quantity: item_payload.quantity,
             unit: item_payload.unit.clone(),
             unit_price: item_payload.rate,
-            discount_percent: 0.0,
+            discount_percent: disc_pct,
             tax_rate: item_payload.tax_rate,
             line_total: item_payload.line_total,
         });
@@ -960,6 +991,35 @@ pub fn create_gst_invoice_internal(
                         payload.paid_amount,
                         payload.invoice_date,
                         "Settled at bill entry",
+                    ],
+                )
+                .ok();
+            }
+        } else if payload.invoice_type == "RETURN" {
+            tx.execute(
+                "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+                params![unpaid, p_id],
+            )
+            .ok();
+
+            if payload.paid_amount > 0.0 {
+                let payment_id = Uuid::new_v4().to_string();
+                tx.execute(
+                    "INSERT INTO payments (
+                        id, invoice_id, party_id, party_name, amount,
+                        payment_type, payment_method, payment_date, reference, notes
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![
+                        payment_id,
+                        invoice_id,
+                        p_id,
+                        payload.party_name,
+                        payload.paid_amount,
+                        "OUT",
+                        payload.payment_method,
+                        payload.invoice_date,
+                        invoice_number,
+                        format!("Refund for GST Credit Note #{}", invoice_number),
                     ],
                 )
                 .ok();
@@ -1278,7 +1338,7 @@ pub fn list_gst_invoices_internal(
         }
     }
 
-    query.push_str(" ORDER BY invoice_date DESC, created_at DESC LIMIT 100");
+    query.push_str(" ORDER BY invoice_date DESC, created_at DESC LIMIT 10000");
 
     let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
     let slice: Vec<&dyn rusqlite::ToSql> = params_vec.iter().map(|b| b.as_ref()).collect();
@@ -1345,7 +1405,7 @@ pub fn get_sundry_debtors_aging_internal(conn: &Connection) -> Result<Vec<PartyC
             .prepare(
                 "SELECT invoice_date, total_amount, paid_amount
                  FROM invoices
-                 WHERE party_id = ?1 AND invoice_type = 'SALE' AND status != 'PAID'
+                 WHERE party_id = ?1 AND invoice_type = 'SALE' AND status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
                  ORDER BY invoice_date ASC",
             )
             .map_err(|e| e.to_string())?;
@@ -1472,7 +1532,7 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
             .prepare(
                 "SELECT invoice_date, total_amount, paid_amount
                  FROM invoices
-                 WHERE party_id = ?1 AND invoice_type = 'PURCHASE' AND status != 'PAID'
+                 WHERE party_id = ?1 AND invoice_type = 'PURCHASE' AND status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
                  ORDER BY invoice_date ASC",
             )
             .map_err(|e| e.to_string())?;
@@ -1561,7 +1621,7 @@ pub fn get_party_pending_bills_internal(conn: &Connection, party_id: &str) -> Re
                     COALESCE(g.bill_reference_type, 'New Ref')
              FROM invoices i
              LEFT JOIN gst_invoices g ON i.id = g.invoice_id
-             WHERE i.party_id = ?1 AND i.status != 'PAID'
+             WHERE i.party_id = ?1 AND i.status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
              ORDER BY i.invoice_date ASC",
         )
         .map_err(|e| e.to_string())?;
@@ -1762,13 +1822,26 @@ pub fn get_gstr1_report_internal(
     start_date: &str,
     end_date: &str,
 ) -> Result<Gstr1ReportData, String> {
-    let (my_gstin, legal_name, _state_code): (String, String, String) = conn
+    let (my_gstin, legal_name, state_code, state_name): (String, String, String, String) = conn
         .query_row(
-            "SELECT gstin, legal_name, state_code FROM gst_settings WHERE id = 1",
+            "SELECT gstin, legal_name, state_code, state_name FROM gst_settings WHERE id = 1",
             [],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
         )
-        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into(), "27".into()));
+        .unwrap_or_else(|_| {
+            (
+                "27AABCU9603R1ZN".into(),
+                "LynTerminal India".into(),
+                "27".into(),
+                "Maharashtra".into(),
+            )
+        });
+
+    let default_pos = format!("{}-{}", state_code.trim(), state_name.trim());
+    let tax_mode: String = conn
+        .query_row("SELECT COALESCE(tax_mode, 'EXCLUSIVE') FROM settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap_or_else(|_| "EXCLUSIVE".into());
+    let is_tax_inclusive = tax_mode.eq_ignore_ascii_case("INCLUSIVE");
 
     let fp = if let Ok(parsed) = NaiveDate::parse_from_str(start_date, "%Y-%m-%d") {
         parsed.format("%m%Y").to_string()
@@ -1778,10 +1851,10 @@ pub fn get_gstr1_report_internal(
 
     let mut stmt = conn
         .prepare(
-            "SELECT i.id, i.invoice_number, i.invoice_date, i.total_amount,
+            "SELECT i.id, i.invoice_number, i.invoice_type, i.invoice_date, i.total_amount,
                     i.subtotal, i.discount_amount, i.party_name,
                     COALESCE(g.customer_gstin, ''),
-                    COALESCE(g.place_of_supply, '27-Maharashtra'),
+                    COALESCE(NULLIF(g.place_of_supply, ''), ?3),
                     COALESCE(g.is_interstate, 0),
                     COALESCE(g.is_reverse_charge, 0),
                     COALESCE(g.cgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END),
@@ -1790,36 +1863,40 @@ pub fn get_gstr1_report_internal(
                     COALESCE(g.cess_amount, 0.0)
              FROM invoices i
              LEFT JOIN gst_invoices g ON i.id = g.invoice_id
-             WHERE i.invoice_type = 'SALE' AND i.invoice_date BETWEEN ?1 AND ?2
+             WHERE i.invoice_type IN ('SALE', 'RETURN')
+               AND i.status NOT IN ('RETURNED', 'CANCELLED')
+               AND i.invoice_date BETWEEN ?1 AND ?2
              ORDER BY i.invoice_date ASC, i.invoice_number ASC",
         )
         .map_err(|e| e.to_string())?;
 
     let rows = stmt
-        .query_map(params![start_date, end_date], |r| {
+        .query_map(params![start_date, end_date, default_pos], |r| {
             Ok((
                 r.get::<_, String>(0)?,
                 r.get::<_, String>(1)?,
                 r.get::<_, String>(2)?,
-                r.get::<_, f64>(3)?,
+                r.get::<_, String>(3)?,
                 r.get::<_, f64>(4)?,
                 r.get::<_, f64>(5)?,
-                r.get::<_, String>(6)?,
+                r.get::<_, f64>(6)?,
                 r.get::<_, String>(7)?,
                 r.get::<_, String>(8)?,
-                r.get::<_, i32>(9)? == 1,
+                r.get::<_, String>(9)?,
                 r.get::<_, i32>(10)? == 1,
-                r.get::<_, f64>(11)?,
+                r.get::<_, i32>(11)? == 1,
                 r.get::<_, f64>(12)?,
                 r.get::<_, f64>(13)?,
                 r.get::<_, f64>(14)?,
+                r.get::<_, f64>(15)?,
             ))
         })
         .map_err(|e| e.to_string())?;
 
     let mut b2b = Vec::new();
     let mut b2cl = Vec::new();
-    let mut b2cs_map: std::collections::HashMap<(String, u64), (f64, f64, f64, f64, f64)> = std::collections::HashMap::new();
+    let mut b2cs_map: std::collections::HashMap<(String, i64), (f64, f64, f64, f64, f64)> =
+        std::collections::HashMap::new();
 
     let mut total_turnover = 0.0;
     let mut total_taxable = 0.0;
@@ -1830,12 +1907,23 @@ pub fn get_gstr1_report_internal(
 
     let mut min_inv = String::new();
     let mut max_inv = String::new();
-    let mut doc_count = 0;
+
+    let mut gst_item_stmt = conn
+        .prepare(
+            "SELECT tax_rate, taxable_amount, igst_amount, cgst_amount, sgst_amount, cess_amount
+             FROM gst_invoice_items WHERE invoice_id = ?1",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let mut core_item_stmt = conn
+        .prepare("SELECT tax_rate, line_total FROM invoice_items WHERE invoice_id = ?1")
+        .map_err(|e| e.to_string())?;
 
     for row in rows.filter_map(Result::ok) {
         let (
-            _id,
+            inv_id,
             inv_number,
+            inv_type,
             inv_date,
             total_amt,
             subtotal,
@@ -1851,19 +1939,22 @@ pub fn get_gstr1_report_internal(
             cess,
         ) = row;
 
-        doc_count += 1;
-        if min_inv.is_empty() {
-            min_inv = inv_number.clone();
+        let sign = if inv_type == "RETURN" { -1.0 } else { 1.0 };
+
+        if inv_type == "SALE" {
+            if min_inv.is_empty() {
+                min_inv = inv_number.clone();
+            }
+            max_inv = inv_number.clone();
         }
-        max_inv = inv_number.clone();
 
         let taxable = (subtotal - discount).max(0.0);
-        total_turnover += total_amt;
-        total_taxable += taxable;
-        total_igst += igst;
-        total_cgst += cgst;
-        total_sgst += sgst;
-        total_cess += cess;
+        total_turnover += sign * total_amt;
+        total_taxable += sign * taxable;
+        total_igst += sign * igst;
+        total_cgst += sign * cgst;
+        total_sgst += sign * sgst;
+        total_cess += sign * cess;
 
         let has_valid_gstin = cust_gstin.trim().len() == 15;
 
@@ -1873,15 +1964,15 @@ pub fn get_gstr1_report_internal(
                 customer_name: party_name,
                 invoice_number: inv_number,
                 invoice_date: inv_date,
-                invoice_value: total_amt,
+                invoice_value: sign * total_amt,
                 place_of_supply,
                 reverse_charge: if is_reverse_charge { "Y".into() } else { "N".into() },
-                invoice_type: "Regular".into(),
-                taxable_value: taxable,
-                igst_amount: igst,
-                cgst_amount: cgst,
-                sgst_amount: sgst,
-                cess_amount: cess,
+                invoice_type: if inv_type == "RETURN" { "Credit Note".into() } else { "Regular".into() },
+                taxable_value: sign * taxable,
+                igst_amount: sign * igst,
+                cgst_amount: sign * cgst,
+                sgst_amount: sign * sgst,
+                cess_amount: sign * cess,
             });
         } else if is_interstate && total_amt > 250000.0 {
             b2cl.push(Gstr1B2bInvoice {
@@ -1889,38 +1980,96 @@ pub fn get_gstr1_report_internal(
                 customer_name: party_name,
                 invoice_number: inv_number,
                 invoice_date: inv_date,
-                invoice_value: total_amt,
+                invoice_value: sign * total_amt,
                 place_of_supply,
                 reverse_charge: "N".into(),
-                invoice_type: "Regular".into(),
-                taxable_value: taxable,
-                igst_amount: igst,
-                cgst_amount: cgst,
-                sgst_amount: sgst,
-                cess_amount: cess,
+                invoice_type: if inv_type == "RETURN" { "Credit Note".into() } else { "Regular".into() },
+                taxable_value: sign * taxable,
+                igst_amount: sign * igst,
+                cgst_amount: sign * cgst,
+                sgst_amount: sign * sgst,
+                cess_amount: sign * cess,
             });
         } else {
-            let tax_rate = if taxable > 0.0 {
-                ((igst + cgst + sgst) / taxable) * 100.0
-            } else {
-                0.0
-            };
-            let rate_key = (tax_rate.round() as u64).max(0);
+            // Aggregate B2CS at item/rate-slab level to avoid blended invalid rates and preserve fractional slabs
+            let gst_items: Vec<(f64, f64, f64, f64, f64, f64)> = gst_item_stmt
+                .query_map(params![inv_id], |r| {
+                    Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?))
+                })
+                .map_err(|e| e.to_string())?
+                .filter_map(Result::ok)
+                .collect();
 
-            let entry = b2cs_map.entry((place_of_supply, rate_key)).or_insert((0.0, 0.0, 0.0, 0.0, 0.0));
-            entry.0 += taxable;
-            entry.1 += igst;
-            entry.2 += cgst;
-            entry.3 += sgst;
-            entry.4 += cess;
+            if !gst_items.is_empty() {
+                for (item_rate, item_taxable, item_igst, item_cgst, item_sgst, item_cess) in gst_items {
+                    let rate_bps = (item_rate.max(0.0) * 100.0).round() as i64;
+                    let entry = b2cs_map
+                        .entry((place_of_supply.clone(), rate_bps))
+                        .or_insert((0.0, 0.0, 0.0, 0.0, 0.0));
+                    entry.0 += sign * item_taxable;
+                    entry.1 += sign * item_igst;
+                    entry.2 += sign * item_cgst;
+                    entry.3 += sign * item_sgst;
+                    entry.4 += sign * item_cess;
+                }
+            } else {
+                let core_items: Vec<(f64, f64)> = core_item_stmt
+                    .query_map(params![inv_id], |r| Ok((r.get(0)?, r.get(1)?)))
+                    .map_err(|e| e.to_string())?
+                    .filter_map(Result::ok)
+                    .collect();
+
+                if !core_items.is_empty() {
+                    let disc_factor = if subtotal > 0.0 { taxable / subtotal } else { 1.0 };
+                    for (item_rate, line_tot) in core_items {
+                        let rate = item_rate.max(0.0);
+                        let rate_bps = (rate * 100.0).round() as i64;
+                        let (item_taxable, item_tax) = if is_tax_inclusive {
+                            let gross = line_tot * disc_factor;
+                            let tax_excl = if rate > 0.0 { gross / (1.0 + rate / 100.0) } else { gross };
+                            (tax_excl, gross - tax_excl)
+                        } else {
+                            let tax_excl = line_tot * disc_factor;
+                            (tax_excl, tax_excl * (rate / 100.0))
+                        };
+                        let (i_igst, i_cgst, i_sgst) = if is_interstate {
+                            (item_tax, 0.0, 0.0)
+                        } else {
+                            (0.0, item_tax / 2.0, item_tax / 2.0)
+                        };
+                        let entry = b2cs_map
+                            .entry((place_of_supply.clone(), rate_bps))
+                            .or_insert((0.0, 0.0, 0.0, 0.0, 0.0));
+                        entry.0 += sign * item_taxable;
+                        entry.1 += sign * i_igst;
+                        entry.2 += sign * i_cgst;
+                        entry.3 += sign * i_sgst;
+                    }
+                } else {
+                    let tax_rate = if taxable > 0.0 {
+                        ((igst + cgst + sgst) / taxable) * 100.0
+                    } else {
+                        0.0
+                    };
+                    let rate_bps = (tax_rate.max(0.0) * 100.0).round() as i64;
+                    let entry = b2cs_map
+                        .entry((place_of_supply, rate_bps))
+                        .or_insert((0.0, 0.0, 0.0, 0.0, 0.0));
+                    entry.0 += sign * taxable;
+                    entry.1 += sign * igst;
+                    entry.2 += sign * cgst;
+                    entry.3 += sign * sgst;
+                    entry.4 += sign * cess;
+                }
+            }
         }
     }
 
-    let b2cs = b2cs_map
+    let mut b2cs: Vec<Gstr1B2csSummary> = b2cs_map
         .into_iter()
-        .map(|((pos, rate_k), (taxable, igst, cgst, sgst, cess))| Gstr1B2csSummary {
+        .map(|((pos, rate_bps), (taxable, igst, cgst, sgst, cess))| Gstr1B2csSummary {
             place_of_supply: pos,
-            tax_rate: rate_k as f64,
+            tax_rate: (rate_bps as f64) / 100.0,
             taxable_value: taxable,
             igst_amount: igst,
             cgst_amount: cgst,
@@ -1928,84 +2077,146 @@ pub fn get_gstr1_report_internal(
             cess_amount: cess,
         })
         .collect();
+    b2cs.sort_by(|a, b| {
+        a.place_of_supply
+            .cmp(&b.place_of_supply)
+            .then_with(|| a.tax_rate.partial_cmp(&b.tax_rate).unwrap_or(std::cmp::Ordering::Equal))
+    });
 
     let mut hsn_stmt = conn
         .prepare(
-            "SELECT hsn_code, description, unit,
-                    SUM(quantity) as total_qty,
-                    SUM(line_total) as total_val,
-                    SUM(taxable_amount) as taxable_val,
-                    SUM(igst_amount) as igst_amt,
-                    SUM(cgst_amount) as cgst_amt,
-                    SUM(sgst_amount) as sgst_amt,
-                    SUM(cess_amount) as cess_amt
+            "SELECT hsn_code, MAX(description), unit, tax_rate,
+                    SUM(total_qty) as total_qty,
+                    SUM(total_val) as total_val,
+                    SUM(taxable_val) as taxable_val,
+                    SUM(igst_amt) as igst_amt,
+                    SUM(cgst_amt) as cgst_amt,
+                    SUM(sgst_amt) as sgst_amt,
+                    SUM(cess_amt) as cess_amt
              FROM (
                  SELECT gi.hsn_code as hsn_code,
-                        COALESCE(MAX(ii.item_name), 'Goods / Services') as description,
-                        COALESCE(MAX(gi.unit), 'PCS') as unit,
-                        SUM(gi.quantity) as quantity,
-                        SUM(gi.line_total) as line_total,
-                        SUM(gi.taxable_amount) as taxable_amount,
-                        SUM(gi.igst_amount) as igst_amount,
-                        SUM(gi.cgst_amount) as cgst_amount,
-                        SUM(gi.sgst_amount) as sgst_amount,
-                        SUM(gi.cess_amount) as cess_amount
+                        COALESCE(ii.item_name, 'Goods / Services') as description,
+                        COALESCE(NULLIF(gi.unit, ''), 'PCS') as unit,
+                        gi.tax_rate as tax_rate,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.quantity as total_qty,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.line_total as total_val,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.taxable_amount as taxable_val,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.igst_amount as igst_amt,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.cgst_amount as cgst_amt,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.sgst_amount as sgst_amt,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * gi.cess_amount as cess_amt
                  FROM gst_invoice_items gi
                  JOIN invoices i ON gi.invoice_id = i.id
                  LEFT JOIN invoice_items ii ON gi.id = ii.id
-                 WHERE i.invoice_type = 'SALE' AND i.invoice_date BETWEEN ?1 AND ?2
-                 GROUP BY gi.hsn_code
+                 WHERE i.invoice_type IN ('SALE', 'RETURN')
+                   AND i.status NOT IN ('RETURNED', 'CANCELLED')
+                   AND i.invoice_date BETWEEN ?1 AND ?2
 
                  UNION ALL
 
                  SELECT COALESCE(git.hsn_code, '8471') as hsn_code,
                         ii.item_name as description,
-                        ii.unit as unit,
-                        ii.quantity as quantity,
-                        ii.line_total as line_total,
-                        CASE WHEN ii.tax_rate > 0 THEN ii.line_total / (1.0 + ii.tax_rate / 100.0) ELSE ii.line_total END as taxable_amount,
-                        0.0 as igst_amount,
-                        CASE WHEN ii.tax_rate > 0 THEN (ii.line_total - (ii.line_total / (1.0 + ii.tax_rate / 100.0))) / 2.0 ELSE 0.0 END as cgst_amount,
-                        CASE WHEN ii.tax_rate > 0 THEN (ii.line_total - (ii.line_total / (1.0 + ii.tax_rate / 100.0))) / 2.0 ELSE 0.0 END as sgst_amount,
-                        0.0 as cess_amount
+                        COALESCE(NULLIF(ii.unit, ''), 'PCS') as unit,
+                        ii.tax_rate as tax_rate,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * ii.quantity as total_qty,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
+                            CASE WHEN ?3 = 1 THEN
+                                ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)
+                            ELSE
+                                (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) * (1.0 + ii.tax_rate / 100.0)
+                            END
+                        ) as total_val,
+                        (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
+                            CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0)
+                            ELSE
+                                ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)
+                            END
+                        ) as taxable_val,
+                        CASE WHEN COALESCE(g.is_interstate, 0) = 1 THEN
+                            (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
+                                CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                    (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END))
+                                    - ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0))
+                                ELSE
+                                    (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) * (ii.tax_rate / 100.0)
+                                END
+                            )
+                        ELSE 0.0 END as igst_amt,
+                        CASE WHEN COALESCE(g.is_interstate, 0) = 0 THEN
+                            (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
+                                CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                    ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END))
+                                    - ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0))) / 2.0
+                                ELSE
+                                    ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) * (ii.tax_rate / 100.0)) / 2.0
+                                END
+                            )
+                        ELSE 0.0 END as cgst_amt,
+                        CASE WHEN COALESCE(g.is_interstate, 0) = 0 THEN
+                            (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
+                                CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                    ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END))
+                                    - ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0))) / 2.0
+                                ELSE
+                                    ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) * (ii.tax_rate / 100.0)) / 2.0
+                                END
+                            )
+                        ELSE 0.0 END as sgst_amt,
+                        0.0 as cess_amt
                  FROM invoice_items ii
                  JOIN invoices i ON ii.invoice_id = i.id
+                 LEFT JOIN gst_invoices g ON i.id = g.invoice_id
                  LEFT JOIN gst_items git ON ii.item_id = git.item_id
-                 WHERE i.invoice_type = 'SALE'
+                 WHERE i.invoice_type IN ('SALE', 'RETURN')
+                   AND i.status NOT IN ('RETURNED', 'CANCELLED')
                    AND i.invoice_date BETWEEN ?1 AND ?2
                    AND i.id NOT IN (SELECT invoice_id FROM gst_invoice_items)
              )
-             GROUP BY hsn_code
-             ORDER BY hsn_code ASC",
+             GROUP BY hsn_code, unit, tax_rate
+             ORDER BY hsn_code ASC, tax_rate ASC",
         )
         .map_err(|e| e.to_string())?;
 
+    let inclusive_flag: i32 = if is_tax_inclusive { 1 } else { 0 };
     let hsn_summary = hsn_stmt
-        .query_map(params![start_date, end_date], |r| {
+        .query_map(params![start_date, end_date, inclusive_flag], |r| {
             Ok(Gstr1HsnSummary {
                 hsn_code: r.get(0)?,
                 description: r.get(1)?,
                 uqc: r.get(2)?,
-                total_quantity: r.get(3)?,
-                total_value: r.get(4)?,
-                taxable_value: r.get(5)?,
-                igst_amount: r.get(6)?,
-                cgst_amount: r.get(7)?,
-                sgst_amount: r.get(8)?,
-                cess_amount: r.get(9)?,
+                tax_rate: r.get(3)?,
+                total_quantity: r.get(4)?,
+                total_value: r.get(5)?,
+                taxable_value: r.get(6)?,
+                igst_amount: r.get(7)?,
+                cgst_amount: r.get(8)?,
+                sgst_amount: r.get(9)?,
+                cess_amount: r.get(10)?,
             })
         })
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
         .collect();
 
+    let (total_doc_count, cancelled_doc_count): (usize, usize) = conn
+        .query_row(
+            "SELECT COUNT(*),
+                    COALESCE(SUM(CASE WHEN status IN ('CANCELLED', 'RETURNED') THEN 1 ELSE 0 END), 0)
+             FROM invoices
+             WHERE invoice_type = 'SALE' AND invoice_date BETWEEN ?1 AND ?2",
+            params![start_date, end_date],
+            |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize)),
+        )
+        .unwrap_or((0, 0));
+
     let doc_summary = vec![Gstr1DocSummary {
         doc_type: "Invoices for Outward Supply".into(),
         from_serial: if min_inv.is_empty() { "N/A".into() } else { min_inv },
         to_serial: if max_inv.is_empty() { "N/A".into() } else { max_inv },
-        total_count: doc_count,
-        cancelled_count: 0,
-        net_count: doc_count,
+        total_count: total_doc_count,
+        cancelled_count: cancelled_doc_count,
+        net_count: total_doc_count.saturating_sub(cancelled_doc_count),
     }];
 
     Ok(Gstr1ReportData {
@@ -2033,13 +2244,18 @@ pub fn get_gstr3b_report_internal(
     start_date: &str,
     end_date: &str,
 ) -> Result<Gstr3bReportData, String> {
-    let (my_gstin, legal_name): (String, String) = conn
+    let (my_gstin, legal_name, gst_composition): (String, String, bool) = conn
         .query_row(
-            "SELECT gstin, legal_name FROM gst_settings WHERE id = 1",
+            "SELECT gstin, legal_name, COALESCE(gst_composition, 0) FROM gst_settings WHERE id = 1",
             [],
-            |r| Ok((r.get(0)?, r.get(1)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get::<_, i32>(2)? == 1)),
         )
-        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into()));
+        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into(), false));
+
+    let tax_mode: String = conn
+        .query_row("SELECT COALESCE(tax_mode, 'EXCLUSIVE') FROM settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap_or_else(|_| "EXCLUSIVE".into());
+    let is_tax_inclusive = tax_mode.eq_ignore_ascii_case("INCLUSIVE");
 
     let fp = if let Ok(parsed) = NaiveDate::parse_from_str(start_date, "%Y-%m-%d") {
         parsed.format("%m%Y").to_string()
@@ -2047,34 +2263,230 @@ pub fn get_gstr3b_report_internal(
         "042026".to_string()
     };
 
-    let (outward_taxable, outward_igst, outward_cgst, outward_sgst, outward_cess): (f64, f64, f64, f64, f64) = conn
-        .query_row(
-            "SELECT COALESCE(SUM(i.subtotal - i.discount_amount), 0.0),
-                    COALESCE(SUM(g.igst_amount), 0.0),
-                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
-                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
-                    COALESCE(SUM(g.cess_amount), 0.0)
-             FROM invoices i
-             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
-             WHERE i.invoice_type = 'SALE' AND i.invoice_date BETWEEN ?1 AND ?2",
-            params![start_date, end_date],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
-        )
-        .unwrap_or((0.0, 0.0, 0.0, 0.0, 0.0));
+    let mut outward_taxable = 0.0_f64;
+    let mut outward_igst = 0.0_f64;
+    let mut outward_cgst = 0.0_f64;
+    let mut outward_sgst = 0.0_f64;
+    let mut outward_cess = 0.0_f64;
+    let mut zero_rated_taxable = 0.0_f64;
+    let mut nil_exempt_taxable = 0.0_f64;
 
-    let (itc_igst, itc_cgst, itc_sgst, itc_cess): (f64, f64, f64, f64) = conn
+    {
+        let mut out_stmt = conn
+            .prepare(
+                "SELECT i.id, i.invoice_type, i.subtotal, i.discount_amount,
+                        COALESCE(g.is_interstate, 0),
+                        COALESCE(g.is_reverse_charge, 0),
+                        COALESCE(g.pos_state_code, ''),
+                        COALESCE(gp.gst_type, ''),
+                        COALESCE(g.igst_amount, 0.0),
+                        COALESCE(g.cgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END),
+                        COALESCE(g.sgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END),
+                        COALESCE(g.cess_amount, 0.0)
+                 FROM invoices i
+                 LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+                 LEFT JOIN gst_parties gp ON i.party_id = gp.party_id
+                 WHERE i.invoice_type IN ('SALE', 'RETURN')
+                   AND i.status NOT IN ('RETURNED', 'CANCELLED')
+                   AND i.invoice_date BETWEEN ?1 AND ?2",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let mut gst_item_stmt = conn
+            .prepare(
+                "SELECT tax_rate, taxable_amount, igst_amount, cgst_amount, sgst_amount, cess_amount
+                 FROM gst_invoice_items WHERE invoice_id = ?1",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let mut core_item_stmt = conn
+            .prepare("SELECT tax_rate, line_total FROM invoice_items WHERE invoice_id = ?1")
+            .map_err(|e| e.to_string())?;
+
+        let rows = out_stmt
+            .query_map(params![start_date, end_date], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, f64>(2)?,
+                    r.get::<_, f64>(3)?,
+                    r.get::<_, i32>(4)? == 1,
+                    r.get::<_, i32>(5)? == 1,
+                    r.get::<_, String>(6)?,
+                    r.get::<_, String>(7)?,
+                    r.get::<_, f64>(8)?,
+                    r.get::<_, f64>(9)?,
+                    r.get::<_, f64>(10)?,
+                    r.get::<_, f64>(11)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        for row in rows.filter_map(Result::ok) {
+            let (
+                inv_id,
+                inv_type,
+                subtotal,
+                discount,
+                is_interstate,
+                is_rcm,
+                pos_code,
+                party_gst_type,
+                inv_igst,
+                inv_cgst,
+                inv_sgst,
+                inv_cess,
+            ) = row;
+
+            if is_rcm {
+                // Outward RCM supplies are paid by recipient, not supplier's Table 3.1(a) tax liability
+                continue;
+            }
+
+            let sign = if inv_type == "RETURN" { -1.0 } else { 1.0 };
+            let taxable = (subtotal - discount).max(0.0);
+            let is_zero_rated = party_gst_type.eq_ignore_ascii_case("OVERSEAS")
+                || pos_code.trim() == "96"
+                || pos_code.trim() == "97";
+
+            if is_zero_rated {
+                zero_rated_taxable += sign * taxable;
+                outward_igst += sign * inv_igst;
+                outward_cgst += sign * inv_cgst;
+                outward_sgst += sign * inv_sgst;
+                outward_cess += sign * inv_cess;
+                continue;
+            }
+
+            let gst_items: Vec<(f64, f64, f64, f64, f64, f64)> = gst_item_stmt
+                .query_map(params![inv_id], |r| {
+                    Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?))
+                })
+                .map_err(|e| e.to_string())?
+                .filter_map(Result::ok)
+                .collect();
+
+            if !gst_items.is_empty() {
+                for (rate, item_taxable, i_igst, i_cgst, i_sgst, i_cess) in gst_items {
+                    if rate <= 0.001 && i_cess <= 0.001 {
+                        nil_exempt_taxable += sign * item_taxable;
+                    } else {
+                        outward_taxable += sign * item_taxable;
+                        outward_igst += sign * i_igst;
+                        outward_cgst += sign * i_cgst;
+                        outward_sgst += sign * i_sgst;
+                        outward_cess += sign * i_cess;
+                    }
+                }
+            } else {
+                let core_items: Vec<(f64, f64)> = core_item_stmt
+                    .query_map(params![inv_id], |r| Ok((r.get(0)?, r.get(1)?)))
+                    .map_err(|e| e.to_string())?
+                    .filter_map(Result::ok)
+                    .collect();
+
+                if !core_items.is_empty() {
+                    let disc_factor = if subtotal > 0.0 { taxable / subtotal } else { 1.0 };
+                    for (rate, line_tot) in core_items {
+                        let (item_taxable, item_tax) = if is_tax_inclusive {
+                            let gross = line_tot * disc_factor;
+                            let tax_excl = if rate > 0.0 { gross / (1.0 + rate / 100.0) } else { gross };
+                            (tax_excl, gross - tax_excl)
+                        } else {
+                            let tax_excl = line_tot * disc_factor;
+                            (tax_excl, tax_excl * (rate / 100.0))
+                        };
+                        if rate <= 0.001 {
+                            nil_exempt_taxable += sign * item_taxable;
+                        } else {
+                            outward_taxable += sign * item_taxable;
+                            if is_interstate {
+                                outward_igst += sign * item_tax;
+                            } else {
+                                outward_cgst += sign * (item_tax / 2.0);
+                                outward_sgst += sign * (item_tax / 2.0);
+                            }
+                        }
+                    }
+                } else if inv_igst + inv_cgst + inv_sgst + inv_cess <= 0.001 {
+                    nil_exempt_taxable += sign * taxable;
+                } else {
+                    outward_taxable += sign * taxable;
+                    outward_igst += sign * inv_igst;
+                    outward_cgst += sign * inv_cgst;
+                    outward_sgst += sign * inv_sgst;
+                    outward_cess += sign * inv_cess;
+                }
+            }
+        }
+    }
+
+    // Table 3.1(d): Inward supplies liable to reverse charge
+    let reverse_charge_taxable: f64 = conn
         .query_row(
-            "SELECT COALESCE(SUM(g.igst_amount), 0.0),
-                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
-                    COALESCE(SUM(CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END), 0.0),
-                    COALESCE(SUM(g.cess_amount), 0.0)
+            "SELECT COALESCE(SUM(MAX(0.0, i.subtotal - i.discount_amount)), 0.0)
              FROM invoices i
-             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
-             WHERE i.invoice_type = 'PURCHASE' AND i.invoice_date BETWEEN ?1 AND ?2",
+             JOIN gst_invoices g ON i.id = g.invoice_id
+             WHERE i.invoice_type = 'PURCHASE'
+               AND i.status NOT IN ('RETURNED', 'CANCELLED')
+               AND g.is_reverse_charge = 1
+               AND i.invoice_date BETWEEN ?1 AND ?2",
             params![start_date, end_date],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            |r| r.get(0),
         )
-        .unwrap_or((0.0, 0.0, 0.0, 0.0));
+        .unwrap_or(0.0);
+
+    // Table 4: Eligible ITC (only from registered vendors with valid 15-char GSTIN; composition dealers cannot claim ITC)
+    let (itc_igst, itc_cgst, itc_sgst, itc_cess, itc_ineligible): (f64, f64, f64, f64, f64) = {
+        let mut pur_stmt = conn
+            .prepare(
+                "SELECT COALESCE(NULLIF(TRIM(g.customer_gstin), ''), NULLIF(TRIM(gp.gstin), ''), TRIM(p.tax_number), ''),
+                        COALESCE(g.igst_amount, 0.0),
+                        COALESCE(g.cgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END),
+                        COALESCE(g.sgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END),
+                        COALESCE(g.cess_amount, 0.0)
+                 FROM invoices i
+                 LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+                 LEFT JOIN parties p ON i.party_id = p.id
+                 LEFT JOIN gst_parties gp ON i.party_id = gp.party_id
+                 WHERE i.invoice_type = 'PURCHASE'
+                   AND i.status NOT IN ('RETURNED', 'CANCELLED')
+                   AND i.invoice_date BETWEEN ?1 AND ?2",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let pur_rows = pur_stmt
+            .query_map(params![start_date, end_date], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, f64>(1)?,
+                    r.get::<_, f64>(2)?,
+                    r.get::<_, f64>(3)?,
+                    r.get::<_, f64>(4)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut elig_i = 0.0;
+        let mut elig_c = 0.0;
+        let mut elig_s = 0.0;
+        let mut elig_cs = 0.0;
+        let mut inelig = 0.0;
+
+        for r in pur_rows.filter_map(Result::ok) {
+            let (gstin, i_igst, i_cgst, i_sgst, i_cess) = r;
+            let valid_vendor = gstin.trim().len() == 15;
+            if !gst_composition && valid_vendor {
+                elig_i += i_igst;
+                elig_c += i_cgst;
+                elig_s += i_sgst;
+                elig_cs += i_cess;
+            } else {
+                inelig += i_igst + i_cgst + i_sgst + i_cess;
+            }
+        }
+        (elig_i, elig_c, elig_s, elig_cs, inelig)
+    };
 
     let table31 = Gstr3bTable31 {
         outward_taxable_value: outward_taxable,
@@ -2082,9 +2494,9 @@ pub fn get_gstr3b_report_internal(
         outward_cgst,
         outward_sgst,
         outward_cess,
-        zero_rated_taxable: 0.0,
-        nil_exempt_taxable: 0.0,
-        reverse_charge_taxable: 0.0,
+        zero_rated_taxable,
+        nil_exempt_taxable,
+        reverse_charge_taxable,
     };
 
     let table4_itc = Gstr3bTable4Itc {
@@ -2092,16 +2504,54 @@ pub fn get_gstr3b_report_internal(
         itc_cgst,
         itc_sgst,
         itc_cess,
-        itc_ineligible: 0.0,
+        itc_ineligible,
     };
 
-    let net_igst_payable = (outward_igst - itc_igst).max(0.0);
-    let net_cgst_payable = (outward_cgst - itc_cgst).max(0.0);
-    let net_sgst_payable = (outward_sgst - itc_sgst).max(0.0);
+    // Table 6.1: Section 49(5) / Rule 88A Cross-Utilization Set-Off
+    let out_igst = outward_igst.max(0.0);
+    let out_cgst = outward_cgst.max(0.0);
+    let out_sgst = outward_sgst.max(0.0);
+    let out_cess = outward_cess.max(0.0);
 
-    let total_tax_payable = outward_igst + outward_cgst + outward_sgst + outward_cess;
+    // 1. IGST ITC -> IGST, then CGST, then SGST
+    let igst_on_igst = itc_igst.min(out_igst);
+    let rem_igst_1 = (itc_igst - igst_on_igst).max(0.0);
+    let igst_on_cgst = rem_igst_1.min(out_cgst);
+    let rem_igst_2 = (rem_igst_1 - igst_on_cgst).max(0.0);
+    let igst_on_sgst = rem_igst_2.min(out_sgst);
+
+    let rem_out_igst = (out_igst - igst_on_igst).max(0.0);
+    let rem_out_cgst = (out_cgst - igst_on_cgst).max(0.0);
+    let rem_out_sgst = (out_sgst - igst_on_sgst).max(0.0);
+
+    // 2. CGST ITC -> CGST, then IGST (NEVER SGST)
+    let cgst_on_cgst = itc_cgst.min(rem_out_cgst);
+    let rem_cgst_itc = (itc_cgst - cgst_on_cgst).max(0.0);
+    let cgst_on_igst = rem_cgst_itc.min(rem_out_igst);
+
+    // 3. SGST ITC -> SGST, then IGST (NEVER CGST)
+    let rem_out_igst_after_cgst = (rem_out_igst - cgst_on_igst).max(0.0);
+    let sgst_on_sgst = itc_sgst.min(rem_out_sgst);
+    let rem_sgst_itc = (itc_sgst - sgst_on_sgst).max(0.0);
+    let sgst_on_igst = rem_sgst_itc.min(rem_out_igst_after_cgst);
+
+    // 4. Cess ITC -> Cess ONLY
+    let cess_on_cess = itc_cess.min(out_cess);
+
+    let itc_utilized_igst = igst_on_igst + cgst_on_igst + sgst_on_igst;
+    let itc_utilized_cgst = igst_on_cgst + cgst_on_cgst;
+    let itc_utilized_sgst = igst_on_sgst + sgst_on_sgst;
+    let itc_utilized_cess = cess_on_cess;
+    let total_itc_utilized = itc_utilized_igst + itc_utilized_cgst + itc_utilized_sgst + itc_utilized_cess;
+
+    let net_igst_payable = (out_igst - itc_utilized_igst).max(0.0);
+    let net_cgst_payable = (out_cgst - itc_utilized_cgst).max(0.0);
+    let net_sgst_payable = (out_sgst - itc_utilized_sgst).max(0.0);
+    let net_cess_payable = (out_cess - itc_utilized_cess).max(0.0);
+
+    let total_tax_payable = out_igst + out_cgst + out_sgst + out_cess;
     let total_itc_available = itc_igst + itc_cgst + itc_sgst + itc_cess;
-    let net_cash_payable = (total_tax_payable - total_itc_available).max(0.0);
+    let net_cash_payable = net_igst_payable + net_cgst_payable + net_sgst_payable + net_cess_payable;
 
     Ok(Gstr3bReportData {
         gstin: my_gstin,
@@ -2114,6 +2564,12 @@ pub fn get_gstr3b_report_internal(
         net_igst_payable,
         net_cgst_payable,
         net_sgst_payable,
+        net_cess_payable,
+        itc_utilized_igst,
+        itc_utilized_cgst,
+        itc_utilized_sgst,
+        itc_utilized_cess,
+        total_itc_utilized,
         total_tax_payable,
         total_itc_available,
         net_cash_payable,

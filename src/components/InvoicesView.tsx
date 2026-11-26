@@ -18,6 +18,7 @@ import type {
   InvoiceItemPayload,
 } from "../types";
 import { api } from "../services/api";
+import { formatLocalDate } from "../utils/dateUtils";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
@@ -72,7 +73,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const [quotePartyId, setQuotePartyId] = useState("");
   const [quotePartyName, setQuotePartyName] = useState("");
   const [quoteExpiry, setQuoteExpiry] = useState(
-    new Date(Date.now() + 15 * 24 * 3600 * 1000).toISOString().split("T")[0]
+    formatLocalDate(new Date(Date.now() + 15 * 24 * 3600 * 1000))
   );
   const [quoteItems, setQuoteItems] = useState<InvoiceItemPayload[]>([]);
   const [quoteNotes, setQuoteNotes] = useState("Quotation valid for 15 days from issuance.");
@@ -134,7 +135,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
         amount: amt,
         payment_type: "IN",
         payment_method: creditPayMethod,
-        payment_date: new Date().toISOString().split("T")[0],
+        payment_date: formatLocalDate(),
         reference: `Credit Settlement #${creditPayTarget.invoice_number}`,
         notes: creditPayNotes || `Credit settlement for Invoice #${creditPayTarget.invoice_number}`,
       });
@@ -298,7 +299,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       await api.createEstimate({
         party_id: quotePartyId || null,
         party_name: quotePartyName.trim(),
-        estimate_date: new Date().toISOString().split("T")[0],
+        estimate_date: formatLocalDate(),
         expiry_date: quoteExpiry,
         items: quoteItems,
         notes: quoteNotes,
@@ -347,7 +348,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       await api.createPurchaseReturn({
         party_id: returnPartyId || null,
         party_name: returnPartyName.trim(),
-        return_date: new Date().toISOString().split("T")[0],
+        return_date: formatLocalDate(),
         reason: returnReason,
         notes: returnNotes,
         items: returnItems,

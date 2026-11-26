@@ -178,6 +178,21 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         },
       ];
     });
+
+    gstApi
+      .getItemGstProfile(item.id)
+      .then((profile) => {
+        if (profile?.hsn_code && profile.hsn_code.trim()) {
+          setCart((prev) =>
+            prev.map((ci) =>
+              ci.item_id === item.id && ci.hsn_code === "8471"
+                ? { ...ci, hsn_code: profile.hsn_code.trim() }
+                : ci
+            )
+          );
+        }
+      })
+      .catch(() => {});
   };
 
   const updateQuantity = (index: number, delta: number) => {

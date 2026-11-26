@@ -18,6 +18,7 @@ import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
+import { formatLocalDate } from "../utils/dateUtils";
 
 interface PartiesViewProps {
   parties: Party[];
@@ -206,7 +207,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
         amount,
         payment_type: paymentType,
         payment_method: paymentMethod,
-        payment_date: new Date().toISOString().split("T")[0],
+        payment_date: formatLocalDate(),
         reference: paymentRef,
         notes: paymentNotes || (isCustomer ? "Customer payment received" : "Supplier settlement"),
       });

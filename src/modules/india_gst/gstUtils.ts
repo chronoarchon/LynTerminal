@@ -227,8 +227,9 @@ export function amountToIndianWords(amount: number): string {
   const isNegative = amount < 0;
   const absAmount = Math.abs(amount);
 
-  const integerPart = Math.floor(absAmount);
-  const paisePart = Math.round((absAmount - integerPart) * 100);
+  const totalPaise = Math.round(absAmount * 100);
+  const integerPart = Math.floor(totalPaise / 100);
+  const paisePart = totalPaise % 100;
 
   if (integerPart === 0 && paisePart === 0) {
     return "Rupees Zero Only";
@@ -372,9 +373,9 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
   const b2bMap = new Map<string, any[]>();
   for (const inv of report.b2b) {
     const list = b2bMap.get(inv.customer_gstin) || [];
-    const taxRate = inv.taxable_value > 0
-      ? Math.round(((inv.igst_amount + inv.cgst_amount + inv.sgst_amount) / inv.taxable_value) * 100)
-      : 18;
+    const taxRate = Math.abs(inv.taxable_value) > 0
+      ? Math.round(((inv.igst_amount + inv.cgst_amount + inv.sgst_amount) / inv.taxable_value) * 10000) / 100
+      : 0;
 
     list.push({
       inum: inv.invoice_number,
@@ -410,9 +411,9 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
   for (const inv of report.b2cl) {
     const posCode = inv.place_of_supply.split("-")[0].padStart(2, "0");
     const list = b2clMap.get(posCode) || [];
-    const taxRate = inv.taxable_value > 0
-      ? Math.round(((inv.igst_amount + inv.cgst_amount + inv.sgst_amount) / inv.taxable_value) * 100)
-      : 18;
+    const taxRate = Math.abs(inv.taxable_value) > 0
+      ? Math.round(((inv.igst_amount + inv.cgst_amount + inv.sgst_amount) / inv.taxable_value) * 10000) / 100
+      : 0;
 
     list.push({
       inum: inv.invoice_number,
@@ -462,6 +463,7 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
       hsn_sc: h.hsn_code,
       desc: h.description,
       uqc: h.uqc || "PCS",
+      rt: h.tax_rate ?? 0,
       qty: h.total_quantity,
       val: h.total_value,
       txval: h.taxable_value,

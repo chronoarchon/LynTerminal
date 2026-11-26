@@ -265,24 +265,46 @@ export const POSBilling: React.FC<POSBillingProps> = ({
     setSplitCard("");
   };
 
-  // Tax calculations
+  // Tax calculations (per-item tax_rate aware, purchase-safe, no double-discount)
   const isTaxInclusive = settings.tax_mode === "INCLUSIVE";
   const rawSubtotal = cart.reduce((sum, item) => {
     return sum + item.unit_price * item.quantity * (1 - item.discount_percent / 100);
   }, 0);
 
   const taxableAmount = Math.max(0, rawSubtotal - discountAmount);
+  const discFactor = rawSubtotal > 0 ? taxableAmount / rawSubtotal : 1;
+
   let taxAmount = 0;
   let totalAmount = 0;
   let displaySubtotal = 0;
+  let effectiveDiscount = discountAmount;
 
-  if (isTaxInclusive) {
+  if (billMode === "PURCHASE") {
+    displaySubtotal = rawSubtotal;
+    taxAmount = 0;
     totalAmount = taxableAmount;
-    taxAmount = (taxableAmount * settings.default_tax_rate) / (100 + settings.default_tax_rate);
-    displaySubtotal = totalAmount - taxAmount;
+  } else if (isTaxInclusive) {
+    totalAmount = taxableAmount;
+    taxAmount = cart.reduce((sum, item) => {
+      const lineNet = item.unit_price * item.quantity * (1 - item.discount_percent / 100) * discFactor;
+      const rate = item.tax_rate ?? settings.default_tax_rate;
+      return sum + (rate > 0 ? (lineNet * rate) / (100 + rate) : 0);
+    }, 0);
+    const netExTax = totalAmount - taxAmount;
+    const rawExTax = cart.reduce((sum, item) => {
+      const lineGross = item.unit_price * item.quantity * (1 - item.discount_percent / 100);
+      const rate = item.tax_rate ?? settings.default_tax_rate;
+      return sum + (rate > 0 ? lineGross / (1 + rate / 100) : lineGross);
+    }, 0);
+    displaySubtotal = rawExTax;
+    effectiveDiscount = Math.max(0, rawExTax - netExTax);
   } else {
-    displaySubtotal = taxableAmount;
-    taxAmount = (taxableAmount * settings.default_tax_rate) / 100;
+    displaySubtotal = rawSubtotal;
+    taxAmount = cart.reduce((sum, item) => {
+      const lineNet = item.unit_price * item.quantity * (1 - item.discount_percent / 100) * discFactor;
+      const rate = item.tax_rate ?? settings.default_tax_rate;
+      return sum + (lineNet * rate) / 100;
+    }, 0);
     totalAmount = taxableAmount + taxAmount;
   }
 
@@ -463,7 +485,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       let effectivePaid = Math.round(totalAmount * 100) / 100;
       let paymentMethodDesc = "Cash";
 
-      if (isPurchase) {
+      if (billMode === "PURCHASE") {
         paymentMethodDesc = paymentMethod === "CARD" ? "Bank Wire" : "Cash";
       } else if (isSplitPayment) {
         if (!splitValidation.isValid) {
@@ -519,7 +541,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         invoice_date: today,
         due_date: today,
         subtotal: Math.round(displaySubtotal * 100) / 100,
-        discount_amount: Math.round(discountAmount * 100) / 100,
+        discount_amount: Math.round(effectiveDiscount * 100) / 100,
         tax_amount: isPurchase ? 0 : Math.round(taxAmount * 100) / 100,
         total_amount: Math.round(totalAmount * 100) / 100,
         paid_amount: effectivePaid,

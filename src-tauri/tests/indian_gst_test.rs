@@ -715,3 +715,6 @@ fn test_legacy_or_standard_invoice_gst_synthesis() {
     assert!(prn_hsn.is_some(), "GSTR-1 HSN summary must include standard POS items");
     assert_eq!(prn_hsn.unwrap().total_quantity, 1.0);
 }
+
+#[path = "gst_audit_v169_test.rs"]
+mod gst_audit_v169_test;

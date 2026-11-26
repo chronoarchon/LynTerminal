@@ -695,27 +695,33 @@ export function buildGstr3bPdf(report: Gstr3bReportData): jsPDF {
       [
         "Integrated Tax (IGST)",
         fmtNum(report.table31.outward_igst),
-        fmtNum(report.table4_itc.itc_igst),
+        fmtNum(report.itc_utilized_igst),
         fmtNum(report.net_igst_payable),
       ],
       [
         "Central Tax (CGST)",
         fmtNum(report.table31.outward_cgst),
-        fmtNum(report.table4_itc.itc_cgst),
+        fmtNum(report.itc_utilized_cgst),
         fmtNum(report.net_cgst_payable),
       ],
       [
         "State / UT Tax (SGST)",
         fmtNum(report.table31.outward_sgst),
-        fmtNum(report.table4_itc.itc_sgst),
+        fmtNum(report.itc_utilized_sgst),
         fmtNum(report.net_sgst_payable),
+      ],
+      [
+        "Cess",
+        fmtNum(report.table31.outward_cess),
+        fmtNum(report.itc_utilized_cess),
+        fmtNum(report.net_cess_payable),
       ],
     ],
     "No tax payable entries.",
     [
       "TOTAL NET PAYABLE IN CASH",
       fmtAmt(report.total_tax_payable),
-      fmtAmt(report.total_itc_available),
+      fmtAmt(report.total_itc_utilized),
       fmtAmt(report.net_cash_payable),
     ]
   );

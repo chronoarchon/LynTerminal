@@ -231,6 +231,7 @@ export interface Gstr1HsnSummary {
   hsn_code: string;
   description: string;
   uqc: string;
+  tax_rate: number;
   total_quantity: number;
   total_value: number;
   taxable_value: number;
@@ -298,6 +299,12 @@ export interface Gstr3bReportData {
   net_igst_payable: number;
   net_cgst_payable: number;
   net_sgst_payable: number;
+  net_cess_payable: number;
+  itc_utilized_igst: number;
+  itc_utilized_cgst: number;
+  itc_utilized_sgst: number;
+  itc_utilized_cess: number;
+  total_itc_utilized: number;
   total_tax_payable: number;
   total_itc_available: number;
   net_cash_payable: number;

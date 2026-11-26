@@ -15,16 +15,13 @@ import { gstApi } from "./gstApi";
 import { generateGstr1PortalJson, generateGstr1Csv } from "./gstUtils";
 import { buildGstr1AuditPdf } from "./gstPdfReports";
 import { printPdfDocument } from "../../utils/printPdf";
+import { formatLocalDate } from "../../utils/dateUtils";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 
 export const GSTR1ReportView: React.FC = () => {
   const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+  const firstDayOfMonth = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const lastDayOfMonth = formatLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(lastDayOfMonth);

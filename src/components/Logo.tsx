@@ -108,7 +108,7 @@ export const Logo: React.FC<LogoProps> = ({
                   : "bg-white/[0.1] text-[#A1A1A6]"
               }`}
             >
-              v1.6.8
+              v1.6.9
             </span>
           </div>
           <span

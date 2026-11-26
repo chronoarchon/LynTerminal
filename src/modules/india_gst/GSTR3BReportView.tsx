@@ -14,16 +14,13 @@ import { gstApi } from "./gstApi";
 import { generateGstr3bCsv } from "./gstUtils";
 import { buildGstr3bPdf } from "./gstPdfReports";
 import { printPdfDocument } from "../../utils/printPdf";
+import { formatLocalDate } from "../../utils/dateUtils";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 
 export const GSTR3BReportView: React.FC = () => {
   const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+  const firstDayOfMonth = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const lastDayOfMonth = formatLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(lastDayOfMonth);
@@ -384,25 +381,31 @@ export const GSTR3BReportView: React.FC = () => {
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Integrated Tax (IGST)</td>
                       <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_igst.toFixed(2)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.table4_itc.itc_igst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_igst.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_igst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Central Tax (CGST)</td>
                       <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_cgst.toFixed(2)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.table4_itc.itc_cgst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_cgst.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_cgst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">State/UT Tax (SGST)</td>
                       <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_sgst.toFixed(2)}</td>
-                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.table4_itc.itc_sgst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_sgst.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_sgst_payable.toFixed(2)}</td>
+                    </tr>
+                    <tr className="hover:bg-neutral-50">
+                      <td className="py-2.5 px-4 font-sans font-medium text-black">Cess</td>
+                      <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_cess.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_cess.toFixed(2)}</td>
+                      <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_cess_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="bg-neutral-50 font-bold border-t-2 border-black">
                       <td className="py-3 px-4 font-sans text-black">TOTAL NET PAYABLE IN CASH</td>
                       <td className="py-3 px-3 text-right">₹{reportData.total_tax_payable.toFixed(2)}</td>
-                      <td className="py-3 px-3 text-right text-[#34C759]">₹{reportData.total_itc_available.toFixed(2)}</td>
+                      <td className="py-3 px-3 text-right text-[#34C759]">₹{reportData.total_itc_utilized.toFixed(2)}</td>
                       <td className="py-3 px-4 text-right text-base text-black">₹{reportData.net_cash_payable.toFixed(2)}</td>
                     </tr>
                   </>
