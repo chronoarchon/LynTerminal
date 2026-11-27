@@ -202,7 +202,7 @@ export const GSTR3BReportView: React.FC = () => {
               ₹{reportData.total_tax_payable.toFixed(2)}
             </div>
             <div className="text-[10px] text-neutral-400 mt-1 font-mono">
-              IGST: ₹{reportData.table31.outward_igst.toFixed(2)} · CGST+SGST: ₹{(reportData.table31.outward_cgst + reportData.table31.outward_sgst).toFixed(2)}
+              IGST: ₹{reportData.table31.outward_igst.toFixed(2)} · CGST+SGST: ₹{(reportData.table31.outward_cgst + reportData.table31.outward_sgst).toFixed(2)} · Cess: ₹{reportData.table31.outward_cess.toFixed(2)}
             </div>
           </div>
 
@@ -280,29 +280,29 @@ export const GSTR3BReportView: React.FC = () => {
                         ₹{reportData.table31.outward_cess.toFixed(2)}
                       </td>
                     </tr>
-                    <tr className="hover:bg-neutral-50 text-neutral-500">
+                    <tr className="hover:bg-neutral-50 text-neutral-600">
                       <td className="py-2 px-4 font-sans">(b) Outward taxable supplies (zero rated exports / SEZ)</td>
-                      <td className="py-2 px-3 text-right">₹0.00</td>
+                      <td className="py-2 px-3 text-right">₹{reportData.table31.zero_rated_taxable.toFixed(2)}</td>
                       <td className="py-2 px-3 text-right">₹0.00</td>
                       <td className="py-2 px-3 text-right">-</td>
                       <td className="py-2 px-3 text-right">-</td>
                       <td className="py-2 px-4 text-right">₹0.00</td>
                     </tr>
-                    <tr className="hover:bg-neutral-50 text-neutral-500">
+                    <tr className="hover:bg-neutral-50 text-neutral-600">
                       <td className="py-2 px-4 font-sans">(c) Other outward supplies (nil rated, exempted)</td>
-                      <td className="py-2 px-3 text-right">₹0.00</td>
+                      <td className="py-2 px-3 text-right">₹{reportData.table31.nil_exempt_taxable.toFixed(2)}</td>
                       <td className="py-2 px-3 text-right">-</td>
                       <td className="py-2 px-3 text-right">-</td>
                       <td className="py-2 px-3 text-right">-</td>
                       <td className="py-2 px-4 text-right">-</td>
                     </tr>
-                    <tr className="hover:bg-neutral-50 text-neutral-500">
+                    <tr className="hover:bg-neutral-50 text-neutral-600">
                       <td className="py-2 px-4 font-sans">(d) Inward supplies liable to reverse charge (RCM)</td>
-                      <td className="py-2 px-3 text-right">₹0.00</td>
-                      <td className="py-2 px-3 text-right">₹0.00</td>
-                      <td className="py-2 px-3 text-right">₹0.00</td>
-                      <td className="py-2 px-3 text-right">₹0.00</td>
-                      <td className="py-2 px-4 text-right">₹0.00</td>
+                      <td className="py-2 px-3 text-right">₹{reportData.table31.reverse_charge_taxable.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right">₹{(reportData.table31.reverse_charge_igst || 0).toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right">₹{(reportData.table31.reverse_charge_cgst || 0).toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right">₹{(reportData.table31.reverse_charge_sgst || 0).toFixed(2)}</td>
+                      <td className="py-2 px-4 text-right">₹{(reportData.table31.reverse_charge_cess || 0).toFixed(2)}</td>
                     </tr>
                   </>
                 )}
@@ -333,23 +333,33 @@ export const GSTR3BReportView: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-black/[0.04] font-mono">
                 {reportData && (
-                  <tr className="hover:bg-neutral-50">
-                    <td className="py-3 px-4 font-sans font-medium text-black">
-                      (A)(5) All other ITC (Inward B2B Purchase Bills from Registered Vendors)
-                    </td>
-                    <td className="py-3 px-3 text-right font-bold text-[#FF9500]">
-                      ₹{reportData.table4_itc.itc_igst.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-3 text-right font-bold text-[#34C759]">
-                      ₹{reportData.table4_itc.itc_cgst.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-3 text-right font-bold text-[#34C759]">
-                      ₹{reportData.table4_itc.itc_sgst.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      ₹{reportData.table4_itc.itc_cess.toFixed(2)}
-                    </td>
-                  </tr>
+                  <>
+                    <tr className="hover:bg-neutral-50">
+                      <td className="py-3 px-4 font-sans font-medium text-black">
+                        (A)(5) All other ITC (Inward B2B Purchase Bills from Registered Vendors & RCM)
+                      </td>
+                      <td className="py-3 px-3 text-right font-bold text-[#FF9500]">
+                        ₹{reportData.table4_itc.itc_igst.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-3 text-right font-bold text-[#34C759]">
+                        ₹{reportData.table4_itc.itc_cgst.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-3 text-right font-bold text-[#34C759]">
+                        ₹{reportData.table4_itc.itc_sgst.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        ₹{reportData.table4_itc.itc_cess.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-neutral-50 text-neutral-600">
+                      <td className="py-2.5 px-4 font-sans">
+                        (D) Ineligible ITC (Unregistered / Composition Vendors / Blocked Credits)
+                      </td>
+                      <td colSpan={4} className="py-2.5 px-4 text-right font-semibold text-rose-600">
+                        Total Ineligible: ₹{reportData.table4_itc.itc_ineligible.toFixed(2)}
+                      </td>
+                    </tr>
+                  </>
                 )}
               </tbody>
             </table>
@@ -380,25 +390,25 @@ export const GSTR3BReportView: React.FC = () => {
                   <>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Integrated Tax (IGST)</td>
-                      <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_igst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right">₹{(reportData.table31.outward_igst + (reportData.table31.reverse_charge_igst || 0)).toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_igst.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_igst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Central Tax (CGST)</td>
-                      <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_cgst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right">₹{(reportData.table31.outward_cgst + (reportData.table31.reverse_charge_cgst || 0)).toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_cgst.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_cgst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">State/UT Tax (SGST)</td>
-                      <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_sgst.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right">₹{(reportData.table31.outward_sgst + (reportData.table31.reverse_charge_sgst || 0)).toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_sgst.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_sgst_payable.toFixed(2)}</td>
                     </tr>
                     <tr className="hover:bg-neutral-50">
                       <td className="py-2.5 px-4 font-sans font-medium text-black">Cess</td>
-                      <td className="py-2.5 px-3 text-right">₹{reportData.table31.outward_cess.toFixed(2)}</td>
+                      <td className="py-2.5 px-3 text-right">₹{(reportData.table31.outward_cess + (reportData.table31.reverse_charge_cess || 0)).toFixed(2)}</td>
                       <td className="py-2.5 px-3 text-right text-[#34C759]">₹{reportData.itc_utilized_cess.toFixed(2)}</td>
                       <td className="py-2.5 px-4 text-right font-bold text-black">₹{reportData.net_cess_payable.toFixed(2)}</td>
                     </tr>

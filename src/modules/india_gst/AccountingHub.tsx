@@ -49,7 +49,7 @@ export const AccountingHub: React.FC<AccountingHubProps> = ({
     { key: "F9", label: "Purchase Voucher (Vendor Inward)", desc: "Record inward stock with Input Tax Credit (ITC)", action: () => onNavigateTab("invoices") },
     { key: "F6", label: "Receipt Voucher (Sundry Debtor)", desc: "Settle customer credit bill-by-bill", action: () => onNavigateTab("gst_credit") },
     { key: "F5", label: "Payment Voucher (Sundry Creditor)", desc: "Settle supplier bills and recurring liabilities", action: () => onNavigateTab("gst_credit") },
-    { key: "F4", label: "Contra Voucher (Bank / Cash)", desc: "Deposit or withdraw cash from commercial banks", action: () => onNavigateTab("expenses") },
+    { key: "F4", label: "Contra Voucher (Bank / Cash)", desc: "Deposit or withdraw cash from commercial banks", action: () => onNavigateTab("dashboard") },
     { key: "GSTR-1", label: "GSTR-1 Monthly Return", desc: "Outward supply return (Tables 4, 5, 7, 12, 13) with GSTN JSON", action: () => onNavigateTab("gstr1") },
     { key: "GSTR-3B", label: "GSTR-3B Self-Declaration", desc: "Monthly summary return, ITC set-off & cash tax payable", action: () => onNavigateTab("gstr3b") },
     { key: "Aging", label: "Sundry Debtors & Creditors Aging", desc: "0-30, 31-60, 61-90, 90+ days overdue analysis & statements", action: () => onNavigateTab("gst_credit") },
@@ -161,6 +161,10 @@ export const AccountingHub: React.FC<AccountingHubProps> = ({
                   <span>Output SGST:</span>
                   <span>₹{gstr3b.table31.outward_sgst.toFixed(2)}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Output Cess / RCM:</span>
+                  <span>₹{(gstr3b.table31.outward_cess + (gstr3b.table31.reverse_charge_igst || 0) + (gstr3b.table31.reverse_charge_cgst || 0) + (gstr3b.table31.reverse_charge_sgst || 0) + (gstr3b.table31.reverse_charge_cess || 0)).toFixed(2)}</span>
+                </div>
               </div>
             </div>
 
@@ -185,6 +189,10 @@ export const AccountingHub: React.FC<AccountingHubProps> = ({
                 <div className="flex justify-between">
                   <span>Input SGST (ITC):</span>
                   <span>₹{gstr3b.table4_itc.itc_sgst.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Input Cess (ITC):</span>
+                  <span>₹{gstr3b.table4_itc.itc_cess.toFixed(2)}</span>
                 </div>
               </div>
             </div>

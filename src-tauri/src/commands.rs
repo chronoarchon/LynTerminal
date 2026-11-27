@@ -335,6 +335,14 @@ pub fn save_item(mut item: Item, state: State<'_, Mutex<AppState>>) -> Result<It
         )
         .ok();
     } else {
+        let old_stock: f64 = conn
+            .query_row(
+                "SELECT stock_quantity FROM items WHERE id = ?1",
+                params![item.id],
+                |r| r.get(0),
+            )
+            .unwrap_or(item.stock_quantity);
+
         conn.execute(
             "UPDATE items SET
                 name = ?1, sku = ?2, barcode = ?3, category = ?4, unit = ?5,
@@ -359,6 +367,26 @@ pub fn save_item(mut item: Item, state: State<'_, Mutex<AppState>>) -> Result<It
             ],
         )
         .map_err(|e| e.to_string())?;
+
+        let stock_delta = item.stock_quantity - old_stock;
+        if stock_delta.abs() > 0.0001 {
+            conn.execute(
+                "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                              quantity_after, movement_type, reference_id,
+                                              timestamp, notes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'ADJUSTMENT', 'ITEM_EDIT', ?6, ?7)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    item.id,
+                    item.name,
+                    stock_delta,
+                    item.stock_quantity,
+                    Local::now().to_rfc3339(),
+                    format!("Manual stock edit from {:.2} to {:.2}", old_stock, item.stock_quantity),
+                ],
+            )
+            .ok();
+        }
 
         DatabaseManager::log_audit(
             &conn,
@@ -676,6 +704,28 @@ pub fn delete_party(id: String, state: State<'_, Mutex<AppState>>) -> Result<boo
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
+    let has_history: bool = conn
+        .query_row(
+            "SELECT (
+                EXISTS(SELECT 1 FROM invoices WHERE party_id = ?1)
+                OR EXISTS(SELECT 1 FROM payments WHERE party_id = ?1)
+                OR EXISTS(SELECT 1 FROM bill_settlements WHERE party_id = ?1)
+                OR EXISTS(SELECT 1 FROM purchase_returns WHERE party_id = ?1)
+                OR EXISTS(SELECT 1 FROM estimates WHERE party_id = ?1)
+            )",
+            params![id],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+
+    if has_history {
+        return Err(
+            "Cannot delete contact with historical invoices, payments, settlements, returns, or quotations. Keep the record to preserve ledger integrity."
+                .to_string(),
+        );
+    }
+
+    conn.execute("DELETE FROM gst_parties WHERE party_id = ?1", params![id]).ok();
     conn.execute("DELETE FROM parties WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
@@ -984,18 +1034,35 @@ pub fn create_invoice_internal(
     if payload.paid_amount > 0.0 {
         let (_, bank_part) = parse_payment_liquidity(&payload.payment_method, payload.paid_amount);
         if bank_part > 0.0 {
+            let target_bank = payload.bank_account_id.as_deref().map(str::trim).filter(|s| !s.is_empty());
             if payload.invoice_type == "SALE" {
-                tx.execute(
-                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
-                    params![bank_part],
-                )
-                .ok();
+                if let Some(bid) = target_bank {
+                    tx.execute(
+                        "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
+                        params![bank_part, bid],
+                    )
+                    .ok();
+                } else {
+                    tx.execute(
+                        "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                        params![bank_part],
+                    )
+                    .ok();
+                }
             } else if payload.invoice_type == "PURCHASE" {
-                tx.execute(
-                    "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
-                    params![bank_part],
-                )
-                .ok();
+                if let Some(bid) = target_bank {
+                    tx.execute(
+                        "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2",
+                        params![bank_part, bid],
+                    )
+                    .ok();
+                } else {
+                    tx.execute(
+                        "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
+                        params![bank_part],
+                    )
+                    .ok();
+                }
             }
         }
     }
@@ -1225,13 +1292,13 @@ pub fn get_invoice(id: String, state: State<'_, Mutex<AppState>>) -> Result<Invo
 #[tauri::command]
 pub fn delete_invoice(id: String, state: State<'_, Mutex<AppState>>) -> Result<bool, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
-    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
-
-    conn.execute("DELETE FROM invoices WHERE id = ?1", params![id])
-        .map_err(|e| e.to_string())?;
-
-    DatabaseManager::log_audit(&conn, "DELETE", "INVOICE", &id, "Deleted invoice").ok();
-    Ok(true)
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    void_or_delete_invoice_internal(
+        &mut conn,
+        id,
+        "CANCEL".to_string(),
+        "Deleted invoice".to_string(),
+    )
 }
 
 fn escape_pdf_str(s: &str) -> String {
@@ -1845,6 +1912,12 @@ pub fn record_payment_internal(
         }
     }
 
+    let party_id_opt: Option<&str> = if payment.party_id.trim().is_empty() {
+        None
+    } else {
+        Some(payment.party_id.trim())
+    };
+
     tx.execute(
         "INSERT INTO payments (id, invoice_id, party_id, party_name, amount,
                               payment_type, payment_method, payment_date, reference, notes, bank_account_id)
@@ -1852,7 +1925,7 @@ pub fn record_payment_internal(
         params![
             payment.id,
             payment.invoice_id,
-            payment.party_id,
+            party_id_opt,
             payment.party_name,
             payment.amount,
             payment.payment_type,
@@ -2162,7 +2235,7 @@ pub fn list_expenses(
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
     let mut query = "SELECT id, title, category, amount, expense_date, payment_method, notes
-                     FROM expenses WHERE 1=1".to_string();
+                     FROM expenses WHERE id NOT LIKE 'EXP-SAL-%'".to_string();
 
     let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -2204,14 +2277,19 @@ pub fn save_expense(
     mut expense: Expense,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<Expense, String> {
+    if expense.amount <= 0.0 || !expense.amount.is_finite() {
+        return Err("Expense amount must be greater than zero".to_string());
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
-    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
 
     if expense.id.is_empty() {
         expense.id = Uuid::new_v4().to_string();
-        conn.execute(
-            "INSERT INTO expenses (id, title, category, amount, expense_date, payment_method, notes)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        tx.execute(
+            "INSERT INTO expenses (id, title, category, amount, expense_date, payment_method, notes, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 expense.id,
                 expense.title,
@@ -2220,20 +2298,41 @@ pub fn save_expense(
                 expense.expense_date,
                 expense.payment_method,
                 expense.notes,
+                Local::now().to_rfc3339(),
             ],
         )
         .map_err(|e| e.to_string())?;
 
+        let (_, bank_out) = parse_payment_liquidity(&expense.payment_method, expense.amount);
+        if bank_out > 0.0 {
+            tx.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
+                params![bank_out],
+            )
+            .ok();
+        }
+
         DatabaseManager::log_audit(
-            &conn,
+            &tx,
             "CREATE",
             "EXPENSE",
             &expense.id,
-            &format!("Created expense: {} (${:.2})", expense.title, expense.amount),
+            &format!("Created expense: {} ({:.2})", expense.title, expense.amount),
         )
         .ok();
     } else {
-        conn.execute(
+        if expense.id.starts_with("EXP-SAL-") {
+            return Err("Payroll expense vouchers must be managed from the Staff & Payroll page.".into());
+        }
+        let old_row: Option<(f64, String)> = tx
+            .query_row(
+                "SELECT amount, payment_method FROM expenses WHERE id = ?1",
+                params![expense.id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .ok();
+
+        tx.execute(
             "UPDATE expenses SET title = ?1, category = ?2, amount = ?3,
                                 expense_date = ?4, payment_method = ?5, notes = ?6
              WHERE id = ?7",
@@ -2248,20 +2347,67 @@ pub fn save_expense(
             ],
         )
         .map_err(|e| e.to_string())?;
+
+        let old_bank = old_row
+            .map(|(amt, meth)| parse_payment_liquidity(&meth, amt).1)
+            .unwrap_or(0.0);
+        let new_bank = parse_payment_liquidity(&expense.payment_method, expense.amount).1;
+        let bank_delta = old_bank - new_bank;
+        if bank_delta.abs() > 0.0001 {
+            tx.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                params![bank_delta],
+            )
+            .ok();
+        }
+
+        DatabaseManager::log_audit(
+            &tx,
+            "UPDATE",
+            "EXPENSE",
+            &expense.id,
+            &format!("Updated expense: {} ({:.2})", expense.title, expense.amount),
+        )
+        .ok();
     }
 
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(expense)
 }
 
 #[tauri::command]
 pub fn delete_expense(id: String, state: State<'_, Mutex<AppState>>) -> Result<bool, String> {
+    if id.starts_with("EXP-SAL-") {
+        return Err("Payroll expense vouchers cannot be deleted directly; manage payroll on Staff & Payroll.".into());
+    }
     let app = state.lock().map_err(|e| e.to_string())?;
-    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
 
-    conn.execute("DELETE FROM expenses WHERE id = ?1", params![id])
+    let old_row: Option<(f64, String)> = tx
+        .query_row(
+            "SELECT amount, payment_method FROM expenses WHERE id = ?1",
+            params![id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .ok();
+
+    tx.execute("DELETE FROM expenses WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
-    DatabaseManager::log_audit(&conn, "DELETE", "EXPENSE", &id, "Deleted expense").ok();
+    if let Some((old_amt, old_method)) = old_row {
+        let (_, bank_part) = parse_payment_liquidity(&old_method, old_amt);
+        if bank_part > 0.0 {
+            tx.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                params![bank_part],
+            )
+            .ok();
+        }
+    }
+
+    DatabaseManager::log_audit(&tx, "DELETE", "EXPENSE", &id, "Deleted expense").ok();
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -2269,33 +2415,28 @@ pub fn delete_expense(id: String, state: State<'_, Mutex<AppState>>) -> Result<b
 // REPORTS & DASHBOARD
 // ----------------------------------------------------------------------------
 
+fn is_cash_tender_token(upper: &str) -> bool {
+    upper.contains("CASH")
+        || upper == "REFUND"
+        || upper == "COUNTER"
+        || upper == "DRAWER"
+        || upper == "PETTY"
+}
+
+fn is_credit_tender_token(upper: &str) -> bool {
+    (upper.contains("CREDIT") && !upper.contains("CREDIT CARD"))
+        || upper.contains("UDHAAR")
+        || upper.contains("UDHAR")
+}
+
 fn is_bank_tender(tender_str: &str) -> bool {
-    tender_str.contains("BANK")
-        || tender_str.contains("CARD")
-        || tender_str.contains("TRANSFER")
-        || tender_str.contains("WIRE")
-        || tender_str.contains("ONLINE")
-        || tender_str.contains("UPI")
-        || tender_str.contains("NEFT")
-        || tender_str.contains("RTGS")
-        || tender_str.contains("IMPS")
-        || tender_str.contains("QR")
-        || tender_str.contains("NETBANKING")
-        || tender_str.contains("NET BANKING")
-        || tender_str.contains("NET-BANKING")
-        || tender_str.contains("APPLE")
-        || tender_str.contains("CHEQUE")
-        || tender_str.contains("CHECK")
-        || tender_str.contains("PAY")
-        || tender_str.contains("PHONEPE")
-        || tender_str.contains("GPAY")
-        || tender_str.contains("BHIM")
-        || tender_str.contains("ALIPAY")
-        || tender_str.contains("DRAFT")
-        || tender_str.contains("DIGITAL")
-        || tender_str.contains("WALLET")
-        || tender_str.contains("ZELLE")
-        || tender_str.contains("VENMO")
+    let upper = tender_str.trim().to_uppercase();
+    if upper.is_empty() || is_cash_tender_token(&upper) || is_credit_tender_token(&upper) {
+        return false;
+    }
+    // Any explicit non-cash, non-credit tender label (Card, UPI, Bank, Wise, SEPA, Revolut, PayPay, Custom 1/2, etc.)
+    // routes through digital/bank liquidity rather than physical cash drawer.
+    true
 }
 
 pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
@@ -2308,7 +2449,7 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
 
     // Check for Split or Partial payment string e.g.
     // "Split ($20.00 Cash + $30.00 Card)" or "Partial Credit ($50.00 Cash + $50.00 Credit)"
-    // or "Partial Credit (₹4307.00 UPI + ₹4307.00 Credit)"
+    // or "Partial Credit (₹4307.00 UPI + ₹4307.00 Credit)" or "Partial Credit ($40.00 Wise + $60.00 Credit)"
     if upper.starts_with("SPLIT") || upper.starts_with("PARTIAL") || upper.contains('+') {
         let mut cash_part = 0.0;
         let mut bank_part = 0.0;
@@ -2317,12 +2458,10 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
         let parts: Vec<&str> = upper.split('+').collect();
         for part in &parts {
             let has_cash = part.contains("CASH");
-            let has_bank = is_bank_tender(part);
-            let has_credit = (part.contains("CREDIT") && !part.contains("CREDIT CARD"))
-                || part.contains("UDHAAR")
-                || part.contains("UDHAR");
+            let has_credit = is_credit_tender_token(part);
+            let has_bank = !has_cash && !has_credit && is_bank_tender(part);
 
-            if has_credit && !has_cash && !has_bank {
+            if has_credit && !has_cash {
                 has_credit_part = true;
                 // Unpaid credit portion contributes strictly 0 liquidity to cash/bank
                 continue;
@@ -2354,12 +2493,24 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
         }
 
         if cash_part > 0.0 || bank_part > 0.0 {
-            // Only backfill unallocated amounts if this is NOT a partial credit sale
-            if !has_credit_part {
-                if cash_part > 0.0 && bank_part == 0.0 {
-                    bank_part = (amount - cash_part).max(0.0);
-                } else if bank_part > 0.0 && cash_part == 0.0 {
-                    cash_part = (amount - bank_part).max(0.0);
+            if has_credit_part {
+                // Never let parsed front tokens exceed actual collected `amount`
+                let total_parsed = cash_part + bank_part;
+                if total_parsed > amount + 0.01 && total_parsed > 0.0 {
+                    let ratio = amount / total_parsed;
+                    cash_part = ((cash_part * ratio) * 100.0).round() / 100.0;
+                    bank_part = ((amount - cash_part) * 100.0).round() / 100.0;
+                }
+            } else {
+                if cash_part > 0.0 && bank_part == 0.0 && (amount - cash_part).abs() > 0.005 {
+                    // Preserve split remainder when only cash chunk parsed in a split
+                    if parts.len() > 1 {
+                        bank_part = (amount - cash_part).max(0.0);
+                    }
+                } else if bank_part > 0.0 && cash_part == 0.0 && (amount - bank_part).abs() > 0.005 {
+                    if parts.len() > 1 {
+                        cash_part = (amount - bank_part).max(0.0);
+                    }
                 }
             }
             return (cash_part, bank_part);
@@ -2371,10 +2522,7 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
     }
 
     // Pure Credit sales provide strictly 0 cash and 0 bank liquidity
-    let is_pure_credit = (upper.contains("CREDIT") && !upper.contains("CREDIT CARD"))
-        || upper.contains("UDHAAR")
-        || upper.contains("UDHAR");
-    if is_pure_credit {
+    if is_credit_tender_token(&upper) {
         return (0.0, 0.0);
     }
 
@@ -2404,11 +2552,14 @@ pub fn calculate_liquidity_internal(conn: &rusqlite::Connection) -> Result<(f64,
     let mut cash = opening_cash + capital_cash;
     let mut bank = opening_bank + capital_bank;
 
-    // 1. Walk-in Invoices (parties not registered in customer ledger)
+    // 1. Walk-in Invoices (exclude follow-up rows already recorded in payments table to prevent double counting)
     {
         let mut stmt = conn
             .prepare(
-                "SELECT paid_amount, payment_method, invoice_type FROM invoices
+                "SELECT MAX(0.0, paid_amount - COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.invoice_id = invoices.id), 0.0)),
+                        payment_method,
+                        invoice_type
+                 FROM invoices
                  WHERE status NOT IN ('RETURNED', 'CANCELLED')
                    AND (party_id IS NULL OR party_id = '')",
             )
@@ -2426,6 +2577,9 @@ pub fn calculate_liquidity_internal(conn: &rusqlite::Connection) -> Result<(f64,
 
         for row in rows.flatten() {
             let (amt, method, inv_type) = row;
+            if amt <= 0.005 {
+                continue;
+            }
             let (c, b) = parse_payment_liquidity(&method, amt);
             if inv_type == "SALE" {
                 cash += c;
@@ -2551,6 +2705,22 @@ pub fn calculate_liquidity_internal(conn: &rusqlite::Connection) -> Result<(f64,
         }
     }
 
+    // 7. Operational Cash/Bank Deposits (excluding CAPITAL which lives in settings.capital_cash / capital_bank)
+    {
+        let mut stmt = conn
+            .prepare("SELECT cash_amount, bank_amount FROM deposits WHERE deposit_type != 'CAPITAL'")
+            .map_err(|e| e.to_string())?;
+
+        let rows = stmt
+            .query_map([], |r| Ok((r.get::<_, f64>(0)?, r.get::<_, f64>(1)?)))
+            .map_err(|e| e.to_string())?;
+
+        for (c, b) in rows.flatten() {
+            cash += c;
+            bank += b;
+        }
+    }
+
     let final_cash = (cash * 100.0).round() / 100.0;
     let final_bank = (bank * 100.0).round() / 100.0;
     Ok((final_cash, final_bank))
@@ -2574,7 +2744,7 @@ pub fn get_dashboard_summary(
 
     let sales_returns: f64 = conn
         .query_row(
-            "SELECT COALESCE(SUM(total_amount), 0.0) FROM invoices WHERE invoice_type = 'RETURN'",
+            "SELECT COALESCE(SUM(total_amount), 0.0) FROM invoices WHERE invoice_type = 'RETURN' AND status NOT IN ('RETURNED', 'CANCELLED')",
             [],
             |r| r.get(0),
         )
@@ -2679,11 +2849,17 @@ pub fn get_dashboard_summary(
         .unwrap_or(0);
     let sold_cogs: f64 = conn
         .query_row(
-            "SELECT COALESCE(SUM(ii.quantity * COALESCE(it.purchase_price, 0.0)), 0.0)
+            "SELECT COALESCE(SUM(
+                CASE
+                    WHEN inv.invoice_type = 'SALE' THEN ii.quantity * COALESCE(it.purchase_price, 0.0)
+                    WHEN inv.invoice_type = 'RETURN' THEN -ii.quantity * COALESCE(it.purchase_price, 0.0)
+                    ELSE 0.0
+                END
+             ), 0.0)
              FROM invoice_items ii
              JOIN invoices inv ON ii.invoice_id = inv.id
              LEFT JOIN items it ON ii.item_id = it.id
-             WHERE inv.invoice_type = 'SALE' AND inv.status NOT IN ('RETURNED', 'CANCELLED')",
+             WHERE inv.invoice_type IN ('SALE', 'RETURN') AND inv.status NOT IN ('RETURNED', 'CANCELLED')",
             [],
             |r| r.get(0),
         )
@@ -2854,8 +3030,8 @@ pub fn get_dashboard_summary(
 }
 
 pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<Vec<DaybookEntry>, String> {
-    let mut entries = Vec::new();
-    let mut running_balance = 0.0;
+    let mut timed: Vec<(String, usize, DaybookEntry)> = Vec::new();
+    let mut seq: usize = 0;
 
     let channel_label = |c: f64, b: f64| -> String {
         if c > 0.005 && b > 0.005 {
@@ -2867,11 +3043,117 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
         }
     };
 
-    // 1. Walk-in POS Sales & Purchases (party_id IS NULL or empty, with paid_amount > 0)
+    // Compute Cash opening balance going into `date`:
+    // opening_cash + (capital_cash minus any CAPITAL deposits on or after `date`) + prior operational cash flows before `date`
+    let (opening_cash, capital_cash): (f64, f64) = conn
+        .query_row(
+            "SELECT COALESCE(opening_cash, 0.0), COALESCE(capital_cash, 0.0) FROM settings WHERE id = 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap_or((0.0, 0.0));
+    let capital_deposits_from_date: f64 = conn
+        .query_row(
+            "SELECT COALESCE(SUM(cash_amount), 0.0) FROM deposits WHERE deposit_type = 'CAPITAL' AND substr(deposit_date, 1, 10) >= ?1",
+            params![date],
+            |r| r.get(0),
+        )
+        .unwrap_or(0.0);
+    let mut running_balance = opening_cash + (capital_cash - capital_deposits_from_date);
+
+    // Prior Walk-in invoices cash flow before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT MAX(0.0, paid_amount - COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.invoice_id = invoices.id), 0.0)),
+                    payment_method, invoice_type
+             FROM invoices
+             WHERE substr(invoice_date, 1, 10) < ?1
+               AND (party_id IS NULL OR party_id = '')
+               AND status NOT IN ('RETURNED', 'CANCELLED')",
+        ) {
+            if let Ok(rows) = stmt.query_map(params![date], |r| Ok((r.get::<_, f64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?))) {
+                for (amt, m, t) in rows.flatten() {
+                    if amt > 0.005 {
+                        let (c, _) = parse_payment_liquidity(&m, amt);
+                        if t == "PURCHASE" { running_balance -= c; } else if t == "SALE" { running_balance += c; }
+                    }
+                }
+            }
+        }
+    }
+    // Prior Payments cash flow before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare("SELECT amount, payment_method, payment_type FROM payments WHERE substr(payment_date, 1, 10) < ?1") {
+            if let Ok(rows) = stmt.query_map(params![date], |r| Ok((r.get::<_, f64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?))) {
+                for (amt, m, t) in rows.flatten() {
+                    let (c, _) = parse_payment_liquidity(&m, amt);
+                    if t == "IN" { running_balance += c; } else if t == "OUT" { running_balance -= c; }
+                }
+            }
+        }
+    }
+    // Prior Expenses cash flow before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare("SELECT amount, payment_method FROM expenses WHERE substr(expense_date, 1, 10) < ?1 AND id NOT LIKE 'EXP-SAL-%'") {
+            if let Ok(rows) = stmt.query_map(params![date], |r| Ok((r.get::<_, f64>(0)?, r.get::<_, String>(1)?))) {
+                for (amt, m) in rows.flatten() {
+                    let (c, _) = parse_payment_liquidity(&m, amt);
+                    running_balance -= c;
+                }
+            }
+        }
+    }
+    // Prior Salary payouts cash flow before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare("SELECT amount, payment_source FROM salary_payments WHERE substr(payment_date, 1, 10) < ?1") {
+            if let Ok(rows) = stmt.query_map(params![date], |r| Ok((r.get::<_, f64>(0)?, r.get::<_, String>(1)?))) {
+                for (amt, s) in rows.flatten() {
+                    let (c, _) = parse_payment_liquidity(&s, amt);
+                    running_balance -= c;
+                }
+            }
+        }
+    }
+    // Prior Transfers before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare("SELECT direction, amount FROM cash_bank_transfers WHERE substr(timestamp, 1, 10) < ?1") {
+            if let Ok(rows) = stmt.query_map(params![date], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?))) {
+                for (dir, amt) in rows.flatten() {
+                    if dir == "CASH_TO_BANK" { running_balance -= amt; } else if dir == "BANK_TO_CASH" { running_balance += amt; }
+                }
+            }
+        }
+    }
+    // Prior Loan cash transactions before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare("SELECT transaction_type, account_type, amount FROM loan_transactions WHERE substr(timestamp, 1, 10) < ?1") {
+            if let Ok(rows) = stmt.query_map(params![date], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, f64>(2)?))) {
+                for (tx_t, acct, amt) in rows.flatten() {
+                    if acct.to_uppercase().contains("CASH") {
+                        if tx_t == "DRAWDOWN" { running_balance += amt; } else if tx_t == "REPAYMENT" { running_balance -= amt; }
+                    }
+                }
+            }
+        }
+    }
+    // Prior operational deposits before `date`
+    {
+        if let Ok(mut stmt) = conn.prepare("SELECT cash_amount FROM deposits WHERE deposit_type != 'CAPITAL' AND substr(deposit_date, 1, 10) < ?1") {
+            if let Ok(rows) = stmt.query_map(params![date], |r| r.get::<_, f64>(0)) {
+                for c in rows.flatten() {
+                    running_balance += c;
+                }
+            }
+        }
+    }
+
+    // 1. Walk-in POS Sales & Purchases (exclude settled follow-up payments so they are not double-counted)
     {
         let mut inv_stmt = conn
             .prepare(
-                "SELECT invoice_date, invoice_number, party_name, invoice_type, paid_amount, payment_method
+                "SELECT invoice_date, invoice_number, party_name, invoice_type,
+                        MAX(0.0, paid_amount - COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.invoice_id = invoices.id), 0.0)),
+                        payment_method, COALESCE(NULLIF(created_at, ''), invoice_date)
                  FROM invoices
                  WHERE substr(invoice_date, 1, 10) = ?1
                    AND (party_id IS NULL OR party_id = '')
@@ -2890,43 +3172,50 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
                     row.get::<_, String>(3)?,
                     row.get::<_, f64>(4)?,
                     row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
 
         for r in rows.flatten() {
-            let (d, inv_num, p_name, inv_type, paid_amt, method) = r;
+            let (d, inv_num, p_name, inv_type, paid_amt, method, sort_ts) = r;
+            if paid_amt <= 0.005 {
+                continue;
+            }
             let (c, b) = parse_payment_liquidity(&method, paid_amt);
             if c <= 0.005 && b <= 0.005 {
                 continue;
             }
             let (cash_in, cash_out, bank_in, bank_out, entry_type, title) = if inv_type == "PURCHASE" {
-                running_balance -= c;
                 (0.0, c, 0.0, b, "PURCHASE".to_string(), format!("Walk-in Purchase: {}", p_name))
             } else {
-                running_balance += c;
                 (c, 0.0, b, 0.0, "SALE".to_string(), format!("Walk-in Sale: {}", p_name))
             };
-            entries.push(DaybookEntry {
-                date: d,
-                reference: inv_num,
-                title,
-                entry_type,
-                cash_in,
-                cash_out,
-                bank_in,
-                bank_out,
-                payment_channel: channel_label(c, b),
-                balance: running_balance,
-            });
+            seq += 1;
+            timed.push((
+                sort_ts,
+                seq,
+                DaybookEntry {
+                    date: d,
+                    reference: inv_num,
+                    title,
+                    entry_type,
+                    cash_in,
+                    cash_out,
+                    bank_in,
+                    bank_out,
+                    payment_channel: channel_label(c, b),
+                    balance: 0.0,
+                },
+            ));
         }
     }
 
-    // 2. Registered Party Payments in & out
+    // 2. Customer & Vendor Payments in & out (including settled Walk-in follow-ups)
     {
         let mut stmt = conn
             .prepare(
-                "SELECT payment_date, reference, party_name, payment_type, amount, payment_method
+                "SELECT payment_date, reference, party_name, payment_type, amount, payment_method, payment_date
                  FROM payments WHERE substr(payment_date, 1, 10) = ?1 ORDER BY rowid ASC",
             )
             .map_err(|e| e.to_string())?;
@@ -2940,40 +3229,44 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
                     row.get::<_, String>(3)?,
                     row.get::<_, f64>(4)?,
                     row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
 
         for r in rows.flatten() {
-            let (p_date, reference, party_name, p_type, amount, method) = r;
+            let (p_date, reference, party_name, p_type, amount, method, sort_ts) = r;
             let (c, b) = parse_payment_liquidity(&method, amount);
             if c <= 0.005 && b <= 0.005 {
                 continue;
             }
             let (cash_in, cash_out, bank_in, bank_out) = if p_type == "IN" {
-                running_balance += c;
                 (c, 0.0, b, 0.0)
             } else {
-                running_balance -= c;
                 (0.0, c, 0.0, b)
             };
 
-            entries.push(DaybookEntry {
-                date: p_date,
-                reference,
-                title: if p_type == "IN" {
-                    format!("Receipt from {}", party_name)
-                } else {
-                    format!("Payment to {}", party_name)
+            seq += 1;
+            timed.push((
+                sort_ts,
+                seq,
+                DaybookEntry {
+                    date: p_date,
+                    reference,
+                    title: if p_type == "IN" {
+                        format!("Receipt from {}", party_name)
+                    } else {
+                        format!("Payment to {}", party_name)
+                    },
+                    entry_type: if p_type == "IN" { "PAYMENT_IN".into() } else { "PAYMENT_OUT".into() },
+                    cash_in,
+                    cash_out,
+                    bank_in,
+                    bank_out,
+                    payment_channel: channel_label(c, b),
+                    balance: 0.0,
                 },
-                entry_type: if p_type == "IN" { "PAYMENT_IN".into() } else { "PAYMENT_OUT".into() },
-                cash_in,
-                cash_out,
-                bank_in,
-                bank_out,
-                payment_channel: channel_label(c, b),
-                balance: running_balance,
-            });
+            ));
         }
     }
 
@@ -2981,7 +3274,7 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
     {
         let mut exp_stmt = conn
             .prepare(
-                "SELECT expense_date, title, amount, payment_method
+                "SELECT expense_date, title, amount, payment_method, COALESCE(NULLIF(created_at, ''), expense_date)
                  FROM expenses
                  WHERE substr(expense_date, 1, 10) = ?1 AND id NOT LIKE 'EXP-SAL-%'
                  ORDER BY rowid ASC",
@@ -2995,26 +3288,31 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
                     row.get::<_, String>(1)?,
                     row.get::<_, f64>(2)?,
                     row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
 
         for exp in exp_rows.flatten() {
-            let (d, t, a, method) = exp;
+            let (d, t, a, method, sort_ts) = exp;
             let (c, b) = parse_payment_liquidity(&method, a);
-            running_balance -= c;
-            entries.push(DaybookEntry {
-                date: d,
-                reference: "EXP".into(),
-                title: format!("Expense: {}", t),
-                entry_type: "EXPENSE".into(),
-                cash_in: 0.0,
-                cash_out: c,
-                bank_in: 0.0,
-                bank_out: b,
-                payment_channel: channel_label(c, b),
-                balance: running_balance,
-            });
+            seq += 1;
+            timed.push((
+                sort_ts,
+                seq,
+                DaybookEntry {
+                    date: d,
+                    reference: "EXP".into(),
+                    title: format!("Expense: {}", t),
+                    entry_type: "EXPENSE".into(),
+                    cash_in: 0.0,
+                    cash_out: c,
+                    bank_in: 0.0,
+                    bank_out: b,
+                    payment_channel: channel_label(c, b),
+                    balance: 0.0,
+                },
+            ));
         }
     }
 
@@ -3022,7 +3320,7 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
     {
         let mut sal_stmt = conn
             .prepare(
-                "SELECT payment_date, voucher_number, employee_name, amount, payment_source
+                "SELECT payment_date, voucher_number, employee_name, amount, payment_source, COALESCE(NULLIF(created_at, ''), payment_date)
                  FROM salary_payments WHERE substr(payment_date, 1, 10) = ?1 ORDER BY rowid ASC",
             )
             .map_err(|e| e.to_string())?;
@@ -3035,26 +3333,31 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
                     row.get::<_, String>(2)?,
                     row.get::<_, f64>(3)?,
                     row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
 
         for sal in sal_rows.flatten() {
-            let (d, v_num, emp_name, amt, src) = sal;
+            let (d, v_num, emp_name, amt, src, sort_ts) = sal;
             let (c, b) = parse_payment_liquidity(&src, amt);
-            running_balance -= c;
-            entries.push(DaybookEntry {
-                date: d,
-                reference: v_num,
-                title: format!("Salary Payout: {}", emp_name),
-                entry_type: "SALARY".into(),
-                cash_in: 0.0,
-                cash_out: c,
-                bank_in: 0.0,
-                bank_out: b,
-                payment_channel: channel_label(c, b),
-                balance: running_balance,
-            });
+            seq += 1;
+            timed.push((
+                sort_ts,
+                seq,
+                DaybookEntry {
+                    date: d,
+                    reference: v_num,
+                    title: format!("Salary Payout: {}", emp_name),
+                    entry_type: "SALARY".into(),
+                    cash_in: 0.0,
+                    cash_out: c,
+                    bank_in: 0.0,
+                    bank_out: b,
+                    payment_channel: channel_label(c, b),
+                    balance: 0.0,
+                },
+            ));
         }
     }
 
@@ -3081,24 +3384,27 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
         for tr in tr_rows.flatten() {
             let (ts, direction, amt, notes) = tr;
             let (cash_in, cash_out, bank_in, bank_out, label) = if direction == "CASH_TO_BANK" {
-                running_balance -= amt;
                 (0.0, amt, amt, 0.0, "Cash Deposited to Bank")
             } else {
-                running_balance += amt;
                 (amt, 0.0, 0.0, amt, "Cash Withdrawn from Bank")
             };
-            entries.push(DaybookEntry {
-                date: ts.chars().take(10).collect(),
-                reference: "CONTRA".into(),
-                title: if notes.trim().is_empty() { label.into() } else { format!("{}: {}", label, notes) },
-                entry_type: "TRANSFER".into(),
-                cash_in,
-                cash_out,
-                bank_in,
-                bank_out,
-                payment_channel: "SPLIT".into(),
-                balance: running_balance,
-            });
+            seq += 1;
+            timed.push((
+                ts.clone(),
+                seq,
+                DaybookEntry {
+                    date: ts.chars().take(10).collect(),
+                    reference: "CONTRA".into(),
+                    title: if notes.trim().is_empty() { label.into() } else { format!("{}: {}", label, notes) },
+                    entry_type: "TRANSFER".into(),
+                    cash_in,
+                    cash_out,
+                    bank_in,
+                    bank_out,
+                    payment_channel: "SPLIT".into(),
+                    balance: 0.0,
+                },
+            ));
         }
     }
 
@@ -3130,28 +3436,101 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
                 if is_bank {
                     (0.0, 0.0, amt, 0.0, "LOAN_DRAWDOWN".to_string())
                 } else {
-                    running_balance += amt;
                     (amt, 0.0, 0.0, 0.0, "LOAN_DRAWDOWN".to_string())
                 }
             } else if is_bank {
                 (0.0, 0.0, 0.0, amt, "LOAN_REPAYMENT".to_string())
             } else {
-                running_balance -= amt;
                 (0.0, amt, 0.0, 0.0, "LOAN_REPAYMENT".to_string())
             };
-            entries.push(DaybookEntry {
-                date: ts.chars().take(10).collect(),
-                reference: "LOAN".into(),
-                title: if notes.trim().is_empty() { entry_type.clone() } else { notes },
-                entry_type,
-                cash_in,
-                cash_out,
-                bank_in,
-                bank_out,
-                payment_channel: if is_bank { "BANK".into() } else { "CASH".into() },
-                balance: running_balance,
-            });
+            seq += 1;
+            timed.push((
+                ts.clone(),
+                seq,
+                DaybookEntry {
+                    date: ts.chars().take(10).collect(),
+                    reference: "LOAN".into(),
+                    title: if notes.trim().is_empty() { entry_type.clone() } else { notes },
+                    entry_type,
+                    cash_in,
+                    cash_out,
+                    bank_in,
+                    bank_out,
+                    payment_channel: if is_bank { "BANK".into() } else { "CASH".into() },
+                    balance: 0.0,
+                },
+            ));
         }
+    }
+
+    // 7. Deposits & Capital Injections
+    {
+        let mut dep_stmt = conn
+            .prepare(
+                "SELECT id, deposit_type, cash_amount, bank_amount, notes, deposit_date, timestamp
+                 FROM deposits WHERE substr(deposit_date, 1, 10) = ?1 ORDER BY rowid ASC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let dep_rows = dep_stmt
+            .query_map(params![date], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, f64>(2)?,
+                    row.get::<_, f64>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        for (dep_id, dep_type, c_amt, b_amt, notes, d_date, ts) in dep_rows.flatten() {
+            if c_amt <= 0.005 && b_amt <= 0.005 {
+                continue;
+            }
+            let entry_type = if dep_type == "CAPITAL" {
+                "CAPITAL_INJECTION".to_string()
+            } else {
+                "DEPOSIT".to_string()
+            };
+            let title = if dep_type == "CAPITAL" {
+                if notes.trim().is_empty() { "Owner Capital Injection".into() } else { format!("Owner Capital: {}", notes) }
+            } else if dep_type == "BANK" {
+                if notes.trim().is_empty() { "Bank Deposit".into() } else { format!("Bank Deposit: {}", notes) }
+            } else if notes.trim().is_empty() {
+                "Cash Drawer Deposit".into()
+            } else {
+                format!("Cash Deposit: {}", notes)
+            };
+            seq += 1;
+            timed.push((
+                if ts.trim().is_empty() { d_date.clone() } else { ts },
+                seq,
+                DaybookEntry {
+                    date: d_date.chars().take(10).collect(),
+                    reference: dep_id,
+                    title,
+                    entry_type,
+                    cash_in: c_amt,
+                    cash_out: 0.0,
+                    bank_in: b_amt,
+                    bank_out: 0.0,
+                    payment_channel: channel_label(c_amt, b_amt),
+                    balance: 0.0,
+                },
+            ));
+        }
+    }
+
+    timed.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+
+    let mut entries = Vec::with_capacity(timed.len());
+    for (_, _, mut entry) in timed {
+        running_balance = ((running_balance + entry.cash_in - entry.cash_out) * 100.0).round() / 100.0;
+        entry.balance = running_balance;
+        entries.push(entry);
     }
 
     Ok(entries)
@@ -3216,288 +3595,352 @@ pub fn seed_demo_data(days: i32, state: State<'_, Mutex<AppState>>) -> Result<St
 }
 
 pub fn seed_demo_data_conn(conn: &mut Connection, days: i32) -> Result<String, String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    conn.execute_batch("PRAGMA foreign_keys = OFF;").ok();
+    {
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
 
-    // Clear existing operational data
-    tx.execute("DELETE FROM invoice_items", []).ok();
-    tx.execute("DELETE FROM stock_movements", []).ok();
-    tx.execute("DELETE FROM payments", []).ok();
-    tx.execute("DELETE FROM expenses", []).ok();
-    tx.execute("DELETE FROM invoices", []).ok();
-    tx.execute("DELETE FROM items", []).ok();
-    tx.execute("DELETE FROM parties", []).ok();
-    tx.execute("DELETE FROM audit_logs", []).ok();
-
-    // 1. Seed Categories & Items
-    let items_data = vec![
-        ("Ethiopian Single-Origin Coffee Beans (500g)", "BEV-001", "8901001", "Beverages", "pack", 12.0, 22.0, 45.0, 10.0, "Front Store"),
-        ("Cold Brew Concentrate (1L)", "BEV-002", "8901002", "Beverages", "bottle", 8.5, 16.0, 32.0, 8.0, "Cold Storage"),
-        ("Organic Matcha Green Tea Powder", "BEV-003", "8901003", "Beverages", "jar", 14.0, 26.5, 18.0, 5.0, "Front Store"),
-        ("Almond Croissant (Artisan)", "BAKE-001", "8901004", "Bakery", "pcs", 1.8, 4.5, 50.0, 15.0, "Kitchen Shelf"),
-        ("Sourdough Country Loaf", "BAKE-002", "8901005", "Bakery", "loaf", 3.0, 7.5, 24.0, 6.0, "Kitchen Shelf"),
-        ("Dark Chocolate Espresso Truffles", "BAKE-003", "8901006", "Bakery", "box", 6.0, 12.0, 12.0, 10.0, "Front Store"),
-        ("Stainless Steel Thermal Tumbler 16oz", "MERCH-001", "8901007", "Merchandise", "pcs", 9.0, 24.0, 28.0, 5.0, "Godown A"),
-        ("Ceramic Minimalist Mug (Matte Charcoal)", "MERCH-002", "8901008", "Merchandise", "pcs", 5.5, 15.0, 40.0, 8.0, "Godown A"),
-        ("Hand Drip Glass Carafe & Filter Set", "MERCH-003", "8901009", "Merchandise", "set", 18.0, 38.0, 14.0, 4.0, "Godown B"),
-        ("Oat Milk Barista Blend (6x1L Box)", "SUP-001", "8901010", "Supplies", "box", 13.0, 21.0, 22.0, 5.0, "Cold Storage"),
-        ("Eco-Friendly Takeout Coffee Cups (100pk)", "SUP-002", "8901011", "Supplies", "pack", 7.0, 14.0, 60.0, 20.0, "Godown B"),
-        ("Unbleached Paper Coffee Filters (100pk)", "SUP-003", "8901012", "Supplies", "pack", 2.2, 5.0, 85.0, 25.0, "Front Store"),
-    ];
-
-    let mut item_ids = Vec::new();
-    let now_date = Local::now().date_naive();
-
-    for it in &items_data {
-        let id = Uuid::new_v4().to_string();
-        item_ids.push((id.clone(), it.0, it.5, it.6, it.4)); // id, name, purchase, sale, unit
-
-        tx.execute(
-            "INSERT INTO items (id, name, sku, barcode, category, unit,
-                                purchase_price, sale_price, stock_quantity,
-                                min_stock_alert, godown, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            params![
-                id, it.0, it.1, it.2, it.3, it.4, it.5, it.6, it.7, it.8, it.9,
-                now_date.format("%Y-%m-%d").to_string(),
-            ],
+        // Clear all operational, catalog, GST, banking, payroll, and log tables cleanly in child-first FK order
+        tx.execute_batch(
+            "DELETE FROM gst_invoice_items;
+             DELETE FROM gst_invoices;
+             DELETE FROM gst_items;
+             DELETE FROM gst_parties;
+             DELETE FROM bill_settlements;
+             DELETE FROM deposits;
+             DELETE FROM cash_bank_transfers;
+             DELETE FROM loan_transactions;
+             DELETE FROM invoice_items;
+             DELETE FROM estimate_items;
+             DELETE FROM purchase_return_items;
+             DELETE FROM stock_movements;
+             DELETE FROM employee_attendance;
+             DELETE FROM salary_payments;
+             DELETE FROM payments;
+             DELETE FROM expenses;
+             DELETE FROM recurring_bills;
+             DELETE FROM purchase_orders;
+             DELETE FROM cash_closings;
+             DELETE FROM estimates;
+             DELETE FROM purchase_returns;
+             DELETE FROM invoices;
+             DELETE FROM items;
+             DELETE FROM parties;
+             DELETE FROM employees;
+             DELETE FROM business_loans;
+             DELETE FROM bank_accounts;
+             DELETE FROM audit_logs;
+             UPDATE settings SET
+                opening_cash = 1000.0,
+                opening_bank = 5000.0,
+                opening_balance_mode = 'SPLIT',
+                capital_cash = 0.0,
+                capital_bank = 0.0,
+                capital_mode = 'CASH'
+             WHERE id = 1;"
         )
         .map_err(|e| e.to_string())?;
 
+        let now_ts = Local::now().to_rfc3339();
         tx.execute(
-            "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
-                                          quantity_after, movement_type, reference_id,
-                                          timestamp, notes)
-             VALUES (?1, ?2, ?3, ?4, ?5, 'OPENING', 'INITIAL_STOCK', ?6, 'Opening stock initialized')",
-            params![
-                Uuid::new_v4().to_string(),
-                id,
-                it.0,
-                it.7,
-                it.7,
-                now_date.format("%Y-%m-%d").to_string(),
-            ],
-        )
-        .ok();
-    }
-
-    // 2. Seed Parties
-    let parties_data = vec![
-        ("Alexander Wright", "CUSTOMER", "+1 555-0121", "alex.w@gmail.com", "12 Sunset Blvd", "CUST-901", 0.0, 0.0),
-        ("Sophia Lin & Co", "CUSTOMER", "+1 555-0134", "sophia@linstudio.design", "88 Design District", "CUST-902", 0.0, 45.0),
-        ("Marcus Vance", "CUSTOMER", "+1 555-0145", "marcus.v@acme.org", "45 Wall Street", "CUST-903", 0.0, 0.0),
-        ("Bella Terra Roasters", "VENDOR", "+1 555-0188", "orders@bellaterra.coffee", "400 Harbor Pier", "VEN-401", 0.0, -350.0),
-        ("Alpine Bakery Supplies", "VENDOR", "+1 555-0192", "wholesale@alpinebakery.io", "12 Mill Road", "VEN-402", 0.0, 0.0),
-        ("Nordic Packaging Ltd", "VENDOR", "+1 555-0199", "sales@nordicpack.com", "76 Industrial Way", "VEN-403", 0.0, -120.0),
-    ];
-
-    let mut customer_ids = Vec::new();
-    let mut vendor_ids = Vec::new();
-
-    for p in &parties_data {
-        let id = Uuid::new_v4().to_string();
-        if p.1 == "CUSTOMER" {
-            customer_ids.push((id.clone(), p.0.to_string()));
-        } else {
-            vendor_ids.push((id.clone(), p.0.to_string()));
-        }
-
-        tx.execute(
-            "INSERT INTO parties (id, name, party_type, phone, email, address,
-                                 tax_number, opening_balance, current_balance, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            params![id, p.0, p.1, p.2, p.3, p.4, p.5, p.6, p.7, now_date.format("%Y-%m-%d").to_string()],
+            "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+             VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', 5000.0, 1, ?1)",
+            params![now_ts],
         )
         .map_err(|e| e.to_string())?;
-    }
 
-    // 3. Generate 30 days of realistic sales, purchases, and expenses
-    let payment_methods = ["CASH", "CARD", "TRANSFER", "UPI"];
-    let num_days = if days <= 0 { 30 } else { days };
-    let mut inv_counter = 1;
+        // 1. Seed Categories & Items (higher initial stock so demo sales leave positive stock)
+        let items_data = vec![
+            ("Ethiopian Single-Origin Coffee Beans (500g)", "BEV-001", "8901001", "Beverages", "pack", 12.0, 22.0, 120.0, 15.0, "Front Store"),
+            ("Cold Brew Concentrate (1L)", "BEV-002", "8901002", "Beverages", "bottle", 8.5, 16.0, 80.0, 10.0, "Cold Storage"),
+            ("Organic Matcha Green Tea Powder", "BEV-003", "8901003", "Beverages", "jar", 14.0, 26.5, 60.0, 8.0, "Front Store"),
+            ("Almond Croissant (Artisan)", "BAKE-001", "8901004", "Bakery", "pcs", 1.8, 4.5, 150.0, 20.0, "Kitchen Shelf"),
+            ("Sourdough Country Loaf", "BAKE-002", "8901005", "Bakery", "loaf", 3.0, 7.5, 80.0, 12.0, "Kitchen Shelf"),
+            ("Dark Chocolate Espresso Truffles", "BAKE-003", "8901006", "Bakery", "box", 6.0, 12.0, 45.0, 10.0, "Front Store"),
+            ("Stainless Steel Thermal Tumbler 16oz", "MERCH-001", "8901007", "Merchandise", "pcs", 9.0, 24.0, 70.0, 8.0, "Godown A"),
+            ("Ceramic Minimalist Mug (Matte Charcoal)", "MERCH-002", "8901008", "Merchandise", "pcs", 5.5, 15.0, 90.0, 10.0, "Godown A"),
+            ("Hand Drip Glass Carafe & Filter Set", "MERCH-003", "8901009", "Merchandise", "set", 18.0, 38.0, 50.0, 6.0, "Godown B"),
+            ("Oat Milk Barista Blend (6x1L Box)", "SUP-001", "8901010", "Supplies", "box", 13.0, 21.0, 75.0, 10.0, "Cold Storage"),
+            ("Eco-Friendly Takeout Coffee Cups (100pk)", "SUP-002", "8901011", "Supplies", "pack", 7.0, 14.0, 140.0, 25.0, "Godown B"),
+            ("Unbleached Paper Coffee Filters (100pk)", "SUP-003", "8901012", "Supplies", "pack", 2.2, 5.0, 160.0, 30.0, "Front Store"),
+        ];
 
-    for d in (0..num_days).rev() {
-        let current_day = now_date - chrono::Duration::days(d as i64);
-        let date_str = current_day.format("%Y-%m-%d").to_string();
+        let mut item_ids = Vec::new();
+        let now_date = Local::now().date_naive();
 
-        // 2 to 4 sales per day
-        let sales_today = 2 + (d % 3);
-        for s in 0..sales_today {
-            let inv_id = Uuid::new_v4().to_string();
-            let inv_num = format!("INV-{:05}", inv_counter);
-            inv_counter += 1;
-
-            let cust = &customer_ids[(s as usize + d as usize) % customer_ids.len()];
-            let pay_method = payment_methods[(s as usize + d as usize) % payment_methods.len()];
-
-            // 1 to 3 items per invoice
-            let mut subtotal = 0.0;
-            let mut line_items = Vec::new();
-            let item_count = 1 + ((s + d) % 3);
-
-            for i in 0..item_count {
-                let it_idx = (s as usize + d as usize * 2 + i as usize) % item_ids.len();
-                let it = &item_ids[it_idx];
-                let qty = 1.0 + ((s + i) % 3) as f64;
-                let price = it.3;
-                let line_tot = qty * price;
-                subtotal += line_tot;
-
-                line_items.push((it.0.clone(), it.1, qty, it.4, price, line_tot));
-            }
-
-            let tax = (subtotal * 0.05 * 100.0).round() / 100.0;
-            let total = subtotal + tax;
-            let is_unpaid = (s == 0) && (d < 5); // recent sale might have partial/unpaid
-            let paid = if is_unpaid { total * 0.5 } else { total };
-            let status = if paid >= total { "PAID" } else { "PARTIAL" };
+        for it in &items_data {
+            let id = Uuid::new_v4().to_string();
+            item_ids.push((id.clone(), it.0, it.5, it.6, it.4)); // id, name, purchase, sale, unit
 
             tx.execute(
-                "INSERT INTO invoices (id, invoice_number, invoice_type, party_id,
-                                      party_name, invoice_date, due_date, subtotal,
-                                      discount_amount, tax_amount, total_amount, paid_amount,
-                                      status, payment_method, notes, created_at)
-                 VALUES (?1, ?2, 'SALE', ?3, ?4, ?5, ?5, ?6, 0.0, ?7, ?8, ?9, ?10, ?11, 'Counter sale', ?12)",
+                "INSERT INTO items (id, name, sku, barcode, category, unit,
+                                    purchase_price, sale_price, stock_quantity,
+                                    min_stock_alert, godown, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                 params![
-                    inv_id, inv_num, cust.0, cust.1, date_str, subtotal, tax, total, paid, status, pay_method,
-                    format!("{}T14:30:00", date_str),
+                    id, it.0, it.1, it.2, it.3, it.4, it.5, it.6, it.7, it.8, it.9,
+                    now_date.format("%Y-%m-%d").to_string(),
                 ],
             )
             .map_err(|e| e.to_string())?;
 
-            for li in line_items {
-                tx.execute(
-                    "INSERT INTO invoice_items (id, invoice_id, item_id, item_name,
-                                                quantity, unit, unit_price, discount_percent,
-                                                tax_rate, line_total)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0.0, 5.0, ?8)",
-                    params![
-                        Uuid::new_v4().to_string(), inv_id, li.0, li.1, li.2, li.3, li.4, li.5,
-                    ],
-                )
-                .map_err(|e| e.to_string())?;
-
-                tx.execute(
-                    "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
-                                                  quantity_after, movement_type, reference_id,
-                                                  timestamp, notes)
-                     VALUES (?1, ?2, ?3, ?4, (SELECT stock_quantity FROM items WHERE id = ?2), 'SALE', ?5, ?6, 'Counter POS Sale')",
-                    params![
-                        Uuid::new_v4().to_string(), li.0, li.1, -li.2, inv_num, date_str,
-                    ],
-                )
-                .ok();
-            }
-
-            // Payment record
-            if paid > 0.0 {
-                tx.execute(
-                    "INSERT INTO payments (id, invoice_id, party_id, party_name,
-                                          amount, payment_type, payment_method,
-                                          payment_date, reference, notes)
-                     VALUES (?1, ?2, ?3, ?4, ?5, 'IN', ?6, ?7, ?8, 'Sale settled')",
-                    params![
-                        Uuid::new_v4().to_string(), inv_id, cust.0, cust.1, paid, pay_method, date_str, inv_num,
-                    ],
-                )
-                .map_err(|e| e.to_string())?;
-            }
-
-            let unpaid = total - paid;
-            if unpaid > 0.01 {
-                tx.execute(
-                    "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
-                    params![unpaid, cust.0],
-                )
-                .ok();
-            }
-        }
-
-        // Daily or alternate-day operating expenses
-        if d % 2 == 0 {
-            let exp_cats = [
-                ("Utility: Electric & Water", "Utilities & Electricity", 180.0),
-                ("High Speed Fiber Internet", "Software & Subscriptions", 65.0),
-                ("Store Cleaning & Sanitation Supplies", "Repairs & Maintenance", 42.0),
-                ("Social Media & Local Flyer Promotion", "Marketing & Advertising", 50.0),
-                ("Takeout Cups & Bio Packaging Restock", "Packaging & Supplies", 85.0),
-                ("Courier & Logistics Delivery Fee", "Inventory & Logistics", 28.0),
-                ("Staff Weekly Shift Allowance", "Salaries & Wages", 250.0),
-                ("Petty Cash: Cafe Milk & Fresh Citrus", "Miscellaneous", 22.5),
-            ];
-            let exp = &exp_cats[(d as usize / 2) % exp_cats.len()];
             tx.execute(
-                "INSERT INTO expenses (id, title, category, amount, expense_date, payment_method, notes)
-                 VALUES (?1, ?2, ?3, ?4, ?5, 'Cash', 'Operating store expenditure')",
-                params![Uuid::new_v4().to_string(), exp.0, exp.1, exp.2, date_str],
-            )
-            .ok();
-        }
-
-        // Periodic vendor purchases (every 8 days)
-        if d % 8 == 0 {
-            let ven = &vendor_ids[(d as usize / 8) % vendor_ids.len()];
-            let pur_num = format!("PUR-{:04}", (d / 8) + 1);
-            let pur_id = Uuid::new_v4().to_string();
-
-            // Restock 2 items from supplier
-            let it1 = &item_ids[0]; // Ethiopian Coffee Beans
-            let it2 = &item_ids[9]; // Oat Milk Box
-            let qty1 = 10.0;
-            let qty2 = 15.0;
-            let cost1 = it1.2;
-            let cost2 = it2.2;
-            let line_tot1 = qty1 * cost1;
-            let line_tot2 = qty2 * cost2;
-            let pur_subtotal = line_tot1 + line_tot2;
-
-            tx.execute(
-                "INSERT INTO invoices (id, invoice_number, invoice_type, party_id,
-                                      party_name, invoice_date, due_date, subtotal,
-                                      discount_amount, tax_amount, total_amount, paid_amount,
-                                      status, payment_method, notes, created_at)
-                 VALUES (?1, ?2, 'PURCHASE', ?3, ?4, ?5, ?5, ?6, 0.0, 0.0, ?6, ?6, 'PAID', 'TRANSFER', 'Restocking order', ?7)",
+                "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                              quantity_after, movement_type, reference_id,
+                                              timestamp, notes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'OPENING', 'INITIAL_STOCK', ?6, 'Opening stock initialized')",
                 params![
-                    pur_id, pur_num, ven.0, ven.1, date_str, pur_subtotal,
-                    format!("{}T09:00:00", date_str),
+                    Uuid::new_v4().to_string(),
+                    id,
+                    it.0,
+                    it.7,
+                    it.7,
+                    now_date.format("%Y-%m-%d").to_string(),
                 ],
             )
             .ok();
-
-            // Line items
-            tx.execute(
-                "INSERT INTO invoice_items (id, invoice_id, item_id, item_name, quantity, unit, unit_price, discount_percent, tax_rate, line_total)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0.0, 0.0, ?8)",
-                params![Uuid::new_v4().to_string(), pur_id, it1.0, it1.1, qty1, it1.4, cost1, line_tot1],
-            )
-            .ok();
-
-            tx.execute(
-                "INSERT INTO invoice_items (id, invoice_id, item_id, item_name, quantity, unit, unit_price, discount_percent, tax_rate, line_total)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0.0, 0.0, ?8)",
-                params![Uuid::new_v4().to_string(), pur_id, it2.0, it2.1, qty2, it2.4, cost2, line_tot2],
-            )
-            .ok();
-
-            // Vendor payment record
-            tx.execute(
-                "INSERT INTO payments (id, invoice_id, party_id, party_name, amount, payment_type, payment_method, payment_date, reference, notes)
-                 VALUES (?1, ?2, ?3, ?4, ?5, 'OUT', 'TRANSFER', ?6, ?7, 'Supplier bill settled')",
-                params![Uuid::new_v4().to_string(), pur_id, ven.0, ven.1, pur_subtotal, date_str, pur_num],
-            )
-            .ok();
         }
+
+        // 2. Seed Parties with zero opening balance so current_balance reconciles 100% with seeded open invoices
+        let parties_data = vec![
+            ("Alexander Wright", "CUSTOMER", "+1 555-0121", "alex.w@gmail.com", "12 Sunset Blvd", "CUST-901", 0.0, 0.0),
+            ("Sophia Lin & Co", "CUSTOMER", "+1 555-0134", "sophia@linstudio.design", "88 Design District", "CUST-902", 0.0, 0.0),
+            ("Marcus Vance", "CUSTOMER", "+1 555-0145", "marcus.v@acme.org", "45 Wall Street", "CUST-903", 0.0, 0.0),
+            ("Bella Terra Roasters", "VENDOR", "+1 555-0188", "orders@bellaterra.coffee", "400 Harbor Pier", "VEN-401", 0.0, 0.0),
+            ("Alpine Bakery Supplies", "VENDOR", "+1 555-0192", "wholesale@alpinebakery.io", "12 Mill Road", "VEN-402", 0.0, 0.0),
+            ("Nordic Packaging Ltd", "VENDOR", "+1 555-0199", "sales@nordicpack.com", "76 Industrial Way", "VEN-403", 0.0, 0.0),
+        ];
+
+        let mut customer_ids = Vec::new();
+        let mut vendor_ids = Vec::new();
+
+        for p in &parties_data {
+            let id = Uuid::new_v4().to_string();
+            if p.1 == "CUSTOMER" {
+                customer_ids.push((id.clone(), p.0.to_string()));
+            } else {
+                vendor_ids.push((id.clone(), p.0.to_string()));
+            }
+
+            tx.execute(
+                "INSERT INTO parties (id, name, party_type, phone, email, address,
+                                     tax_number, opening_balance, current_balance, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![id, p.0, p.1, p.2, p.3, p.4, p.5, p.6, p.7, now_date.format("%Y-%m-%d").to_string()],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+
+        // 3. Generate realistic sales, purchases, and expenses
+        let payment_methods = ["CASH", "CARD", "TRANSFER", "UPI"];
+        let num_days = if days <= 0 { 30 } else { days };
+        let mut inv_counter = 1;
+
+        for d in (0..num_days).rev() {
+            let current_day = now_date - chrono::Duration::days(d as i64);
+            let date_str = current_day.format("%Y-%m-%d").to_string();
+
+            // Periodic vendor purchases (every 8 days)
+            if d % 8 == 0 {
+                let ven = &vendor_ids[(d as usize / 8) % vendor_ids.len()];
+                let pur_num = format!("PUR-{:04}", (d / 8) + 1);
+                let pur_id = Uuid::new_v4().to_string();
+
+                let it1 = &item_ids[0];
+                let it2 = &item_ids[9];
+                let qty1 = 10.0;
+                let qty2 = 15.0;
+                let cost1 = it1.2;
+                let cost2 = it2.2;
+                let line_tot1 = qty1 * cost1;
+                let line_tot2 = qty2 * cost2;
+                let pur_subtotal = line_tot1 + line_tot2;
+                let leave_open_vendor = d == 0;
+                let pur_paid = if leave_open_vendor { 0.0 } else { pur_subtotal };
+                let pur_status = if leave_open_vendor { "UNPAID" } else { "PAID" };
+                let pur_method = if leave_open_vendor { "Credit" } else { "TRANSFER" };
+
+                tx.execute(
+                    "INSERT INTO invoices (id, invoice_number, invoice_type, party_id,
+                                          party_name, invoice_date, due_date, subtotal,
+                                          discount_amount, tax_amount, total_amount, paid_amount,
+                                          status, payment_method, notes, created_at)
+                     VALUES (?1, ?2, 'PURCHASE', ?3, ?4, ?5, ?5, ?6, 0.0, 0.0, ?6, ?7, ?8, ?9, 'Restocking order', ?10)",
+                    params![
+                        pur_id, pur_num, ven.0, ven.1, date_str, pur_subtotal, pur_paid, pur_status, pur_method,
+                        format!("{}T09:00:00", date_str),
+                    ],
+                )
+                .ok();
+
+                for (it, qty, cost, line_tot) in [(it1, qty1, cost1, line_tot1), (it2, qty2, cost2, line_tot2)] {
+                    tx.execute(
+                        "INSERT INTO invoice_items (id, invoice_id, item_id, item_name, quantity, unit, unit_price, discount_percent, tax_rate, line_total)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0.0, 0.0, ?8)",
+                        params![Uuid::new_v4().to_string(), pur_id, it.0, it.1, qty, it.4, cost, line_tot],
+                    )
+                    .ok();
+
+                    tx.execute("UPDATE items SET stock_quantity = stock_quantity + ?1 WHERE id = ?2", params![qty, it.0]).ok();
+                    let cur_s: f64 = tx.query_row("SELECT stock_quantity FROM items WHERE id = ?1", params![it.0], |r| r.get(0)).unwrap_or(0.0);
+                    tx.execute(
+                        "INSERT INTO stock_movements (id, item_id, item_name, change_quantity, quantity_after, movement_type, reference_id, timestamp, notes)
+                         VALUES (?1, ?2, ?3, ?4, ?5, 'PURCHASE', ?6, ?7, 'Restocking order')",
+                        params![Uuid::new_v4().to_string(), it.0, it.1, qty, cur_s, pur_num, date_str],
+                    )
+                    .ok();
+                }
+
+                if pur_paid > 0.0 {
+                    tx.execute(
+                        "INSERT INTO payments (id, invoice_id, party_id, party_name, amount, payment_type, payment_method, payment_date, reference, notes)
+                         VALUES (?1, ?2, ?3, ?4, ?5, 'OUT', 'TRANSFER', ?6, ?7, 'Supplier bill settled')",
+                        params![Uuid::new_v4().to_string(), pur_id, ven.0, ven.1, pur_paid, date_str, pur_num],
+                    )
+                    .ok();
+                } else {
+                    tx.execute(
+                        "UPDATE parties SET current_balance = current_balance - ?1 WHERE id = ?2",
+                        params![pur_subtotal, ven.0],
+                    )
+                    .ok();
+                }
+            }
+
+            // 2 to 4 sales per day
+            let sales_today = 2 + (d % 3);
+            for s in 0..sales_today {
+                let inv_id = Uuid::new_v4().to_string();
+                let inv_num = format!("INV-{:05}", inv_counter);
+                inv_counter += 1;
+
+                let cust = &customer_ids[(s as usize + d as usize) % customer_ids.len()];
+                let pay_method = payment_methods[(s as usize + d as usize) % payment_methods.len()];
+
+                let mut subtotal = 0.0;
+                let mut line_items = Vec::new();
+                let item_count = 1 + ((s + d) % 3);
+
+                for i in 0..item_count {
+                    let it_idx = (s as usize + d as usize * 2 + i as usize) % item_ids.len();
+                    let it = &item_ids[it_idx];
+                    let qty = 1.0 + ((s + i) % 3) as f64;
+                    let price = it.3;
+                    let line_tot = qty * price;
+                    subtotal += line_tot;
+
+                    line_items.push((it.0.clone(), it.1, qty, it.4, price, line_tot));
+                }
+
+                let tax = (subtotal * 0.05 * 100.0).round() / 100.0;
+                let total = ((subtotal + tax) * 100.0).round() / 100.0;
+                let is_unpaid = (s == 0) && (d < 5);
+                let paid = if is_unpaid { (total * 0.5 * 100.0).round() / 100.0 } else { total };
+                let status = if paid >= total - 0.01 { "PAID" } else { "PARTIAL" };
+
+                tx.execute(
+                    "INSERT INTO invoices (id, invoice_number, invoice_type, party_id,
+                                          party_name, invoice_date, due_date, subtotal,
+                                          discount_amount, tax_amount, total_amount, paid_amount,
+                                          status, payment_method, notes, created_at)
+                     VALUES (?1, ?2, 'SALE', ?3, ?4, ?5, ?5, ?6, 0.0, ?7, ?8, ?9, ?10, ?11, 'Counter sale', ?12)",
+                    params![
+                        inv_id, inv_num, cust.0, cust.1, date_str, subtotal, tax, total, paid, status, pay_method,
+                        format!("{}T14:30:00", date_str),
+                    ],
+                )
+                .map_err(|e| e.to_string())?;
+
+                for li in line_items {
+                    tx.execute(
+                        "INSERT INTO invoice_items (id, invoice_id, item_id, item_name,
+                                                    quantity, unit, unit_price, discount_percent,
+                                                    tax_rate, line_total)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0.0, 5.0, ?8)",
+                        params![
+                            Uuid::new_v4().to_string(), inv_id, li.0, li.1, li.2, li.3, li.4, li.5,
+                        ],
+                    )
+                    .map_err(|e| e.to_string())?;
+
+                    tx.execute("UPDATE items SET stock_quantity = MAX(0.0, stock_quantity - ?1) WHERE id = ?2", params![li.2, li.0]).ok();
+                    let cur_s: f64 = tx.query_row("SELECT stock_quantity FROM items WHERE id = ?1", params![li.0], |r| r.get(0)).unwrap_or(0.0);
+                    tx.execute(
+                        "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                                      quantity_after, movement_type, reference_id,
+                                                      timestamp, notes)
+                         VALUES (?1, ?2, ?3, ?4, ?5, 'SALE', ?6, ?7, 'Counter POS Sale')",
+                        params![
+                            Uuid::new_v4().to_string(), li.0, li.1, -li.2, cur_s, inv_num, date_str,
+                        ],
+                    )
+                    .ok();
+                }
+
+                if paid > 0.0 {
+                    tx.execute(
+                        "INSERT INTO payments (id, invoice_id, party_id, party_name,
+                                              amount, payment_type, payment_method,
+                                              payment_date, reference, notes)
+                         VALUES (?1, ?2, ?3, ?4, ?5, 'IN', ?6, ?7, ?8, 'Sale settled')",
+                        params![
+                            Uuid::new_v4().to_string(), inv_id, cust.0, cust.1, paid, pay_method, date_str, inv_num,
+                        ],
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+
+                let unpaid = total - paid;
+                if unpaid > 0.01 {
+                    tx.execute(
+                        "UPDATE parties SET current_balance = current_balance + ?1 WHERE id = ?2",
+                        params![unpaid, cust.0],
+                    )
+                    .ok();
+                }
+            }
+
+            if d % 2 == 0 {
+                let exp_cats = [
+                    ("Utility: Electric & Water", "Utilities & Electricity", 180.0),
+                    ("High Speed Fiber Internet", "Software & Subscriptions", 65.0),
+                    ("Store Cleaning & Sanitation Supplies", "Repairs & Maintenance", 42.0),
+                    ("Social Media & Local Flyer Promotion", "Marketing & Advertising", 50.0),
+                    ("Takeout Cups & Bio Packaging Restock", "Packaging & Supplies", 85.0),
+                    ("Courier & Logistics Delivery Fee", "Inventory & Logistics", 28.0),
+                    ("Staff Weekly Shift Allowance", "Salaries & Wages", 250.0),
+                    ("Petty Cash: Cafe Milk & Fresh Citrus", "Miscellaneous", 22.5),
+                ];
+                let exp = &exp_cats[(d as usize / 2) % exp_cats.len()];
+                tx.execute(
+                    "INSERT INTO expenses (id, title, category, amount, expense_date, payment_method, notes)
+                     VALUES (?1, ?2, ?3, ?4, ?5, 'Cash', 'Operating store expenditure')",
+                    params![Uuid::new_v4().to_string(), exp.0, exp.1, exp.2, date_str],
+                )
+                .ok();
+            }
+        }
+
+        DatabaseManager::log_audit(
+            &tx,
+            "SEED",
+            "SYSTEM",
+            "DEMO",
+            &format!("Generated {} days of commercial business data", num_days),
+        )
+        .ok();
+
+        tx.commit().map_err(|e| e.to_string())?;
     }
 
-    DatabaseManager::log_audit(
-        &tx,
-        "SEED",
-        "SYSTEM",
-        "DEMO",
-        &format!("Generated {} days of commercial business data", num_days),
-    )
-    .ok();
+    let _ = conn.execute_batch("PRAGMA foreign_keys = ON;");
+    if let Ok((_, bank_bal)) = calculate_liquidity_internal(conn) {
+        let _ = conn.execute(
+            "UPDATE bank_accounts SET current_balance = ?1 WHERE is_primary = 1",
+            params![bank_bal],
+        );
+    }
 
-    tx.commit().map_err(|e| e.to_string())?;
+    let num_days = if days <= 0 { 30 } else { days };
     Ok(format!("Successfully generated {} days of business records.", num_days))
 }
 
@@ -3505,6 +3948,7 @@ pub fn seed_demo_data_conn(conn: &mut Connection, days: i32) -> Result<String, S
 pub fn clear_all_data(state: State<'_, Mutex<AppState>>) -> Result<bool, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let now = Local::now().to_rfc3339();
 
     conn.execute_batch(
         "PRAGMA foreign_keys = OFF;
@@ -3513,6 +3957,7 @@ pub fn clear_all_data(state: State<'_, Mutex<AppState>>) -> Result<bool, String>
          DELETE FROM gst_items;
          DELETE FROM gst_parties;
          DELETE FROM bill_settlements;
+         DELETE FROM deposits;
          DELETE FROM cash_bank_transfers;
          DELETE FROM loan_transactions;
          DELETE FROM invoice_items;
@@ -3531,18 +3976,35 @@ pub fn clear_all_data(state: State<'_, Mutex<AppState>>) -> Result<bool, String>
          DELETE FROM invoices;
          DELETE FROM items;
          DELETE FROM parties;
+         DELETE FROM employees;
          DELETE FROM business_loans;
+         DELETE FROM bank_accounts;
          DELETE FROM audit_logs;
+         UPDATE settings SET
+            opening_cash = 0.0,
+            opening_bank = 0.0,
+            opening_balance_mode = 'CASH',
+            capital_cash = 0.0,
+            capital_bank = 0.0,
+            capital_mode = 'CASH'
+         WHERE id = 1;
          PRAGMA foreign_keys = ON;"
     )
     .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+         VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', 0.0, 1, ?1)",
+        params![now],
+    )
+    .ok();
 
     DatabaseManager::log_audit(
         &conn,
         "RESET",
         "DATABASE",
         "ALL",
-        "Purged all operational records",
+        "Purged all operational, payroll, banking, and opening liquidity records",
     )
     .ok();
 
@@ -3598,7 +4060,7 @@ pub fn create_database_backup_internal(conn: &Connection) -> Result<String, Stri
         let _ = std::fs::remove_file(&vault_path);
     }
 
-    let safe_target_path = target_path.to_string_lossy().replace('\\', "/");
+    let safe_target_path = target_path.to_string_lossy().replace('\\', "/").replace('\'', "''");
     let sql = format!("VACUUM INTO '{}'", safe_target_path);
     conn.execute_batch(&sql).map_err(|e| format!("VACUUM INTO error: {}", e))?;
 
@@ -3630,7 +4092,7 @@ pub fn create_pre_update_backup_internal(conn: &Connection, version: &str) -> Re
         let _ = std::fs::remove_file(&vault_path);
     }
 
-    let safe_target_path = target_path.to_string_lossy().replace('\\', "/");
+    let safe_target_path = target_path.to_string_lossy().replace('\\', "/").replace('\'', "''");
     let sql = format!("VACUUM INTO '{}'", safe_target_path);
     conn.execute_batch(&sql).map_err(|e| format!("VACUUM INTO error: {}", e))?;
 
@@ -3696,111 +4158,177 @@ pub fn restore_database_backup(
         return Err("Selected backup file does not exist".into());
     }
 
+    // 1. Validate backup file & core tables BEFORE creating safety backup or modifying live data
+    let restore_conn = Connection::open(source).map_err(|e| format!("Failed to open backup file: {}", e))?;
+    let required_tables = ["settings", "invoices", "items", "parties"];
+    for tbl in required_tables {
+        let exists: bool = restore_conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                params![tbl],
+                |r| r.get(0),
+            )
+            .unwrap_or(false);
+        if !exists {
+            return Err(format!("Invalid or corrupted backup: missing core table '{}'", tbl));
+        }
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
-    let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
     // Create safety backup of current state before restore
-    let _ = create_database_backup_internal(&conn);
-
-    let restore_conn = Connection::open(source).map_err(|e| e.to_string())?;
+    create_database_backup_internal(&conn)
+        .map_err(|e| format!("Could not create safety snapshot before restore: {}", e))?;
 
     conn.execute_batch("PRAGMA foreign_keys = OFF;")
         .map_err(|e| e.to_string())?;
 
-    conn.execute_batch(
-        "DELETE FROM gst_invoice_items;
-         DELETE FROM gst_invoices;
-         DELETE FROM gst_items;
-         DELETE FROM gst_parties;
-         DELETE FROM gst_settings;
-         DELETE FROM bill_settlements;
-         DELETE FROM cash_bank_transfers;
-         DELETE FROM loan_transactions;
-         DELETE FROM invoice_items;
-         DELETE FROM estimate_items;
-         DELETE FROM purchase_return_items;
-         DELETE FROM stock_movements;
-         DELETE FROM employee_attendance;
-         DELETE FROM salary_payments;
-         DELETE FROM payments;
-         DELETE FROM expenses;
-         DELETE FROM recurring_bills;
-         DELETE FROM purchase_orders;
-         DELETE FROM cash_closings;
-         DELETE FROM estimates;
-         DELETE FROM purchase_returns;
-         DELETE FROM invoices;
-         DELETE FROM items;
-         DELETE FROM parties;
-         DELETE FROM bank_accounts;
-         DELETE FROM business_loans;
-         DELETE FROM employees;
-         DELETE FROM settings;"
-    ).map_err(|e| e.to_string())?;
+    let restore_res: Result<(), String> = (|| {
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
 
-    let tables = [
-        "settings",
-        "gst_settings",
-        "parties",
-        "gst_parties",
-        "items",
-        "gst_items",
-        "invoices",
-        "invoice_items",
-        "gst_invoices",
-        "gst_invoice_items",
-        "payments",
-        "bill_settlements",
-        "expenses",
-        "stock_movements",
-        "bank_accounts",
-        "cash_bank_transfers",
-        "business_loans",
-        "loan_transactions",
-        "recurring_bills",
-        "employees",
-        "employee_attendance",
-        "salary_payments",
-        "estimates",
-        "estimate_items",
-        "purchase_returns",
-        "purchase_return_items",
-        "cash_closings",
-        "purchase_orders",
-    ];
-    for table in tables {
-        let sql = format!("SELECT * FROM {}", table);
-        if let Ok(mut stmt) = restore_conn.prepare(&sql) {
+        tx.execute_batch(
+            "DELETE FROM gst_invoice_items;
+             DELETE FROM gst_invoices;
+             DELETE FROM gst_items;
+             DELETE FROM gst_parties;
+             DELETE FROM gst_settings;
+             DELETE FROM bill_settlements;
+             DELETE FROM deposits;
+             DELETE FROM cash_bank_transfers;
+             DELETE FROM loan_transactions;
+             DELETE FROM invoice_items;
+             DELETE FROM estimate_items;
+             DELETE FROM purchase_return_items;
+             DELETE FROM stock_movements;
+             DELETE FROM employee_attendance;
+             DELETE FROM salary_payments;
+             DELETE FROM payments;
+             DELETE FROM expenses;
+             DELETE FROM recurring_bills;
+             DELETE FROM purchase_orders;
+             DELETE FROM cash_closings;
+             DELETE FROM estimates;
+             DELETE FROM purchase_returns;
+             DELETE FROM invoices;
+             DELETE FROM items;
+             DELETE FROM parties;
+             DELETE FROM bank_accounts;
+             DELETE FROM business_loans;
+             DELETE FROM employees;
+             DELETE FROM settings;"
+        )
+        .map_err(|e| e.to_string())?;
+
+        let tables = [
+            "settings",
+            "gst_settings",
+            "parties",
+            "gst_parties",
+            "items",
+            "gst_items",
+            "invoices",
+            "invoice_items",
+            "gst_invoices",
+            "gst_invoice_items",
+            "payments",
+            "bill_settlements",
+            "deposits",
+            "expenses",
+            "stock_movements",
+            "bank_accounts",
+            "cash_bank_transfers",
+            "business_loans",
+            "loan_transactions",
+            "recurring_bills",
+            "employees",
+            "employee_attendance",
+            "salary_payments",
+            "estimates",
+            "estimate_items",
+            "purchase_returns",
+            "purchase_return_items",
+            "cash_closings",
+            "purchase_orders",
+        ];
+        for table in tables {
+            let exists_in_src: bool = restore_conn
+                .query_row(
+                    "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                    params![table],
+                    |r| r.get(0),
+                )
+                .unwrap_or(false);
+            if !exists_in_src {
+                continue;
+            }
+
+            let sql = format!("SELECT * FROM {}", table);
+            let mut stmt = restore_conn.prepare(&sql).map_err(|e| format!("Backup read failed on {}: {}", table, e))?;
             let col_count = stmt.column_count();
             let col_names: Vec<String> = stmt.column_names().into_iter().map(|s| s.to_string()).collect();
-            let placeholders = vec!["?"; col_count].join(", ");
-            let insert_sql = format!("INSERT OR REPLACE INTO {} ({}) VALUES ({})", table, col_names.join(", "), placeholders);
 
-            if let Ok(mut insert_stmt) = conn.prepare(&insert_sql) {
-                if let Ok(mut rows) = stmt.query([]) {
-                    while let Ok(Some(row)) = rows.next() {
-                        let mut vals: Vec<rusqlite::types::Value> = Vec::new();
-                        for i in 0..col_count {
-                            vals.push(row.get(i).unwrap_or(rusqlite::types::Value::Null));
-                        }
-                        let params_ref: Vec<&dyn rusqlite::ToSql> = vals.iter().map(|v| v as &dyn rusqlite::ToSql).collect();
-                        let _ = insert_stmt.execute(&params_ref[..]);
+            // Intersect columns supported by target schema so older backups restore cleanly
+            let mut target_cols = std::collections::HashSet::new();
+            {
+                let mut pragma_stmt = tx
+                    .prepare(&format!("PRAGMA table_info({})", table))
+                    .map_err(|e| e.to_string())?;
+                if let Ok(rows) = pragma_stmt.query_map([], |r| r.get::<_, String>(1)) {
+                    for c in rows.flatten() {
+                        target_cols.insert(c);
                     }
                 }
             }
+            let valid_indices: Vec<(usize, String)> = col_names
+                .into_iter()
+                .enumerate()
+                .filter(|(_, name)| target_cols.contains(name))
+                .collect();
+            if valid_indices.is_empty() {
+                continue;
+            }
+
+            let placeholders = vec!["?"; valid_indices.len()].join(", ");
+            let insert_cols: Vec<String> = valid_indices.iter().map(|(_, n)| n.clone()).collect();
+            let insert_sql = format!(
+                "INSERT OR REPLACE INTO {} ({}) VALUES ({})",
+                table,
+                insert_cols.join(", "),
+                placeholders
+            );
+
+            let mut insert_stmt = tx.prepare(&insert_sql).map_err(|e| format!("Target prepare failed on {}: {}", table, e))?;
+            let mut rows = stmt.query([]).map_err(|e| format!("Backup query failed on {}: {}", table, e))?;
+            while let Some(row) = rows.next().map_err(|e| format!("Backup row failed on {}: {}", table, e))? {
+                let mut vals: Vec<rusqlite::types::Value> = Vec::with_capacity(valid_indices.len());
+                for (i, _) in &valid_indices {
+                    if *i < col_count {
+                        vals.push(row.get(*i).map_err(|e| e.to_string())?);
+                    }
+                }
+                let params_ref: Vec<&dyn rusqlite::ToSql> = vals.iter().map(|v| v as &dyn rusqlite::ToSql).collect();
+                insert_stmt
+                    .execute(&params_ref[..])
+                    .map_err(|e| format!("Failed restoring row into {}: {}", table, e))?;
+            }
         }
-    }
 
-    conn.execute_batch("PRAGMA foreign_keys = ON;").ok();
+        DatabaseManager::log_audit(
+            &tx,
+            "RESTORE",
+            "DATABASE",
+            &backup_path,
+            "Restored database snapshot",
+        )
+        .ok();
 
-    DatabaseManager::log_audit(
-        &conn,
-        "RESTORE",
-        "DATABASE",
-        &backup_path,
-        "Restored database snapshot",
-    ).ok();
+        tx.commit().map_err(|e| format!("Failed committing database restore: {}", e))?;
+        Ok(())
+    })();
 
+    let _ = conn.execute_batch("PRAGMA foreign_keys = ON;");
+    restore_res?;
     Ok(true)
 }
 
@@ -3824,7 +4352,13 @@ pub fn quick_create_product(
     let next_sku_n = next_sequence_number(&conn, "items", "sku", &sku_prefix);
     let sku = format!("{}{:03}", sku_prefix, next_sku_n);
     let next_bc_n = next_sequence_number(&conn, "items", "barcode", "890").max(100);
-    let barcode = format!("890{:09}", next_bc_n);
+    let barcode = payload
+        .barcode
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("890{:09}", next_bc_n));
 
     let purchase_price = payload.purchase_price.unwrap_or(0.0);
     let unit = if payload.unit.trim().is_empty() { "pcs".to_string() } else { payload.unit };
@@ -3941,6 +4475,9 @@ pub fn void_or_delete_invoice_internal(
         if inv_status == "RETURNED" || inv_status == "CANCELLED" {
             return Err(format!("Invoice #{} is already {}", invoice_number, inv_status));
         }
+        if invoice_type == "RETURN" {
+            return Err(format!("Credit/Return document #{} cannot be voided or returned again.", invoice_number));
+        }
 
         let items: Vec<(Option<String>, String, f64)> = {
             let mut stmt = tx
@@ -4039,7 +4576,7 @@ pub fn void_or_delete_invoice_internal(
             if paid_amount > 0.0 {
                 // Collect every payment chunk linked to this invoice (direct invoice payments + bill_settlements allocations)
                 // so multi-tender refunds (e.g. partial Cash + partial UPI) reverse the exact channels & bank accounts.
-                let mut refund_chunks: Vec<(f64, String, Option<String>)> = Vec::new();
+                let mut refund_chunks: Vec<(f64, String, Option<String>, bool)> = Vec::new();
                 {
                     let mut d_stmt = tx
                         .prepare(
@@ -4052,7 +4589,7 @@ pub fn void_or_delete_invoice_internal(
                             let amt: f64 = r.get(0)?;
                             let m: String = r.get(1)?;
                             let b: String = r.get(2)?;
-                            Ok((amt, m, if b.is_empty() { None } else { Some(b) }))
+                            Ok((amt, m, if b.is_empty() { None } else { Some(b) }, true))
                         })
                         .map_err(|e| e.to_string())?;
                     for row in d_rows.flatten() {
@@ -4074,7 +4611,7 @@ pub fn void_or_delete_invoice_internal(
                             let amt: f64 = r.get(0)?;
                             let m: String = r.get(1)?;
                             let b: String = r.get(2)?;
-                            Ok((amt, m, if b.is_empty() { None } else { Some(b) }))
+                            Ok((amt, m, if b.is_empty() { None } else { Some(b) }, true))
                         })
                         .map_err(|e| e.to_string())?;
                     for row in s_rows.flatten() {
@@ -4083,14 +4620,14 @@ pub fn void_or_delete_invoice_internal(
                 }
 
                 let mut remaining_to_refund = paid_amount;
-                let mut actual_chunks: Vec<(f64, String, Option<String>)> = Vec::new();
-                for (amt, method, bid) in refund_chunks {
+                let mut actual_chunks: Vec<(f64, String, Option<String>, bool)> = Vec::new();
+                for (amt, method, bid, from_payments) in refund_chunks {
                     if remaining_to_refund <= 0.005 {
                         break;
                     }
                     let take = amt.min(remaining_to_refund);
                     if take > 0.005 {
-                        actual_chunks.push((take, method, bid));
+                        actual_chunks.push((take, method, bid, from_payments));
                         remaining_to_refund -= take;
                     }
                 }
@@ -4100,10 +4637,10 @@ pub fn void_or_delete_invoice_internal(
                         || upper_pm.contains("UDHAAR")
                         || upper_pm.contains("UDHAR");
                     let fallback_method = if is_pure_credit { "CASH".into() } else { payment_method.clone() };
-                    actual_chunks.push((remaining_to_refund, fallback_method, None));
+                    actual_chunks.push((remaining_to_refund, fallback_method, None, false));
                 }
 
-                for (chunk_amt, refund_method, refund_bank_id) in actual_chunks {
+                for (chunk_amt, refund_method, refund_bank_id, from_payments) in actual_chunks {
                     let (_, bank_part) = parse_payment_liquidity(&refund_method, chunk_amt);
                     if bank_part > 0.0 {
                         let bank_delta = if invoice_type == "PURCHASE" { bank_part } else { -bank_part };
@@ -4120,9 +4657,10 @@ pub fn void_or_delete_invoice_internal(
                         }
                     }
 
-                    // For registered parties, insert countervailing refund payment row(s) so net payment liquidity cancels out.
-                    // (Walk-in invoices are excluded from liquidity calculation once status = 'RETURNED'.)
-                    if let Some(p_id) = party_id.as_ref() {
+                    // For registered parties OR Walk-in chunks that came from `payments` rows, insert countervailing refund row(s)
+                    // so Step 2 of calculate_liquidity_internal cancels out cleanly.
+                    // (Initial POS Walk-in front tenders are excluded automatically once status = 'RETURNED'.)
+                    if party_id.is_some() || from_payments {
                         let refund_type = if invoice_type == "PURCHASE" { "IN" } else { "OUT" };
                         tx.execute(
                             "INSERT INTO payments (id, invoice_id, party_id, party_name, amount,
@@ -4131,7 +4669,7 @@ pub fn void_or_delete_invoice_internal(
                             params![
                                 Uuid::new_v4().to_string(),
                                 invoice_id,
-                                p_id,
+                                party_id.as_deref(),
                                 party_name,
                                 chunk_amt,
                                 refund_type,
@@ -4181,7 +4719,7 @@ pub fn void_or_delete_invoice_internal(
             // Reverse any parent payments linked via bill_settlements (including settle_bill_by_bill)
             let settlements: Vec<(String, f64)> = {
                 let mut stmt = tx
-                    .prepare("SELECT payment_id, settled_amount FROM bill_settlements WHERE invoice_id = ?1")
+                    .prepare("SELECT payment_id, settled_amount FROM bill_settlements WHERE invoice_id = ?1 AND payment_id IS NOT NULL")
                     .map_err(|e| e.to_string())?;
                 let rows = stmt
                     .query_map(params![invoice_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))
@@ -4247,32 +4785,35 @@ pub fn void_or_delete_invoice_internal(
                     .collect();
                 rows
             };
-            if direct_payments.is_empty() && party_id.is_none() && paid_amount > 0.0 {
-                // Walk-in invoice had no payments row, reverse its bank_part directly
-                let (_, bank_part) = parse_payment_liquidity(&payment_method, paid_amount);
+            let mut direct_sum = 0.0;
+            for (amt, p_type, p_method, p_bank_id) in direct_payments {
+                direct_sum += amt;
+                let (_, bank_part) = parse_payment_liquidity(&p_method, amt);
                 if bank_part > 0.0 {
-                    let bank_delta = if invoice_type == "PURCHASE" { bank_part } else { -bank_part };
-                    tx.execute(
-                        "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
-                        params![bank_delta],
-                    ).ok();
+                    let bank_delta = if p_type == "IN" { -bank_part } else { bank_part };
+                    if !p_bank_id.is_empty() {
+                        tx.execute(
+                            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
+                            params![bank_delta, p_bank_id],
+                        ).ok();
+                    } else {
+                        tx.execute(
+                            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                            params![bank_delta],
+                        ).ok();
+                    }
                 }
-            } else {
-                for (amt, p_type, p_method, p_bank_id) in direct_payments {
-                    let (_, bank_part) = parse_payment_liquidity(&p_method, amt);
+            }
+            if party_id.is_none() {
+                let walkin_front = (paid_amount - direct_sum).max(0.0);
+                if walkin_front > 0.005 {
+                    let (_, bank_part) = parse_payment_liquidity(&payment_method, walkin_front);
                     if bank_part > 0.0 {
-                        let bank_delta = if p_type == "IN" { -bank_part } else { bank_part };
-                        if !p_bank_id.is_empty() {
-                            tx.execute(
-                                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
-                                params![bank_delta, p_bank_id],
-                            ).ok();
-                        } else {
-                            tx.execute(
-                                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
-                                params![bank_delta],
-                            ).ok();
-                        }
+                        let bank_delta = if invoice_type == "PURCHASE" { bank_part } else { -bank_part };
+                        tx.execute(
+                            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                            params![bank_delta],
+                        ).ok();
                     }
                 }
             }
@@ -4340,11 +4881,18 @@ pub fn generate_low_stock_po(
     }
 
     let po_id = Uuid::new_v4().to_string();
-    let po_num = format!("PO-{:04}", Local::now().timestamp() % 10000);
+    let next_po_n = next_sequence_number(&conn, "purchase_orders", "po_number", "PO-");
+    let po_num = format!("PO-{:04}", next_po_n);
     let now = Local::now().to_rfc3339();
 
     let total_cost: f64 = conn.query_row(
-        "SELECT SUM(purchase_price * MAX(10, min_stock_alert * 2)) FROM items WHERE stock_quantity <= min_stock_alert",
+        "SELECT COALESCE(SUM(
+            purchase_price * MAX(
+                1.0,
+                (CASE WHEN min_stock_alert * 2.0 > 10.0 THEN min_stock_alert * 2.0 ELSE 10.0 END) - stock_quantity
+            )
+         ), 0.0)
+         FROM items WHERE stock_quantity <= min_stock_alert",
         [],
         |r| r.get(0),
     ).unwrap_or(0.0);
@@ -4488,49 +5036,177 @@ pub fn transfer_godown_stock(
     payload: StockTransferPayload,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<bool, String> {
+    if payload.quantity <= 0.0 || !payload.quantity.is_finite() {
+        return Err("Transfer quantity must be greater than zero.".into());
+    }
+    let to_godown = payload.to_godown.trim();
+    if to_godown.is_empty() {
+        return Err("Destination godown / warehouse is required.".into());
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     let now = Local::now().to_rfc3339();
 
-    let item_name: String = tx.query_row(
-        "SELECT name FROM items WHERE id = ?1",
+    let (item_name, sku, barcode, category, unit, purchase_price, sale_price, source_stock, min_stock_alert, from_godown, size, brand, tax_rate): (
+        String, String, String, String, String, f64, f64, f64, f64, String, Option<String>, Option<String>, Option<f64>
+    ) = tx.query_row(
+        "SELECT name, sku, barcode, category, unit, purchase_price, sale_price, stock_quantity, min_stock_alert, godown, size, brand, tax_rate
+         FROM items WHERE id = ?1",
         params![payload.item_id],
-        |r| r.get(0),
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?, r.get(9)?, r.get(10)?, r.get(11)?, r.get(12)?)),
     ).map_err(|e| format!("Item not found: {}", e))?;
 
-    tx.execute(
-        "UPDATE items SET godown = ?1 WHERE id = ?2",
-        params![payload.to_godown, payload.item_id],
-    ).map_err(|e| e.to_string())?;
+    if from_godown.trim().eq_ignore_ascii_case(to_godown) {
+        return Err(format!("'{}' is already located in '{}'.", item_name, to_godown));
+    }
+    if source_stock < payload.quantity - 0.0001 {
+        return Err(format!(
+            "Insufficient stock in '{}': available {:.2} {}, requested {:.2} {}.",
+            from_godown, source_stock, unit, payload.quantity, unit
+        ));
+    }
 
-    let current: f64 = tx.query_row(
-        "SELECT stock_quantity FROM items WHERE id = ?1",
-        params![payload.item_id],
-        |r| r.get(0),
-    ).unwrap_or(0.0);
+    let transfer_qty = payload.quantity.min(source_stock);
 
-    tx.execute(
-        "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
-                                      quantity_after, movement_type, reference_id,
-                                      timestamp, notes)
-         VALUES (?1, ?2, ?3, 0.0, ?4, 'TRANSFER', 'GODOWN_TRANSFER', ?5, ?6)",
-        params![
-            Uuid::new_v4().to_string(),
-            payload.item_id,
-            item_name,
-            current,
-            now,
-            format!("Transferred {} qty from [{}] to [{}]: {}", payload.quantity, payload.from_godown, payload.to_godown, payload.notes),
-        ],
-    ).ok();
+    // Check if matching product row already exists in destination godown
+    let dest_match: Option<(String, f64)> = tx
+        .query_row(
+            "SELECT id, stock_quantity FROM items
+             WHERE LOWER(TRIM(godown)) = LOWER(TRIM(?1))
+               AND id != ?2
+               AND (
+                   (TRIM(?3) != '' AND sku = ?3)
+                   OR (TRIM(?4) != '' AND barcode = ?4)
+                   OR LOWER(TRIM(name)) = LOWER(TRIM(?5))
+               )
+             LIMIT 1",
+            params![to_godown, payload.item_id, sku, barcode, item_name],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .ok();
+
+    let is_full_transfer = (source_stock - transfer_qty).abs() <= 0.0001;
+
+    if is_full_transfer && dest_match.is_none() {
+        // Moving entire SKU to destination godown when no matching destination SKU exists
+        tx.execute(
+            "UPDATE items SET godown = ?1 WHERE id = ?2",
+            params![to_godown, payload.item_id],
+        ).map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                          quantity_after, movement_type, reference_id,
+                                          timestamp, notes)
+             VALUES (?1, ?2, ?3, ?4, ?5, 'TRANSFER', 'GODOWN_TRANSFER', ?6, ?7)",
+            params![
+                Uuid::new_v4().to_string(),
+                payload.item_id,
+                item_name,
+                transfer_qty,
+                source_stock,
+                now,
+                format!("Moved all {:.2} {} from [{}] to [{}]: {}", transfer_qty, unit, from_godown, to_godown, payload.notes),
+            ],
+        ).ok();
+    } else {
+        // Partial transfer or merge into existing destination SKU
+        let source_after = ((source_stock - transfer_qty).max(0.0) * 1000.0).round() / 1000.0;
+        tx.execute(
+            "UPDATE items SET stock_quantity = ?1 WHERE id = ?2",
+            params![source_after, payload.item_id],
+        ).map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                          quantity_after, movement_type, reference_id,
+                                          timestamp, notes)
+             VALUES (?1, ?2, ?3, ?4, ?5, 'TRANSFER_OUT', 'GODOWN_TRANSFER', ?6, ?7)",
+            params![
+                Uuid::new_v4().to_string(),
+                payload.item_id,
+                item_name,
+                -transfer_qty,
+                source_after,
+                now,
+                format!("Transferred {:.2} {} from [{}] to [{}]: {}", transfer_qty, unit, from_godown, to_godown, payload.notes),
+            ],
+        ).ok();
+
+        if let Some((dest_id, dest_stock)) = dest_match {
+            let dest_after = ((dest_stock + transfer_qty) * 1000.0).round() / 1000.0;
+            tx.execute(
+                "UPDATE items SET stock_quantity = ?1 WHERE id = ?2",
+                params![dest_after, dest_id],
+            ).map_err(|e| e.to_string())?;
+
+            tx.execute(
+                "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                              quantity_after, movement_type, reference_id,
+                                              timestamp, notes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'TRANSFER_IN', 'GODOWN_TRANSFER', ?6, ?7)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    dest_id,
+                    item_name,
+                    transfer_qty,
+                    dest_after,
+                    now,
+                    format!("Received {:.2} {} from [{}]: {}", transfer_qty, unit, from_godown, payload.notes),
+                ],
+            ).ok();
+        } else {
+            let dest_id = Uuid::new_v4().to_string();
+            let dest_date = Local::now().format("%Y-%m-%d").to_string();
+            tx.execute(
+                "INSERT INTO items (id, name, sku, barcode, category, unit,
+                                    purchase_price, sale_price, stock_quantity,
+                                    min_stock_alert, godown, created_at, size, brand, tax_rate)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                params![
+                    dest_id, item_name, sku, barcode, category, unit,
+                    purchase_price, sale_price, transfer_qty, min_stock_alert, to_godown, dest_date, size, brand, tax_rate,
+                ],
+            ).map_err(|e| e.to_string())?;
+
+            if let Ok((hsn, cess)) = tx.query_row(
+                "SELECT hsn_code, cess_rate FROM gst_items WHERE item_id = ?1",
+                params![payload.item_id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)),
+            ) {
+                let _ = tx.execute(
+                    "INSERT INTO gst_items (item_id, hsn_code, tax_preference, cess_rate, gst_rate)
+                     VALUES (?1, ?2, 'TAXABLE', ?3, ?4)",
+                    params![dest_id, hsn, cess, tax_rate.unwrap_or(0.0)],
+                );
+            }
+
+            tx.execute(
+                "INSERT INTO stock_movements (id, item_id, item_name, change_quantity,
+                                              quantity_after, movement_type, reference_id,
+                                              timestamp, notes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'TRANSFER_IN', 'GODOWN_TRANSFER', ?6, ?7)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    dest_id,
+                    item_name,
+                    transfer_qty,
+                    transfer_qty,
+                    now,
+                    format!("Received {:.2} {} from [{}]: {}", transfer_qty, unit, from_godown, payload.notes),
+                ],
+            ).ok();
+        }
+    }
 
     DatabaseManager::log_audit(
         &tx,
         "TRANSFER",
         "INVENTORY",
         &payload.item_id,
-        &format!("Transferred '{}' from {} to {}", item_name, payload.from_godown, payload.to_godown),
+        &format!("Transferred {:.2} {} of '{}' from {} to {}", transfer_qty, unit, item_name, from_godown, to_godown),
     ).ok();
 
     tx.commit().map_err(|e| e.to_string())?;
@@ -4544,8 +5220,13 @@ pub fn transfer_godown_stock(
 #[tauri::command]
 pub fn create_estimate(
     payload: EstimatePayload,
+    discount_amount: Option<f64>,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<Estimate, String> {
+    if payload.items.is_empty() {
+        return Err("Quotation must include at least one item.".into());
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
@@ -4555,18 +5236,43 @@ pub fn create_estimate(
     let estimate_number = format!("EST-{:05}", next_est_n);
     let now = Local::now().to_rfc3339();
 
+    let tax_mode: String = tx
+        .query_row("SELECT tax_mode FROM settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap_or_else(|_| "EXCLUSIVE".into());
+    let is_inclusive = tax_mode.eq_ignore_ascii_case("INCLUSIVE");
+
     let mut subtotal = 0.0;
     let mut tax_amount = 0.0;
+    let mut computed_lines: Vec<(f64, f64, f64)> = Vec::with_capacity(payload.items.len());
 
     for item in &payload.items {
-        let line_disc = item.unit_price * item.quantity * (item.discount_percent / 100.0);
-        let base = (item.unit_price * item.quantity) - line_disc;
-        let line_tax = base * (item.tax_rate / 100.0);
+        let gross_before_disc = item.unit_price * item.quantity;
+        let line_disc = gross_before_disc * (item.discount_percent / 100.0);
+        let after_disc = gross_before_disc - line_disc;
+        let (base, line_tax, line_tot) = if is_inclusive && item.tax_rate > 0.0 {
+            let ex_base = after_disc / (1.0 + item.tax_rate / 100.0);
+            let tax_part = after_disc - ex_base;
+            (ex_base, tax_part, after_disc)
+        } else {
+            let tax_part = after_disc * (item.tax_rate / 100.0);
+            (after_disc, tax_part, after_disc + tax_part)
+        };
         subtotal += base;
         tax_amount += line_tax;
+        computed_lines.push((base, line_tax, line_tot));
     }
 
-    let total_amount = subtotal + tax_amount;
+    let gross_total = subtotal + tax_amount;
+    let requested_disc = discount_amount.unwrap_or(0.0).max(0.0);
+    let applied_disc = requested_disc.min(gross_total);
+    if applied_disc > 0.005 && gross_total > 0.0 {
+        let scale = ((gross_total - applied_disc) / gross_total).max(0.0);
+        subtotal *= scale;
+        tax_amount *= scale;
+    }
+    subtotal = (subtotal * 100.0).round() / 100.0;
+    tax_amount = (tax_amount * 100.0).round() / 100.0;
+    let total_amount = ((subtotal + tax_amount) * 100.0).round() / 100.0;
 
     // Validate party_id against parties table for foreign key integrity
     let valid_party_id: Option<String> = match payload.party_id.as_deref().map(str::trim) {
@@ -4625,10 +5331,8 @@ pub fn create_estimate(
     .map_err(|e| e.to_string())?;
 
     // Now insert child line items referencing the parent estimate
-    for item in &payload.items {
-        let line_disc = item.unit_price * item.quantity * (item.discount_percent / 100.0);
-        let base = (item.unit_price * item.quantity) - line_disc;
-        let line_tax = base * (item.tax_rate / 100.0);
+    for (idx, item) in payload.items.iter().enumerate() {
+        let (_, _, line_total) = computed_lines[idx];
 
         let valid_item_id: Option<String> = match item.item_id.as_deref().map(str::trim) {
             Some(it_id) if !it_id.is_empty() => {
@@ -4663,7 +5367,7 @@ pub fn create_estimate(
                 item.unit_price,
                 item.discount_percent,
                 item.tax_rate,
-                base + line_tax,
+                (line_total * 100.0).round() / 100.0,
             ],
         )
         .map_err(|e| e.to_string())?;
@@ -4850,6 +5554,10 @@ pub fn convert_estimate_to_invoice_internal(
         (est, item_rows)
     };
 
+    if estimate.status.eq_ignore_ascii_case("CONVERTED") {
+        return Err(format!("Quotation #{} has already been converted to an invoice.", estimate.estimate_number));
+    }
+
     // Use transaction to create invoice, update stock and mark estimate converted
     let created_invoice = {
         let tx = conn.transaction().map_err(|e| e.to_string())?;
@@ -4922,14 +5630,22 @@ pub fn convert_estimate_to_invoice_internal(
         )
         .map_err(|e| e.to_string())?;
 
-        // Check if GST is enabled for GST metadata mirror
-        let gst_meta: Option<(String, String, String)> = tx
-            .query_row(
+        // Check if GST is active (INR currency AND gst_settings.is_enabled = 1) for GST metadata mirror
+        let (currency_code, tax_mode): (String, String) = tx
+            .query_row("SELECT currency_code, tax_mode FROM settings WHERE id = 1", [], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap_or_else(|_| ("USD".into(), "EXCLUSIVE".into()));
+        let is_inclusive = tax_mode.eq_ignore_ascii_case("INCLUSIVE");
+
+        let gst_meta: Option<(String, String, String)> = if currency_code.eq_ignore_ascii_case("INR") {
+            tx.query_row(
                 "SELECT gstin, state_code, state_name FROM gst_settings WHERE id = 1 AND is_enabled = 1",
                 [],
                 |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
             )
-            .ok();
+            .ok()
+        } else {
+            None
+        };
 
         let (cust_gstin, pos_code, pos_name, is_interstate) = if let Some((_, ref s_code, ref s_name)) = gst_meta {
             if let Some(ref pid) = estimate.party_id {
@@ -5005,8 +5721,13 @@ pub fn convert_estimate_to_invoice_internal(
 
             if gst_meta.is_some() {
                 let line_disc = item.unit_price * item.quantity * (item.discount_percent / 100.0);
-                let taxable = (item.unit_price * item.quantity) - line_disc;
-                let line_tax = taxable * (item.tax_rate / 100.0);
+                let after_disc = (item.unit_price * item.quantity) - line_disc;
+                let (taxable, line_tax) = if is_inclusive && item.tax_rate > 0.0 {
+                    let ex_base = after_disc / (1.0 + item.tax_rate / 100.0);
+                    (ex_base, after_disc - ex_base)
+                } else {
+                    (after_disc, after_disc * (item.tax_rate / 100.0))
+                };
                 let hsn: String = if let Some(ref it_id) = item.item_id {
                     tx.query_row("SELECT hsn_code FROM gst_items WHERE item_id = ?1", params![it_id], |r| r.get(0))
                         .unwrap_or_else(|_| "8471".into())
@@ -5026,7 +5747,7 @@ pub fn convert_estimate_to_invoice_internal(
                         cess_rate, cess_amount, line_total
                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, 0.0, 0.0, ?17)",
                     params![
-                        Uuid::new_v4().to_string(),
+                        line_id,
                         inv_id,
                         item.item_id,
                         hsn,
@@ -5034,15 +5755,15 @@ pub fn convert_estimate_to_invoice_internal(
                         item.unit,
                         item.unit_price,
                         line_disc,
-                        taxable,
+                        (taxable * 100.0).round() / 100.0,
                         item.tax_rate,
                         cg_r,
-                        cg_a,
+                        (cg_a * 100.0).round() / 100.0,
                         sg_r,
-                        sg_a,
+                        (sg_a * 100.0).round() / 100.0,
                         ig_r,
-                        ig_a,
-                        taxable + line_tax,
+                        (ig_a * 100.0).round() / 100.0,
+                        ((taxable + line_tax) * 100.0).round() / 100.0,
                     ],
                 );
             }
@@ -5201,7 +5922,7 @@ pub fn get_customer_aging_analysis(
             .prepare(
                 "SELECT invoice_date, total_amount, paid_amount
                  FROM invoices
-                 WHERE party_id = ?1 AND invoice_type = 'SALE' AND status != 'PAID'",
+                 WHERE party_id = ?1 AND invoice_type = 'SALE' AND status NOT IN ('PAID', 'RETURNED', 'CANCELLED')",
             )
             .map_err(|e| e.to_string())?;
 
@@ -5464,21 +6185,22 @@ pub fn create_purchase_return_internal(
                 )
                 .ok();
 
-                // Note: bill_settlements payment_id references return_id (no FK constraint on bill_settlements.payment_id)
-                let _ = tx.execute(
+                // Debit note settlement adjustment with NULL payment_id (no synthetic payments row)
+                tx.execute(
                     "INSERT INTO bill_settlements (
                         id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                     params![
                         Uuid::new_v4().to_string(),
-                        return_id,
+                        None::<&str>,
                         bill_id,
                         pid,
                         alloc,
                         ret.return_date,
                         format!("Debit Note {} credit adjustment", return_number),
                     ],
-                );
+                )
+                .map_err(|e| e.to_string())?;
                 remaining -= alloc;
             }
         }
@@ -5779,15 +6501,16 @@ pub fn record_deposit_internal(
     conn: &rusqlite::Connection,
     payload: &DepositPayload,
 ) -> Result<(f64, f64), String> {
-    if payload.amount <= 0.0 {
+    if payload.amount <= 0.0 || !payload.amount.is_finite() {
         return Err("Deposit amount must be greater than zero".to_string());
     }
 
     let upper_dest = payload.destination.to_uppercase();
-    let now = if payload.date.is_empty() {
-        Local::now().to_rfc3339()
+    let now_ts = Local::now().to_rfc3339();
+    let deposit_date = if payload.date.trim().is_empty() {
+        Local::now().format("%Y-%m-%d").to_string()
     } else {
-        payload.date.clone()
+        payload.date.trim().to_string()
     };
     let ref_str = if payload.reference.trim().is_empty() {
         format!("DEP-{}", &Uuid::new_v4().to_string()[..8].to_uppercase())
@@ -5795,11 +6518,53 @@ pub fn record_deposit_internal(
         payload.reference.trim().to_string()
     };
 
+    let apply_bank_deposit = |bank_amt: f64| {
+        if bank_amt <= 0.005 {
+            return;
+        }
+        let bank_acc_id = match payload.bank_account_id {
+            Some(ref bid) if !bid.trim().is_empty() => bid.trim().to_string(),
+            _ => "BANK-PRIMARY".to_string(),
+        };
+
+        let mut updated = conn
+            .execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
+                params![bank_amt, bank_acc_id],
+            )
+            .unwrap_or(0);
+
+        if updated == 0 {
+            updated = conn
+                .execute(
+                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                    params![bank_amt],
+                )
+                .unwrap_or(0);
+        }
+
+        if updated == 0 {
+            let (_, bank_bal) = calculate_liquidity_internal(conn).unwrap_or((0.0, 0.0));
+            let _ = conn.execute(
+                "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
+                 VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', ?1, 1, ?2)",
+                params![bank_bal, now_ts],
+            );
+        }
+    };
+
     if upper_dest == "CASH" {
-        // Direct cash drawer deposit / float topup
+        // Operational cash drawer deposit / float topup (stored in deposits table so settings.capital_cash remains Owner Capital)
         conn.execute(
-            "UPDATE settings SET capital_cash = capital_cash + ?1 WHERE id = 1",
-            params![payload.amount],
+            "INSERT INTO deposits (id, deposit_type, account_type, bank_account_id, cash_amount, bank_amount, notes, deposit_date, timestamp)
+             VALUES (?1, 'CASH', 'CASH', '', ?2, 0.0, ?3, ?4, ?5)",
+            params![
+                ref_str,
+                payload.amount,
+                if payload.notes.trim().is_empty() { payload.source.trim().to_string() } else { format!("{} - {}", payload.source.trim(), payload.notes.trim()) },
+                deposit_date,
+                now_ts,
+            ],
         )
         .map_err(|e| e.to_string())?;
 
@@ -5815,45 +6580,22 @@ pub fn record_deposit_internal(
         )
         .ok();
     } else if upper_dest == "BANK" {
-        // Direct bank deposit
+        let target_bank = payload.bank_account_id.as_deref().unwrap_or("").trim().to_string();
         conn.execute(
-            "UPDATE settings SET capital_bank = capital_bank + ?1 WHERE id = 1",
-            params![payload.amount],
+            "INSERT INTO deposits (id, deposit_type, account_type, bank_account_id, cash_amount, bank_amount, notes, deposit_date, timestamp)
+             VALUES (?1, 'BANK', 'BANK', ?2, 0.0, ?3, ?4, ?5, ?6)",
+            params![
+                ref_str,
+                target_bank,
+                payload.amount,
+                if payload.notes.trim().is_empty() { payload.source.trim().to_string() } else { format!("{} - {}", payload.source.trim(), payload.notes.trim()) },
+                deposit_date,
+                now_ts,
+            ],
         )
         .map_err(|e| e.to_string())?;
 
-        let bank_acc_id = if let Some(ref bid) = payload.bank_account_id {
-            if !bid.trim().is_empty() {
-                bid.trim().to_string()
-            } else {
-                "BANK-PRIMARY".to_string()
-            }
-        } else {
-            "BANK-PRIMARY".to_string()
-        };
-
-        let mut updated = conn.execute(
-            "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
-            params![payload.amount, bank_acc_id],
-        )
-        .unwrap_or(0);
-
-        if updated == 0 {
-            updated = conn.execute(
-                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
-                params![payload.amount],
-            )
-            .unwrap_or(0);
-        }
-
-        if updated == 0 {
-            let (_, bank_bal) = calculate_liquidity_internal(conn).unwrap_or((0.0, 0.0));
-            let _ = conn.execute(
-                "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
-                 VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', ?1, 1, ?2)",
-                params![bank_bal, now],
-            );
-        }
+        apply_bank_deposit(payload.amount);
 
         DatabaseManager::log_audit(
             conn,
@@ -5867,47 +6609,56 @@ pub fn record_deposit_internal(
         )
         .ok();
     } else {
-        // Owner Capital Equity Injection
-        let cap_mode: String = conn
-            .query_row("SELECT capital_mode FROM settings WHERE id = 1", [], |r| r.get(0))
-            .unwrap_or_else(|_| "CASH".to_string());
-
-        if cap_mode.to_uppercase() == "BANK" {
-            conn.execute(
-                "UPDATE settings SET capital_bank = capital_bank + ?1 WHERE id = 1",
-                params![payload.amount],
+        // Owner Capital Equity Injection ("CASH" | "BANK" | "SPLIT")
+        let (cap_mode, cur_cap_cash, cur_cap_bank): (String, f64, f64) = conn
+            .query_row(
+                "SELECT COALESCE(capital_mode, 'CASH'), COALESCE(capital_cash, 0.0), COALESCE(capital_bank, 0.0) FROM settings WHERE id = 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
             )
-            .map_err(|e| e.to_string())?;
+            .unwrap_or_else(|_| ("CASH".to_string(), 0.0, 0.0));
 
-            let bank_acc_id = if let Some(ref bid) = payload.bank_account_id {
-                if !bid.trim().is_empty() {
-                    bid.trim().to_string()
-                } else {
-                    "BANK-PRIMARY".to_string()
-                }
+        let mode_upper = cap_mode.trim().to_uppercase();
+        let (cash_inj, bank_inj) = if mode_upper == "BANK" {
+            (0.0, payload.amount)
+        } else if mode_upper == "SPLIT" {
+            let total_cap = cur_cap_cash + cur_cap_bank;
+            let cash_share = if total_cap > 0.01 {
+                ((payload.amount * (cur_cap_cash / total_cap)) * 100.0).round() / 100.0
             } else {
-                "BANK-PRIMARY".to_string()
+                ((payload.amount / 2.0) * 100.0).round() / 100.0
             };
-
-            let updated = conn.execute(
-                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
-                params![payload.amount, bank_acc_id],
-            )
-            .unwrap_or(0);
-
-            if updated == 0 {
-                let _ = conn.execute(
-                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
-                    params![payload.amount],
-                );
-            }
+            (cash_share, ((payload.amount - cash_share) * 100.0).round() / 100.0)
         } else {
-            conn.execute(
-                "UPDATE settings SET capital_cash = capital_cash + ?1 WHERE id = 1",
-                params![payload.amount],
-            )
-            .map_err(|e| e.to_string())?;
+            (payload.amount, 0.0)
+        };
+
+        conn.execute(
+            "UPDATE settings SET capital_cash = capital_cash + ?1, capital_bank = capital_bank + ?2 WHERE id = 1",
+            params![cash_inj, bank_inj],
+        )
+        .map_err(|e| e.to_string())?;
+
+        if bank_inj > 0.005 {
+            apply_bank_deposit(bank_inj);
         }
+
+        let target_bank = payload.bank_account_id.as_deref().unwrap_or("").trim().to_string();
+        conn.execute(
+            "INSERT INTO deposits (id, deposit_type, account_type, bank_account_id, cash_amount, bank_amount, notes, deposit_date, timestamp)
+             VALUES (?1, 'CAPITAL', ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                ref_str,
+                mode_upper,
+                target_bank,
+                cash_inj,
+                bank_inj,
+                if payload.notes.trim().is_empty() { payload.source.trim().to_string() } else { format!("{} - {}", payload.source.trim(), payload.notes.trim()) },
+                deposit_date,
+                now_ts,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
 
         DatabaseManager::log_audit(
             conn,
@@ -5915,8 +6666,8 @@ pub fn record_deposit_internal(
             "OWNER_CAPITAL",
             &ref_str,
             &format!(
-                "Injected {:.2} Owner Capital. Source: {}. Notes: {}",
-                payload.amount, payload.source, payload.notes
+                "Injected {:.2} Owner Capital (Cash: {:.2}, Bank: {:.2}). Source: {}. Notes: {}",
+                payload.amount, cash_inj, bank_inj, payload.source, payload.notes
             ),
         )
         .ok();
@@ -6048,8 +6799,13 @@ pub fn record_loan_transaction(
     payload: LoanTransactionPayload,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<bool, String> {
+    if payload.amount <= 0.0 || !payload.amount.is_finite() {
+        return Err("Loan transaction amount must be greater than zero".into());
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let is_bank = !payload.account_type.to_uppercase().contains("CASH");
 
     if payload.transaction_type == "DRAWDOWN" {
         // Borrowed capital injected into the business
@@ -6059,11 +6815,17 @@ pub fn record_loan_transaction(
         )
         .map_err(|e| e.to_string())?;
 
-        if payload.account_type == "BANK" {
-            if let Some(ref bid) = payload.bank_account_id {
+        if is_bank {
+            if let Some(ref bid) = payload.bank_account_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
                 conn.execute(
                     "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
                     params![payload.amount, bid],
+                )
+                .ok();
+            } else {
+                conn.execute(
+                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                    params![payload.amount],
                 )
                 .ok();
             }
@@ -6074,7 +6836,7 @@ pub fn record_loan_transaction(
             "DRAWDOWN",
             "BUSINESS_LOAN",
             &payload.loan_id,
-            &format!("Injected loan capital of ${:.2} into business: {}", payload.amount, payload.notes),
+            &format!("Injected loan capital of {:.2} into business: {}", payload.amount, payload.notes),
         )
         .ok();
     } else {
@@ -6089,15 +6851,21 @@ pub fn record_loan_transaction(
             .query_row("SELECT current_balance FROM business_loans WHERE id = ?1", params![payload.loan_id], |r| r.get(0))
             .unwrap_or(0.0);
 
-        if balance <= 0.0 {
+        if balance <= 0.005 {
             conn.execute("UPDATE business_loans SET status = 'PAID_OFF' WHERE id = ?1", params![payload.loan_id]).ok();
         }
 
-        if payload.account_type == "BANK" {
-            if let Some(ref bid) = payload.bank_account_id {
+        if is_bank {
+            if let Some(ref bid) = payload.bank_account_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
                 conn.execute(
                     "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2",
                     params![payload.amount, bid],
+                )
+                .ok();
+            } else {
+                conn.execute(
+                    "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
+                    params![payload.amount],
                 )
                 .ok();
             }
@@ -6108,7 +6876,7 @@ pub fn record_loan_transaction(
             "REPAYMENT",
             "BUSINESS_LOAN",
             &payload.loan_id,
-            &format!("Repaid ${:.2} against loan debt: {}", payload.amount, payload.notes),
+            &format!("Repaid {:.2} against loan debt: {}", payload.amount, payload.notes),
         )
         .ok();
     }
@@ -6407,6 +7175,18 @@ pub fn list_recurring_bills(state: State<'_, Mutex<AppState>>) -> Result<Vec<Rec
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
+    // Automatically cycle PAID recurring bills from prior months back to DUE at month rollover
+    let current_ym = chrono::Local::now().format("%Y-%m").to_string();
+    let _ = conn.execute(
+        "UPDATE recurring_bills
+         SET status = 'DUE'
+         WHERE status = 'PAID'
+           AND last_paid_date IS NOT NULL
+           AND TRIM(last_paid_date) != ''
+           AND substr(last_paid_date, 1, 7) < ?1",
+        params![current_ym],
+    );
+
     let mut stmt = conn
         .prepare(
             "SELECT id, title, category, due_day, estimated_amount, status,
@@ -6451,12 +7231,11 @@ pub fn save_recurring_bill(
     let id = match bill.id {
         Some(ref existing_id) if !existing_id.trim().is_empty() => existing_id.clone(),
         _ => {
-            let count: i64 = conn
-                .query_row("SELECT COUNT(*) FROM recurring_bills", [], |r| r.get(0))
-                .unwrap_or(0);
-            format!("REC-{:03}", count + 1)
+            let next_rec = next_sequence_number(&conn, "recurring_bills", "id", "REC-");
+            format!("REC-{:03}", next_rec)
         }
     };
+    let clamped_due_day = bill.due_day.clamp(1, 31);
 
     let now = chrono::Local::now().to_rfc3339();
 
@@ -6473,7 +7252,7 @@ pub fn save_recurring_bill(
             id,
             bill.title.trim(),
             bill.category.trim(),
-            bill.due_day,
+            clamped_due_day,
             bill.estimated_amount,
             bill.notes.trim(),
             now
@@ -6534,18 +7313,32 @@ pub fn pay_recurring_bill(
     payload: PayRecurringBillPayload,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<RecurringBill, String> {
+    if payload.amount <= 0.0 || !payload.amount.is_finite() {
+        return Err("Bill payment amount must be greater than zero.".into());
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
-    // 1. Fetch the recurring bill details
-    let (title, category): (String, String) = tx
+    // 1. Fetch the recurring bill details & enforce single payment per billing cycle
+    let (title, category, status, last_paid_date): (String, String, String, Option<String>) = tx
         .query_row(
-            "SELECT title, category FROM recurring_bills WHERE id = ?1",
+            "SELECT title, category, status, last_paid_date FROM recurring_bills WHERE id = ?1",
             params![payload.bill_id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
         )
         .map_err(|e| format!("Recurring bill not found: {}", e))?;
+
+    let pay_ym: String = payload.payment_date.chars().take(7).collect();
+    if status == "PAID" {
+        if let Some(ref lpd) = last_paid_date {
+            let lpd_ym: String = lpd.chars().take(7).collect();
+            if !pay_ym.is_empty() && lpd_ym == pay_ym {
+                return Err(format!("'{}' is already marked PAID for {}. Wait until next cycle to pay again.", title, pay_ym));
+            }
+        }
+    }
 
     // 2. Insert into official expenses table
     let exp_id = format!("EXP-REC-{}", &uuid::Uuid::new_v4().to_string()[..8]);
@@ -6571,18 +7364,19 @@ pub fn pay_recurring_bill(
     )
     .map_err(|e| e.to_string())?;
 
-    // 3. If paid via Bank, deduct from primary or specified bank account
-    if payload.payment_source == "BANK" {
-        if let Some(ref bid) = payload.bank_account_id {
+    // 3. If paid via non-cash channel (Bank, UPI, Card, Transfer, etc.), deduct from target or primary bank account
+    let (_, bank_part) = parse_payment_liquidity(&payload.payment_source, payload.amount);
+    if bank_part > 0.0 {
+        if let Some(ref bid) = payload.bank_account_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
             tx.execute(
                 "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2",
-                params![payload.amount, bid],
+                params![bank_part, bid],
             )
             .ok();
         } else {
             tx.execute(
                 "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
-                params![payload.amount],
+                params![bank_part],
             )
             .ok();
         }
@@ -6640,16 +7434,23 @@ pub fn pay_recurring_bill(
 // ----------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn list_employees(state: State<'_, Mutex<AppState>>) -> Result<Vec<Employee>, String> {
+pub fn list_employees(
+    include_inactive: Option<bool>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<Employee>, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
+    let show_inactive = include_inactive.unwrap_or(false);
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, role, phone, email, monthly_salary, salary_type, status, joining_date, notes, created_at
-             FROM employees ORDER BY status ASC, name ASC",
-        )
-        .map_err(|e| e.to_string())?;
+    let sql = if show_inactive {
+        "SELECT id, name, role, phone, email, monthly_salary, salary_type, status, joining_date, notes, created_at
+         FROM employees ORDER BY status ASC, name ASC"
+    } else {
+        "SELECT id, name, role, phone, email, monthly_salary, salary_type, status, joining_date, notes, created_at
+         FROM employees WHERE status = 'ACTIVE' ORDER BY name ASC"
+    };
+
+    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
 
     let rows = stmt
         .query_map([], |r| {
@@ -6684,13 +7485,15 @@ pub fn save_employee(
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
+    if employee.name.trim().is_empty() {
+        return Err("Employee name is required.".into());
+    }
+
     let id = match employee.id {
         Some(ref existing_id) if !existing_id.trim().is_empty() => existing_id.clone(),
         _ => {
-            let count: i64 = conn
-                .query_row("SELECT COUNT(*) FROM employees", [], |r| r.get(0))
-                .unwrap_or(0);
-            format!("EMP-{:03}", count + 1)
+            let next_emp = next_sequence_number(&conn, "employees", "id", "EMP-");
+            format!("EMP-{:03}", next_emp)
         }
     };
 
@@ -6765,6 +7568,21 @@ pub fn delete_employee(
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
+    let sal_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM salary_payments WHERE employee_id = ?1",
+            params![id],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+    if sal_count > 0 {
+        return Err(
+            "Cannot delete staff member with historical salary payroll vouchers. Edit their status to INACTIVE instead to preserve payroll and expense integrity."
+                .into(),
+        );
+    }
+
+    conn.execute("DELETE FROM employee_attendance WHERE employee_id = ?1", params![id]).ok();
     conn.execute("DELETE FROM employees WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
@@ -6874,6 +7692,10 @@ pub fn pay_salary(
     payload: PaySalaryPayload,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<SalaryPayment, String> {
+    if payload.amount <= 0.0 || !payload.amount.is_finite() {
+        return Err("Salary payment amount must be greater than zero.".into());
+    }
+
     let app = state.lock().map_err(|e| e.to_string())?;
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
@@ -6936,18 +7758,19 @@ pub fn pay_salary(
     )
     .map_err(|e| e.to_string())?;
 
-    // 3. If paid via Bank, debit bank account
-    if payload.payment_source == "BANK" {
-        if let Some(ref bid) = payload.bank_account_id {
+    // 3. If paid via non-cash channel (Bank/UPI/Transfer), debit bank account
+    let (_, bank_part) = parse_payment_liquidity(&payload.payment_source, payload.amount);
+    if bank_part > 0.0 {
+        if let Some(ref bid) = payload.bank_account_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
             tx.execute(
                 "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE id = ?2",
-                params![payload.amount, bid],
+                params![bank_part, bid],
             )
             .ok();
         } else {
             tx.execute(
                 "UPDATE bank_accounts SET current_balance = current_balance - ?1 WHERE is_primary = 1",
-                params![payload.amount],
+                params![bank_part],
             )
             .ok();
         }
@@ -7062,7 +7885,7 @@ pub fn get_staff_stats(state: State<'_, Mutex<AppState>>) -> Result<StaffSummary
         )
         .unwrap_or(0);
 
-    let total_monthly_payroll_due: f64 = conn
+    let gross_monthly_payroll: f64 = conn
         .query_row(
             "SELECT COALESCE(SUM(monthly_salary), 0.0) FROM employees WHERE status = 'ACTIVE'",
             [],
@@ -7078,6 +7901,8 @@ pub fn get_staff_stats(state: State<'_, Mutex<AppState>>) -> Result<StaffSummary
             |r| r.get(0),
         )
         .unwrap_or(0.0);
+
+    let total_monthly_payroll_due = ((gross_monthly_payroll - total_payroll_paid_this_month).max(0.0) * 100.0).round() / 100.0;
 
     Ok(StaffSummaryStats {
         total_active_employees,
@@ -7119,19 +7944,23 @@ pub fn update_opening_capital(
     )
     .map_err(|e| e.to_string())?;
 
-    // Also update primary operating bank account balance deterministically
+    // Sync primary operating bank account balance only when operating with a single account (never clobber multi-bank accounts)
     let (_, cash_in_bank) = calculate_liquidity_internal(&conn).unwrap_or((0.0, 0.0));
-    let updated_rows = conn.execute(
-        "UPDATE bank_accounts SET current_balance = ?1 WHERE is_primary = 1",
-        params![cash_in_bank],
-    ).unwrap_or(0);
+    let bank_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM bank_accounts", [], |r| r.get(0))
+        .unwrap_or(0);
 
-    if updated_rows == 0 {
+    if bank_count == 0 {
         let now = chrono::Local::now().to_rfc3339();
         conn.execute(
             "INSERT INTO bank_accounts (id, account_name, bank_name, account_number, current_balance, is_primary, created_at)
              VALUES ('BANK-PRIMARY', 'Primary Operating Account', 'Commercial Bank', '0001', ?1, 1, ?2)",
             params![cash_in_bank, now],
+        ).ok();
+    } else if bank_count == 1 {
+        conn.execute(
+            "UPDATE bank_accounts SET current_balance = ?1 WHERE is_primary = 1",
+            params![cash_in_bank],
         ).ok();
     }
 

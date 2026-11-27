@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { api } from "../services/api";
+import { gstApi } from "../modules/india_gst/gstApi";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 
@@ -76,6 +77,16 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
         currency_symbol: currencySymbol,
         currency_code: currencyCode,
       });
+
+      const existingGst = await gstApi.getGstSettings().catch(() => null);
+      if (existingGst) {
+        await gstApi
+          .saveGstSettings({
+            ...existingGst,
+            is_enabled: currencyCode === "INR",
+          })
+          .catch(() => {});
+      }
 
       onComplete();
     } catch (err) {

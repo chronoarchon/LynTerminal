@@ -203,6 +203,8 @@ pub struct CreateGstInvoicePayload {
     pub transporter_name: Option<String>,
     pub bill_reference_type: String, // "New Ref", "Agst Ref", "Advance", "On Account"
     pub items: Vec<CreateGstItemPayload>,
+    #[serde(default)]
+    pub bank_account_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -356,6 +358,10 @@ pub struct Gstr3bTable31 {
     pub zero_rated_taxable: f64,
     pub nil_exempt_taxable: f64,
     pub reverse_charge_taxable: f64,
+    pub reverse_charge_igst: f64,
+    pub reverse_charge_cgst: f64,
+    pub reverse_charge_sgst: f64,
+    pub reverse_charge_cess: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -620,31 +626,8 @@ pub fn create_gst_invoice_internal(
         )
         .unwrap_or_else(|_| "INV-".into());
 
-    let max_num: i64 = {
-        let mut num_stmt = tx
-            .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1 || '%'")
-            .map_err(|e| e.to_string())?;
-        let prefix_len = prefix.len();
-        let nums = num_stmt
-            .query_map(params![prefix], |r| r.get::<_, String>(0))
-            .map_err(|e| e.to_string())?;
-        let mut highest = 0i64;
-        for inv_num in nums.filter_map(Result::ok) {
-            if inv_num.len() > prefix_len {
-                let suffix = &inv_num[prefix_len..];
-                if suffix.chars().all(|c| c.is_ascii_digit()) {
-                    if let Ok(n) = suffix.parse::<i64>() {
-                        if n > highest {
-                            highest = n;
-                        }
-                    }
-                }
-            }
-        }
-        highest
-    };
-
-    let invoice_number = format!("{}{:05}", prefix, max_num + 1);
+    let next_num = crate::commands::next_sequence_number(&tx, "invoices", "invoice_number", &prefix);
+    let invoice_number = format!("{}{:05}", prefix, next_num);
 
     let supplier_gstin: String = tx
         .query_row(
@@ -1060,11 +1043,19 @@ pub fn create_gst_invoice_internal(
                 0.0
             };
             if bank_delta != 0.0 {
-                tx.execute(
-                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
-                    params![bank_delta],
-                )
-                .ok();
+                if let Some(ref bid) = payload.bank_account_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                    tx.execute(
+                        "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
+                        params![bank_delta, bid],
+                    )
+                    .ok();
+                } else {
+                    tx.execute(
+                        "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                        params![bank_delta],
+                    )
+                    .ok();
+                }
             }
         }
     }
@@ -1227,18 +1218,49 @@ pub fn get_gst_invoice_internal(conn: &Connection, invoice_id: &str) -> Result<C
             )
             .unwrap_or(("27AABCU9603R1ZN".into(), "27".into(), "Maharashtra".into()));
 
+        let (cust_gstin, mut pos_sc, pos_sn) = if let Some(ref pid) = core_invoice.party_id {
+            conn.query_row(
+                "SELECT COALESCE(NULLIF(TRIM(gp.gstin), ''), TRIM(p.tax_number), ''),
+                        COALESCE(NULLIF(TRIM(gp.state_code), ''), ''),
+                        COALESCE(NULLIF(TRIM(gp.state_name), ''), '')
+                 FROM parties p
+                 LEFT JOIN gst_parties gp ON p.id = gp.party_id
+                 WHERE p.id = ?1",
+                params![pid],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)),
+            )
+            .unwrap_or(("".into(), "".into(), "".into()))
+        } else {
+            ("".into(), "".into(), "".into())
+        };
+
+        if pos_sc.trim().is_empty() && cust_gstin.trim().len() >= 2 && cust_gstin.trim()[..2].chars().all(|c| c.is_ascii_digit()) {
+            pos_sc = cust_gstin.trim()[..2].to_string();
+        }
+        if pos_sc.trim().is_empty() {
+            pos_sc = supp_sc.clone();
+        }
+        let pos_sn = if pos_sn.trim().is_empty() { supp_sn.clone() } else { pos_sn };
+
+        let is_interstate = !pos_sc.trim().is_empty() && !supp_sc.trim().is_empty() && pos_sc.trim() != supp_sc.trim();
+        let (cgst_amount, sgst_amount, igst_amount) = if is_interstate {
+            (0.0, 0.0, core_invoice.tax_amount)
+        } else {
+            (core_invoice.tax_amount / 2.0, core_invoice.tax_amount / 2.0, 0.0)
+        };
+
         GstInvoiceRecord {
             invoice_id: invoice_id.to_string(),
-            place_of_supply: format!("{}-{}", supp_sc, supp_sn),
-            pos_state_code: supp_sc,
-            pos_state_name: supp_sn,
+            place_of_supply: format!("{}-{}", pos_sc, pos_sn),
+            pos_state_code: pos_sc,
+            pos_state_name: pos_sn,
             supplier_gstin: supp_gstin,
-            customer_gstin: "".into(),
-            is_interstate: false,
+            customer_gstin: cust_gstin,
+            is_interstate,
             is_reverse_charge: false,
-            cgst_amount: core_invoice.tax_amount / 2.0,
-            sgst_amount: core_invoice.tax_amount / 2.0,
-            igst_amount: 0.0,
+            cgst_amount,
+            sgst_amount,
+            igst_amount,
             cess_amount: 0.0,
             round_off: 0.0,
             eway_bill_no: None,
@@ -1289,6 +1311,11 @@ pub fn get_gst_invoice_internal(conn: &Connection, invoice_id: &str) -> Result<C
     // If invoice was created via standard POS, synthesize GST items from core items so bill rendering is 100% complete
     if gst_items.is_empty() && !core_items.is_empty() {
         let is_inter = gst_info.is_interstate;
+        let tax_mode: String = conn
+            .query_row("SELECT COALESCE(tax_mode, 'EXCLUSIVE') FROM settings WHERE id = 1", [], |r| r.get(0))
+            .unwrap_or_else(|_| "EXCLUSIVE".into());
+        let is_inclusive = tax_mode.eq_ignore_ascii_case("INCLUSIVE");
+
         for ci in &core_items {
             let hsn = if let Some(ref it_id) = ci.item_id {
                 conn.query_row(
@@ -1302,13 +1329,21 @@ pub fn get_gst_invoice_internal(conn: &Connection, invoice_id: &str) -> Result<C
             };
 
             let tax_rate = ci.tax_rate;
-            let line_total = ci.line_total;
-            let taxable_amount = if tax_rate > 0.0 {
-                line_total / (1.0 + tax_rate / 100.0)
+            let gross = ci.unit_price * ci.quantity;
+            let discount_amount = ((gross * (ci.discount_percent / 100.0)) * 100.0).round() / 100.0;
+            let (taxable_amount, total_tax, line_total) = if is_inclusive {
+                let taxable = if tax_rate > 0.0 {
+                    ci.line_total / (1.0 + tax_rate / 100.0)
+                } else {
+                    ci.line_total
+                };
+                let tax = (ci.line_total - taxable).max(0.0);
+                (taxable, tax, ci.line_total)
             } else {
-                line_total
+                let taxable = ci.line_total;
+                let tax = (taxable * (tax_rate / 100.0)).max(0.0);
+                (taxable, tax, taxable + tax)
             };
-            let total_tax = (line_total - taxable_amount).max(0.0);
 
             let (cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount) = if is_inter {
                 (0.0, 0.0, 0.0, 0.0, tax_rate, total_tax)
@@ -1324,7 +1359,7 @@ pub fn get_gst_invoice_internal(conn: &Connection, invoice_id: &str) -> Result<C
                 quantity: ci.quantity,
                 unit: ci.unit.clone(),
                 rate: ci.unit_price,
-                discount_amount: 0.0,
+                discount_amount,
                 taxable_amount,
                 tax_rate,
                 cgst_rate,
@@ -1445,7 +1480,7 @@ pub fn get_sundry_debtors_aging_internal(conn: &Connection) -> Result<Vec<PartyC
 
         let mut inv_stmt = conn
             .prepare(
-                "SELECT invoice_date, total_amount, paid_amount
+                "SELECT invoice_date, due_date, total_amount, paid_amount
                  FROM invoices
                  WHERE party_id = ?1 AND invoice_type = 'SALE' AND status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
                  ORDER BY invoice_date ASC",
@@ -1456,8 +1491,9 @@ pub fn get_sundry_debtors_aging_internal(conn: &Connection) -> Result<Vec<PartyC
             .query_map(params![party_id], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
-                    r.get::<_, f64>(1)?,
+                    r.get::<_, String>(1)?,
                     r.get::<_, f64>(2)?,
+                    r.get::<_, f64>(3)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
@@ -1470,35 +1506,41 @@ pub fn get_sundry_debtors_aging_internal(conn: &Connection) -> Result<Vec<PartyC
         let mut pending_bills_count = 0;
 
         for inv in unpaid.filter_map(Result::ok) {
-            let (date_str, total, paid) = inv;
+            let (date_str, due_date_str, total, paid) = inv;
             let due_val = total - paid;
             if due_val <= 0.001 {
                 continue;
             }
 
             pending_bills_count += 1;
-            let days_old = if let Some(parsed) = parse_flexible_date(&date_str) {
+            let inv_parsed = parse_flexible_date(&date_str);
+            let days_old = if let Some(parsed) = inv_parsed {
                 (today - parsed).num_days()
             } else {
                 0
             };
 
+            let due_parsed = parse_flexible_date(&due_date_str)
+                .or_else(|| inv_parsed.map(|d| d + chrono::Duration::days(credit_period_days.max(0) as i64)))
+                .unwrap_or(today);
+            if (today - due_parsed).num_days() > 0 {
+                overdue_count += 1;
+            }
+
             if days_old <= 30 {
                 current_30 += due_val;
             } else if days_old <= 60 {
                 days_60 += due_val;
-                overdue_count += 1;
             } else if days_old <= 90 {
                 days_90 += due_val;
-                overdue_count += 1;
             } else {
                 over_90 += due_val;
-                overdue_count += 1;
             }
         }
 
-        if pending_bills_count == 0 && current_balance > 0.0 {
-            current_30 = current_balance;
+        let billed_due = current_30 + days_60 + days_90 + over_90;
+        if current_balance > billed_due + 0.01 {
+            current_30 += current_balance - billed_due;
         }
 
         let is_over_limit = credit_limit > 0.0 && current_balance > credit_limit;
@@ -1573,7 +1615,7 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
 
         let mut inv_stmt = conn
             .prepare(
-                "SELECT invoice_date, total_amount, paid_amount
+                "SELECT invoice_date, due_date, total_amount, paid_amount
                  FROM invoices
                  WHERE party_id = ?1 AND invoice_type = 'PURCHASE' AND status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
                  ORDER BY invoice_date ASC",
@@ -1584,8 +1626,9 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
             .query_map(params![party_id], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
-                    r.get::<_, f64>(1)?,
+                    r.get::<_, String>(1)?,
                     r.get::<_, f64>(2)?,
+                    r.get::<_, f64>(3)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
@@ -1598,35 +1641,41 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
         let mut pending_bills_count = 0;
 
         for inv in unpaid.filter_map(Result::ok) {
-            let (date_str, total, paid) = inv;
+            let (date_str, due_date_str, total, paid) = inv;
             let due_val = total - paid;
             if due_val <= 0.001 {
                 continue;
             }
 
             pending_bills_count += 1;
-            let days_old = if let Some(parsed) = parse_flexible_date(&date_str) {
+            let inv_parsed = parse_flexible_date(&date_str);
+            let days_old = if let Some(parsed) = inv_parsed {
                 (today - parsed).num_days()
             } else {
                 0
             };
 
+            let due_parsed = parse_flexible_date(&due_date_str)
+                .or_else(|| inv_parsed.map(|d| d + chrono::Duration::days(credit_period_days.max(0) as i64)))
+                .unwrap_or(today);
+            if (today - due_parsed).num_days() > 0 {
+                overdue_count += 1;
+            }
+
             if days_old <= 30 {
                 current_30 += due_val;
             } else if days_old <= 60 {
                 days_60 += due_val;
-                overdue_count += 1;
             } else if days_old <= 90 {
                 days_90 += due_val;
-                overdue_count += 1;
             } else {
                 over_90 += due_val;
-                overdue_count += 1;
             }
         }
 
-        if pending_bills_count == 0 && total_payable > 0.0 {
-            current_30 = total_payable;
+        let billed_due = current_30 + days_60 + days_90 + over_90;
+        if total_payable > billed_due + 0.01 {
+            current_30 += total_payable - billed_due;
         }
 
         list.push(PartyCreditAging {
@@ -2374,25 +2423,51 @@ pub fn get_gstr1_report_internal(
         .filter_map(Result::ok)
         .collect();
 
-    let (total_doc_count, cancelled_doc_count): (usize, usize) = conn
+    let (total_doc_count, cancelled_doc_count, true_min_inv, true_max_inv): (usize, usize, String, String) = conn
         .query_row(
             "SELECT COUNT(*),
-                    COALESCE(SUM(CASE WHEN status IN ('CANCELLED', 'RETURNED') THEN 1 ELSE 0 END), 0)
+                    COALESCE(SUM(CASE WHEN status IN ('CANCELLED', 'RETURNED') THEN 1 ELSE 0 END), 0),
+                    COALESCE(MIN(invoice_number), ''),
+                    COALESCE(MAX(invoice_number), '')
              FROM invoices
              WHERE invoice_type = 'SALE' AND invoice_date BETWEEN ?1 AND ?2",
             params![start_date, end_date],
-            |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize)),
+            |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize, r.get(2)?, r.get(3)?)),
         )
-        .unwrap_or((0, 0));
+        .unwrap_or((0, 0, min_inv.clone(), max_inv.clone()));
 
-    let doc_summary = vec![Gstr1DocSummary {
+    let mut doc_summary = vec![Gstr1DocSummary {
         doc_type: "Invoices for Outward Supply".into(),
-        from_serial: if min_inv.is_empty() { "N/A".into() } else { min_inv },
-        to_serial: if max_inv.is_empty() { "N/A".into() } else { max_inv },
+        from_serial: if true_min_inv.is_empty() { "N/A".into() } else { true_min_inv },
+        to_serial: if true_max_inv.is_empty() { "N/A".into() } else { true_max_inv },
         total_count: total_doc_count,
         cancelled_count: cancelled_doc_count,
         net_count: total_doc_count.saturating_sub(cancelled_doc_count),
     }];
+
+    let (cn_total, cn_cancelled, cn_min, cn_max): (usize, usize, String, String) = conn
+        .query_row(
+            "SELECT COUNT(*),
+                    COALESCE(SUM(CASE WHEN status IN ('CANCELLED', 'RETURNED') THEN 1 ELSE 0 END), 0),
+                    COALESCE(MIN(invoice_number), ''),
+                    COALESCE(MAX(invoice_number), '')
+             FROM invoices
+             WHERE invoice_type = 'RETURN' AND invoice_date BETWEEN ?1 AND ?2",
+            params![start_date, end_date],
+            |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize, r.get(2)?, r.get(3)?)),
+        )
+        .unwrap_or((0, 0, String::new(), String::new()));
+
+    if cn_total > 0 {
+        doc_summary.push(Gstr1DocSummary {
+            doc_type: "Credit Note".into(),
+            from_serial: if cn_min.is_empty() { "N/A".into() } else { cn_min },
+            to_serial: if cn_max.is_empty() { "N/A".into() } else { cn_max },
+            total_count: cn_total,
+            cancelled_count: cn_cancelled,
+            net_count: cn_total.saturating_sub(cn_cancelled),
+        });
+    }
 
     Ok(Gstr1ReportData {
         gstin: my_gstin,
@@ -2419,13 +2494,13 @@ pub fn get_gstr3b_report_internal(
     start_date: &str,
     end_date: &str,
 ) -> Result<Gstr3bReportData, String> {
-    let (my_gstin, legal_name, gst_composition): (String, String, bool) = conn
+    let (my_gstin, legal_name, my_state_code, gst_composition): (String, String, String, bool) = conn
         .query_row(
-            "SELECT gstin, legal_name, COALESCE(gst_composition, 0) FROM gst_settings WHERE id = 1",
+            "SELECT gstin, legal_name, state_code, COALESCE(gst_composition, 0) FROM gst_settings WHERE id = 1",
             [],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get::<_, i32>(2)? == 1)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get::<_, i32>(3)? == 1)),
         )
-        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into(), false));
+        .unwrap_or_else(|_| ("27AABCU9603R1ZN".into(), "LynTerminal India".into(), "27".into(), false));
 
     let tax_mode: String = conn
         .query_row("SELECT COALESCE(tax_mode, 'EXCLUSIVE') FROM settings WHERE id = 1", [], |r| r.get(0))
@@ -2597,9 +2672,13 @@ pub fn get_gstr3b_report_internal(
     }
 
     // Table 3.1(d): Inward supplies liable to reverse charge
-    let reverse_charge_taxable: f64 = conn
+    let (reverse_charge_taxable, rcm_igst, rcm_cgst, rcm_sgst, rcm_cess): (f64, f64, f64, f64, f64) = conn
         .query_row(
-            "SELECT COALESCE(SUM(MAX(0.0, i.subtotal - i.discount_amount)), 0.0)
+            "SELECT COALESCE(SUM(MAX(0.0, i.subtotal - i.discount_amount)), 0.0),
+                    COALESCE(SUM(COALESCE(g.igst_amount, 0.0)), 0.0),
+                    COALESCE(SUM(COALESCE(g.cgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END)), 0.0),
+                    COALESCE(SUM(COALESCE(g.sgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END)), 0.0),
+                    COALESCE(SUM(COALESCE(g.cess_amount, 0.0)), 0.0)
              FROM invoices i
              JOIN gst_invoices g ON i.id = g.invoice_id
              WHERE i.invoice_type = 'PURCHASE'
@@ -2607,15 +2686,19 @@ pub fn get_gstr3b_report_internal(
                AND g.is_reverse_charge = 1
                AND i.invoice_date BETWEEN ?1 AND ?2",
             params![start_date, end_date],
-            |r| r.get(0),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
         )
-        .unwrap_or(0.0);
+        .unwrap_or((0.0, 0.0, 0.0, 0.0, 0.0));
 
-    // Table 4: Eligible ITC (only from registered vendors with valid 15-char GSTIN; composition dealers cannot claim ITC)
+    // Table 4: Eligible ITC (only from registered non-composition vendors with valid 15-char GSTIN;
+    // RCM purchases generate eligible ITC once RCM tax is paid; composition dealers cannot claim ITC;
+    // purchase_returns debit notes reverse ITC)
     let (itc_igst, itc_cgst, itc_sgst, itc_cess, itc_ineligible): (f64, f64, f64, f64, f64) = {
         let mut pur_stmt = conn
             .prepare(
                 "SELECT COALESCE(NULLIF(TRIM(g.customer_gstin), ''), NULLIF(TRIM(gp.gstin), ''), TRIM(p.tax_number), ''),
+                        COALESCE(gp.gst_type, ''),
+                        COALESCE(g.is_reverse_charge, 0),
                         COALESCE(g.igst_amount, 0.0),
                         COALESCE(g.cgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.cgst_amount ELSE i.tax_amount / 2.0 END),
                         COALESCE(g.sgst_amount, CASE WHEN g.invoice_id IS NOT NULL THEN g.sgst_amount ELSE i.tax_amount / 2.0 END),
@@ -2634,10 +2717,12 @@ pub fn get_gstr3b_report_internal(
             .query_map(params![start_date, end_date], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
-                    r.get::<_, f64>(1)?,
-                    r.get::<_, f64>(2)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i32>(2)? == 1,
                     r.get::<_, f64>(3)?,
                     r.get::<_, f64>(4)?,
+                    r.get::<_, f64>(5)?,
+                    r.get::<_, f64>(6)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
@@ -2649,9 +2734,19 @@ pub fn get_gstr3b_report_internal(
         let mut inelig = 0.0;
 
         for r in pur_rows.filter_map(Result::ok) {
-            let (gstin, i_igst, i_cgst, i_sgst, i_cess) = r;
+            let (gstin, vendor_gst_type, is_rcm_pur, i_igst, i_cgst, i_sgst, i_cess) = r;
             let valid_vendor = gstin.trim().len() == 15;
-            if !gst_composition && valid_vendor {
+            let is_comp_vendor = vendor_gst_type.eq_ignore_ascii_case("COMPOSITION");
+            if is_rcm_pur {
+                if !gst_composition {
+                    elig_i += i_igst;
+                    elig_c += i_cgst;
+                    elig_s += i_sgst;
+                    elig_cs += i_cess;
+                } else {
+                    inelig += i_igst + i_cgst + i_sgst + i_cess;
+                }
+            } else if !gst_composition && valid_vendor && !is_comp_vendor {
                 elig_i += i_igst;
                 elig_c += i_cgst;
                 elig_s += i_sgst;
@@ -2660,6 +2755,72 @@ pub fn get_gstr3b_report_internal(
                 inelig += i_igst + i_cgst + i_sgst + i_cess;
             }
         }
+
+        // Deduct Purchase Returns (Debit Notes) ITC reversal
+        if !gst_composition {
+            let mut dn_stmt = conn
+                .prepare(
+                    "SELECT COALESCE(NULLIF(TRIM(gp.gstin), ''), TRIM(p.tax_number), ''),
+                            COALESCE(gp.gst_type, ''),
+                            COALESCE(NULLIF(TRIM(gp.state_code), ''), ''),
+                            pri.unit_price * pri.quantity,
+                            pri.line_total,
+                            COALESCE(it.tax_rate, 0.0)
+                     FROM purchase_returns pr
+                     JOIN purchase_return_items pri ON pri.return_id = pr.id
+                     LEFT JOIN items it ON pri.item_id = it.id
+                     LEFT JOIN parties p ON pr.party_id = p.id
+                     LEFT JOIN gst_parties gp ON pr.party_id = gp.party_id
+                     WHERE pr.return_date BETWEEN ?1 AND ?2",
+                )
+                .map_err(|e| e.to_string())?;
+
+            let dn_rows = dn_stmt
+                .query_map(params![start_date, end_date], |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, String>(2)?,
+                        r.get::<_, f64>(3)?,
+                        r.get::<_, f64>(4)?,
+                        r.get::<_, f64>(5)?,
+                    ))
+                })
+                .map_err(|e| e.to_string())?;
+
+            for r in dn_rows.filter_map(Result::ok) {
+                let (gstin, vendor_gst_type, vendor_state, base_amt, line_total, item_tax_rate) = r;
+                let valid_vendor = gstin.trim().len() == 15;
+                let is_comp_vendor = vendor_gst_type.eq_ignore_ascii_case("COMPOSITION");
+                if !valid_vendor || is_comp_vendor {
+                    continue;
+                }
+                let tax_amt = if item_tax_rate > 0.0 {
+                    (line_total - (line_total / (1.0 + item_tax_rate / 100.0))).max(0.0)
+                } else if line_total > base_amt + 0.01 && base_amt > 0.0 {
+                    (line_total - base_amt).max(0.0)
+                } else {
+                    0.0
+                };
+                if tax_amt <= 0.001 {
+                    continue;
+                }
+                let v_sc = if !vendor_state.is_empty() {
+                    vendor_state
+                } else if gstin.trim().len() >= 2 {
+                    gstin.trim()[..2].to_string()
+                } else {
+                    my_state_code.clone()
+                };
+                if v_sc != my_state_code {
+                    elig_i = (elig_i - tax_amt).max(0.0);
+                } else {
+                    elig_c = (elig_c - tax_amt / 2.0).max(0.0);
+                    elig_s = (elig_s - tax_amt / 2.0).max(0.0);
+                }
+            }
+        }
+
         (elig_i, elig_c, elig_s, elig_cs, inelig)
     };
 
@@ -2672,6 +2833,10 @@ pub fn get_gstr3b_report_internal(
         zero_rated_taxable,
         nil_exempt_taxable,
         reverse_charge_taxable,
+        reverse_charge_igst: rcm_igst,
+        reverse_charge_cgst: rcm_cgst,
+        reverse_charge_sgst: rcm_sgst,
+        reverse_charge_cess: rcm_cess,
     };
 
     let table4_itc = Gstr3bTable4Itc {
@@ -2719,12 +2884,13 @@ pub fn get_gstr3b_report_internal(
     let itc_utilized_cess = cess_on_cess;
     let total_itc_utilized = itc_utilized_igst + itc_utilized_cgst + itc_utilized_sgst + itc_utilized_cess;
 
-    let net_igst_payable = (out_igst - itc_utilized_igst).max(0.0);
-    let net_cgst_payable = (out_cgst - itc_utilized_cgst).max(0.0);
-    let net_sgst_payable = (out_sgst - itc_utilized_sgst).max(0.0);
-    let net_cess_payable = (out_cess - itc_utilized_cess).max(0.0);
+    // RCM liability cannot be paid with ITC; it must be paid in cash
+    let net_igst_payable = (out_igst - itc_utilized_igst).max(0.0) + rcm_igst.max(0.0);
+    let net_cgst_payable = (out_cgst - itc_utilized_cgst).max(0.0) + rcm_cgst.max(0.0);
+    let net_sgst_payable = (out_sgst - itc_utilized_sgst).max(0.0) + rcm_sgst.max(0.0);
+    let net_cess_payable = (out_cess - itc_utilized_cess).max(0.0) + rcm_cess.max(0.0);
 
-    let total_tax_payable = out_igst + out_cgst + out_sgst + out_cess;
+    let total_tax_payable = out_igst + out_cgst + out_sgst + out_cess + rcm_igst.max(0.0) + rcm_cgst.max(0.0) + rcm_sgst.max(0.0) + rcm_cess.max(0.0);
     let total_itc_available = itc_igst + itc_cgst + itc_sgst + itc_cess;
     let net_cash_payable = net_igst_payable + net_cgst_payable + net_sgst_payable + net_cess_payable;
 

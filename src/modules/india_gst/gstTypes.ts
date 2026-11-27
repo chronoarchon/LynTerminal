@@ -145,6 +145,7 @@ export interface CreateGstInvoicePayload {
   transporter_name?: string | null;
   bill_reference_type: string;
   items: CreateGstItemPayload[];
+  bank_account_id?: string | null;
 }
 
 export interface PendingBill {
@@ -279,6 +280,10 @@ export interface Gstr3bTable31 {
   zero_rated_taxable: number;
   nil_exempt_taxable: number;
   reverse_charge_taxable: number;
+  reverse_charge_igst?: number;
+  reverse_charge_cgst?: number;
+  reverse_charge_sgst?: number;
+  reverse_charge_cess?: number;
 }
 
 export interface Gstr3bTable4Itc {

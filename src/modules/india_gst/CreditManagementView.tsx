@@ -13,11 +13,12 @@ import {
   Eye,
 } from "lucide-react";
 import type { PartyCreditAging, PendingBill, BillSettlementPayload } from "./gstTypes";
-import type { Party, Settings, BankAccount } from "../../types";
+import type { Party, Settings, BankAccount, Payment } from "../../types";
 import { api } from "../../services/api";
 import { gstApi } from "./gstApi";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 import { formatLocalDate } from "../../utils/dateUtils";
+import { printSection } from "../../utils/printSection";
 import { amountToIndianWords } from "./gstUtils";
 
 interface CreditManagementViewProps {
@@ -57,6 +58,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
   // Statement / Ledger Modal
   const [statementParty, setStatementParty] = useState<PartyCreditAging | null>(null);
   const [partyBillsForStatement, setPartyBillsForStatement] = useState<PendingBill[]>([]);
+  const [partyPaymentsForStatement, setPartyPaymentsForStatement] = useState<Payment[]>([]);
 
   const { alert, toast } = useAppleDialog();
 
@@ -237,8 +239,12 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
   const openStatement = async (party: PartyCreditAging) => {
     setStatementParty(party);
     try {
-      const bills = await gstApi.getPartyPendingBills(party.party_id);
+      const [bills, pmts] = await Promise.all([
+        gstApi.getPartyPendingBills(party.party_id),
+        api.listPayments(party.party_id).catch(() => [] as Payment[]),
+      ]);
       setPartyBillsForStatement(bills);
+      setPartyPaymentsForStatement(pmts);
     } catch (e) {
       console.error("Failed to load statement bills:", e);
     }
@@ -684,7 +690,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
       {/* Statement of Account Modal */}
       {statementParty && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] p-6 space-y-4 max-h-[90vh] overflow-y-auto text-black">
+          <div data-printable="true" className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-black/[0.08] p-6 space-y-4 max-h-[90vh] overflow-y-auto text-black">
             <div className="flex justify-between items-start border-b border-black/[0.08] pb-4">
               <div>
                 <h3 className="text-lg font-bold text-black tracking-tight">
@@ -699,7 +705,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
               </div>
               <button
                 onClick={() => setStatementParty(null)}
-                className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer"
+                className="w-8 h-8 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 flex items-center justify-center transition cursor-pointer no-print"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -730,44 +736,61 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                     <tr>
                       <th className="py-2 px-3 text-left">Date</th>
                       <th className="py-2 px-2 text-left">Voucher #</th>
-                      <th className="py-2 px-2 text-right">Debit (Dr)</th>
-                      <th className="py-2 px-2 text-right">Credit (Cr)</th>
+                      <th className="py-2 px-2 text-right">Bill Total</th>
+                      <th className="py-2 px-2 text-right">Balance Due</th>
                       <th className="py-2 px-3 text-right">Due Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/[0.06] text-neutral-800">
-                    {partyBillsForStatement.length === 0 ? (
+                    {partyBillsForStatement.length === 0 && partyPaymentsForStatement.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-6 text-center text-neutral-500">
-                          Zero pending vouchers.
+                          Zero pending vouchers or payments.
                         </td>
                       </tr>
                     ) : (
-                      partyBillsForStatement.map((b) => (
-                        <tr key={b.invoice_id} className="hover:bg-white/5">
-                          <td className="py-2 px-3">{b.invoice_date}</td>
-                          <td className="py-2 px-2 font-mono font-semibold text-black">{b.invoice_number}</td>
-                          <td className="py-2 px-2 text-right font-mono">
-                            {b.invoice_type === "SALE" ? `₹${b.total_amount.toFixed(2)}` : "-"}
-                          </td>
-                          <td className="py-2 px-2 text-right font-mono">
-                            {b.invoice_type === "PURCHASE" ? `₹${b.total_amount.toFixed(2)}` : "-"}
-                          </td>
-                          <td className="py-2 px-3 text-right text-neutral-500">{b.due_date}</td>
-                        </tr>
-                      ))
+                      <>
+                        {partyBillsForStatement.map((b) => (
+                          <tr key={b.invoice_id} className="hover:bg-white/5">
+                            <td className="py-2 px-3">{b.invoice_date}</td>
+                            <td className="py-2 px-2 font-mono font-semibold text-black">{b.invoice_number}</td>
+                            <td className="py-2 px-2 text-right font-mono">
+                              ₹{b.total_amount.toFixed(2)}
+                            </td>
+                            <td className="py-2 px-2 text-right font-mono font-bold text-rose-600">
+                              ₹{b.balance_due.toFixed(2)}
+                            </td>
+                            <td className="py-2 px-3 text-right text-neutral-500">{b.due_date}</td>
+                          </tr>
+                        ))}
+                        {partyPaymentsForStatement.map((p) => (
+                          <tr key={p.id} className="hover:bg-white/5 bg-emerald-50/40">
+                            <td className="py-2 px-3">{p.payment_date}</td>
+                            <td className="py-2 px-2 font-mono text-emerald-700">
+                              {p.payment_type === "IN" ? "Receipt" : "Payment"} ({p.payment_method})
+                            </td>
+                            <td className="py-2 px-2 text-right font-mono text-neutral-500">
+                              {p.reference || "-"}
+                            </td>
+                            <td className="py-2 px-2 text-right font-mono font-bold text-emerald-600">
+                              -₹{p.amount.toFixed(2)}
+                            </td>
+                            <td className="py-2 px-3 text-right text-neutral-500">Settled</td>
+                          </tr>
+                        ))}
+                      </>
                     )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-3 border-t border-black/[0.08]">
+            <div className="flex justify-between items-center pt-3 border-t border-black/[0.08] no-print">
               <span className="text-[10px] text-neutral-500 font-mono">
                 LynTerminal Statement
               </span>
               <button
-                onClick={() => window.print()}
+                onClick={() => printSection()}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold uppercase tracking-wider shadow-xs transition cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />

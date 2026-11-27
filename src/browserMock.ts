@@ -408,6 +408,8 @@ export const mockAuditLogs = [
   {
     id: "aud-1",
     action: "SQLITE_WAL_CHECKPOINT",
+    entity: "DATABASE",
+    entity_id: "wal-checkpoint",
     details: "Air-gapped database committed 48 transactions in 0.28ms",
     ip_address: "127.0.0.1",
     timestamp: "2026-11-17 14:32:05",
@@ -415,6 +417,8 @@ export const mockAuditLogs = [
   {
     id: "aud-2",
     action: "THERMAL_RECEIPT_EMITTED",
+    entity: "PRINTER",
+    entity_id: "escpos-lp0",
     details: "Raw ESC/POS raster print to USB-HID /dev/usb/lp0 (58ms)",
     ip_address: "127.0.0.1",
     timestamp: "2026-11-17 14:32:02",
@@ -422,6 +426,8 @@ export const mockAuditLogs = [
   {
     id: "aud-3",
     action: "VAULT_BACKUP_SNAPSHOT",
+    entity: "BACKUP",
+    entity_id: "snap-20261117",
     details: "Cryptographic hash verified: /vault/lynterminal_20261117.db",
     ip_address: "127.0.0.1",
     timestamp: "2026-11-17 12:00:00",
@@ -429,6 +435,8 @@ export const mockAuditLogs = [
   {
     id: "aud-4",
     action: "COUNTER_DRAWER_OPENED",
+    entity: "HARDWARE",
+    entity_id: "drawer-pin2",
     details: "RJ11 24V solenoid pulse dispatched via printer pin 2",
     ip_address: "127.0.0.1",
     timestamp: "2026-11-17 11:15:02",
@@ -513,17 +521,17 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.6.7",
-            latest_version: "1.6.7",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.6.7/lynterminal_1.6.7_x64-setup.exe",
-            release_notes: "### What's New in v1.6.7\n- **Single-Line Executive Action Bar**: Cleaner top bar with all quick actions on one line\n- **Smart 4-Digit Lock PIN**: New users can set a 4-digit PIN without being asked for a current password; includes Forgot PIN & Disable PIN\n- **Recovery Key Auto-Provisioning**: View Recovery Key now always generates and displays your 18-char sovereign key",
-            published_at: "2026-11-25T15:30:00Z",
+            current_version: "1.7.0",
+            latest_version: "1.7.0",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.7.0/lynterminal_1.7.0_x64-setup.exe",
+            release_notes: "### What's New in v1.7.0\n- Full Accounting, GST & POS Reliability Audit Fixes",
+            published_at: "2026-11-27T12:00:00Z",
             platform: "windows",
           };
         }
         case "get_gst_settings": {
           const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-          const enableGst = urlParams?.get("gst") === "1" || urlParams?.get("tab")?.startsWith("gst") || urlParams?.get("currency") === "INR" || true;
+          const enableGst = urlParams?.get("gst") === "1" || Boolean(urlParams?.get("tab")?.startsWith("gst")) || urlParams?.get("currency") === "INR";
           return {
             is_enabled: enableGst,
             gstin: "",

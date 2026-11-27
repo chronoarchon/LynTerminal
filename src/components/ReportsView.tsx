@@ -7,7 +7,8 @@ import {
 import type { DaybookEntry, DashboardSummary, Item, Settings, CashClosing } from "../types";
 import { api } from "../services/api";
 import { getLocalDateString } from "../utils/date";
-import { useCurrency } from "../context/CurrencyContext";
+import { printSection } from "../utils/printSection";
+import { useCurrency, getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 
 interface ReportsViewProps {
   settings: Settings | null;
@@ -15,7 +16,8 @@ interface ReportsViewProps {
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) => {
-  const { currencySymbol, formatCurrency } = useCurrency();
+  const { currencySymbol, currencyCode, formatCurrency } = useCurrency();
+  const dec = getDefaultCurrencyDecimals(currencyCode);
   const [activeTab, setActiveTab] = useState<"daybook" | "pnl" | "stock" | "closings">("daybook");
   const [selectedDate, setSelectedDate] = useState<string>(
     getLocalDateString()
@@ -31,11 +33,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [closingDate, setClosingDate] = useState(getLocalDateString());
   const [openingFloat, setOpeningFloat] = useState(() =>
-    (settings?.opening_cash ?? 0).toFixed(2)
+    (settings?.opening_cash ?? 0).toFixed(dec)
   );
-  const [salesCash, setSalesCash] = useState("0.00");
+  const [salesCash, setSalesCash] = useState(() => (0).toFixed(dec));
   const [actualCash, setActualCash] = useState(() =>
-    (settings?.opening_cash ?? 0).toFixed(2)
+    (settings?.opening_cash ?? 0).toFixed(dec)
   );
   const [closingNotes, setClosingNotes] = useState("Standard evening register reconciliation");
   const [isSubmittingClosing, setIsSubmittingClosing] = useState(false);
@@ -104,13 +106,25 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
 
   const netDayCash = totalInflow - totalOutflow;
 
-  const handleOpenClosingModal = () => {
-    setClosingDate(getLocalDateString());
-    const openVal = settings?.opening_cash ?? 0;
-    const netCash = totalInflow - totalOutflow;
-    setOpeningFloat(openVal.toFixed(2));
-    setSalesCash(netCash.toFixed(2));
-    setActualCash((openVal + netCash).toFixed(2));
+  const handleOpenClosingModal = async () => {
+    const targetDate = selectedDate || getLocalDateString();
+    setClosingDate(targetDate);
+    const priorClosing = cashClosings.find((c) => c.shift_date < targetDate);
+    const openVal = priorClosing ? priorClosing.actual_cash : (settings?.opening_cash ?? 0);
+    let netCash = totalInflow - totalOutflow;
+    if (targetDate !== selectedDate) {
+      try {
+        const entries = await api.getDaybook(targetDate);
+        const cIn = entries.reduce((s, e) => s + (e.cash_in || 0), 0);
+        const cOut = entries.reduce((s, e) => s + (e.cash_out || 0), 0);
+        netCash = cIn - cOut;
+      } catch {
+        // fallback to current daybook netCash
+      }
+    }
+    setOpeningFloat(openVal.toFixed(dec));
+    setSalesCash(netCash.toFixed(dec));
+    setActualCash((openVal + netCash).toFixed(dec));
     setIsClosingModalOpen(true);
   };
 
@@ -177,7 +191,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
     <div className="space-y-5 max-w-6xl mx-auto select-none">
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/[0.07]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/[0.07] no-print">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1D1D1F]">
             Financial Reports
@@ -197,8 +211,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press"
+            onClick={() => printSection()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.08] bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print</span>
@@ -207,7 +221,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
       </div>
 
       {/* Segmented Report Selector */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl apple-card shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl apple-card shrink-0 no-print">
         <div className="flex items-center p-0.5 bg-[#F5F5F7] rounded-xl border border-black/[0.06] text-xs">
           <button
             onClick={() => setActiveTab("daybook")}
@@ -264,6 +278,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
         )}
       </div>
 
+      <div data-printable="true" className="space-y-4">
       {/* TAB 1: Daybook */}
       {activeTab === "daybook" && (
         <div className="space-y-4">
@@ -374,7 +389,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
             {/* Revenue */}
             <div className="space-y-1.5">
               <div className="flex justify-between font-bold text-sm text-[#1D1D1F]">
-                <span>1. Gross Sales Revenue</span>
+                <span>1. Net Sales Revenue</span>
                 <span className="font-mono">{formatCurrency(grossSales)}</span>
               </div>
               <div className="flex justify-between text-[#6E6E73] pl-3">
@@ -469,7 +484,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
                       Loading catalog stock valuation...
                     </td>
                   </tr>
-                ) : items.map((i) => (
+                ) : positiveStockItems.map((i) => (
                   <tr key={i.id} className="hover:bg-[#FBFBFC] transition-colors">
                     <td className="py-3 px-4 font-semibold text-[#1D1D1F]">{i.name}</td>
                     <td className="py-3 px-3 font-mono">{i.stock_quantity} {i.unit}</td>
@@ -539,6 +554,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
           )}
         </div>
       )}
+      </div>
 
       {/* SHIFT CLOSE MODAL */}
       {isClosingModalOpen && (
@@ -560,6 +576,35 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) =
             </div>
 
             <form onSubmit={handleSaveClosing} className="p-5 space-y-3.5">
+              <div>
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                  Shift Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={closingDate}
+                  onChange={async (e) => {
+                    const d = e.target.value;
+                    setClosingDate(d);
+                    const prior = cashClosings.find((c) => c.shift_date < d);
+                    const openV = prior ? prior.actual_cash : (settings?.opening_cash ?? 0);
+                    setOpeningFloat(openV.toFixed(dec));
+                    try {
+                      const entries = await api.getDaybook(d);
+                      const cIn = entries.reduce((s, row) => s + (row.cash_in || 0), 0);
+                      const cOut = entries.reduce((s, row) => s + (row.cash_out || 0), 0);
+                      const netC = cIn - cOut;
+                      setSalesCash(netC.toFixed(dec));
+                      setActualCash((openV + netC).toFixed(dec));
+                    } catch {
+                      // keep existing
+                    }
+                  }}
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-semibold text-neutral-700 block mb-1">

@@ -25,7 +25,7 @@ import type { Settings, BackupInfo, AuthState, PrinterDeviceInfo } from "../type
 import { api } from "../services/api";
 import { AppleSelect } from "./common/AppleSelect";
 import { useAppleDialog } from "./common/AppleDialog";
-import { useCurrency } from "../context/CurrencyContext";
+import { useCurrency, getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
@@ -238,6 +238,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [revealedRecoveryKey, setRevealedRecoveryKey] = useState<string | null>(null);
   const [isCharterOpen, setIsCharterOpen] = useState(false);
+  const dec = getDefaultCurrencyDecimals(formData.currency_code || settings?.currency_code || "USD");
 
   // Store Logo Branding state
   const [customLogo, setCustomLogo] = useState<string | null>(() => {
@@ -472,7 +473,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       };
       const updated = await api.saveSettings(payload);
       if (formData.currency_code === "INR") {
-        await gstApi.saveGstSettings(gstForm).catch(console.error);
+        await gstApi.saveGstSettings(sanitizeGstSettings(gstForm));
       }
       setFormData(updated);
       onSettingsUpdated(updated);
@@ -527,15 +528,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleTaxPresetSelect = (presetId: string) => {
     const preset = TAX_PRESETS.find((p) => p.id === presetId);
     if (preset) {
+      if (preset.id === "INDIA_GST" && settings && settings.currency_code !== "INR") {
+        handleCurrencySelect("INR");
+      }
       setFormData((prev) => ({
         ...prev,
         tax_preset: preset.id,
         tax_mode: preset.tax_mode,
         tax_name: preset.tax_name,
         default_tax_rate: preset.rate,
-        ...(preset.id === "INDIA_GST"
-          ? { currency_symbol: "₹", currency_code: "INR" }
-          : {}),
       }));
     }
   };
@@ -747,6 +748,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             />
           </div>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <div>
+            <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+              Store Email
+            </label>
+            <input
+              type="email"
+              placeholder="billing@store.com"
+              value={formData.email || ""}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
+            />
+          </div>
+          <label className="flex items-center justify-between p-3 rounded-xl bg-[#F5F5F7] border border-black/[0.06] cursor-pointer mt-4 sm:mt-0">
+            <div>
+              <div className="text-xs font-semibold text-[#1D1D1F]">Multi-Godown / Store Locations</div>
+              <div className="text-[10px] text-[#86868B]">Track inventory across multiple warehouses</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.enable_godowns ?? true}
+              onChange={(e) => setFormData({ ...formData, enable_godowns: e.target.checked })}
+              className="w-4 h-4 accent-[#0071E3] cursor-pointer"
+            />
+          </label>
+        </div>
       </div>
 
       {/* SECTION 2: Currency & International Tax Presets */}
@@ -869,14 +897,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     const updatedGst = { ...gstForm, is_enabled: val };
                     setGstForm(updatedGst);
                     try {
-                      await gstApi.saveGstSettings(updatedGst);
+                      await gstApi.saveGstSettings(sanitizeGstSettings(updatedGst));
+                      const nextSettings: Settings = {
+                        ...formData,
+                        tax_preset: val ? "INDIA_GST" : "CUSTOM",
+                      };
+                      const savedSettings = await api.saveSettings(nextSettings);
+                      setFormData(savedSettings);
                       toast({
                         message: val ? "Indian GST & Statutory Accounting activated" : "Indian GST & Statutory Accounting turned off",
                         type: "info",
                       });
-                      onSettingsUpdated({ ...formData, tax_preset: val ? "INDIA_GST" : "CUSTOM" });
+                      onSettingsUpdated(savedSettings);
                     } catch (err) {
-                      console.error("Failed to update GST status:", err);
+                      alert({ title: "GST Update Failed", message: String(err), type: "error" });
                     }
                   }}
                   className="sr-only peer"
@@ -988,9 +1022,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <input
                 type="number"
                 value={gstForm.eway_bill_threshold}
-                onChange={(e) =>
-                  setGstForm({ ...gstForm, eway_bill_threshold: parseFloat(e.target.value) || 50000 })
-                }
+                onChange={(e) => {
+                  const parsed = parseFloat(e.target.value);
+                  setGstForm({ ...gstForm, eway_bill_threshold: Number.isNaN(parsed) ? 50000 : Math.max(0, parsed) });
+                }}
                 className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-bold focus:outline-none focus:border-[#FF9500]"
               />
             </div>
@@ -1359,7 +1394,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <select
                 value=""
                 onChange={(e) => {
-                  const chosen = discoveredPrinters.find((p) => p.target === e.target.value);
+                  const idx = Number(e.target.value);
+                  const chosen = Number.isInteger(idx) ? discoveredPrinters[idx] : undefined;
                   if (chosen) {
                     setFormData({
                       ...formData,
@@ -1372,7 +1408,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <option value="">Quick-pick detected device ({discoveredPrinters.length})...</option>
                 {discoveredPrinters.map((d, idx) => (
-                  <option key={`${d.printer_type}-${d.target}-${idx}`} value={d.target}>
+                  <option key={`${d.printer_type}-${d.target}-${idx}`} value={String(idx)}>
                     {d.name} [{d.printer_type}]{d.is_default ? " ★" : ""}
                   </option>
                 ))}
@@ -1529,7 +1565,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </p>
               </div>
               <span className="text-xs font-mono font-bold text-black bg-black/5 px-2 py-0.5 rounded-lg border border-black/10">
-                Total: {currencySymbol}{(Number(formData.opening_cash || 0) + Number(formData.opening_bank || 0)).toFixed(2)}
+                Total: {currencySymbol}{(Number(formData.opening_cash || 0) + Number(formData.opening_bank || 0)).toFixed(dec)}
               </span>
             </div>
 
@@ -1644,7 +1680,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </p>
               </div>
               <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/50">
-                Total: {currencySymbol}{(Number(formData.capital_cash || 0) + Number(formData.capital_bank || 0)).toFixed(2)}
+                Total: {currencySymbol}{(Number(formData.capital_cash || 0) + Number(formData.capital_bank || 0)).toFixed(dec)}
               </span>
             </div>
 
@@ -1753,13 +1789,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-[#86868B]">Starting Physical Cash Float:</span>
             <span className="font-mono font-bold text-[#1D1D1F]">
-              {currencySymbol}{(Number(formData.opening_cash || 0) + Number(formData.capital_cash || 0)).toFixed(2)}
+              {currencySymbol}{(Number(formData.opening_cash || 0) + Number(formData.capital_cash || 0)).toFixed(dec)}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[#86868B]">Starting Bank Liquidity:</span>
             <span className="font-mono font-bold text-[#1D1D1F]">
-              {currencySymbol}{(Number(formData.opening_bank || 0) + Number(formData.capital_bank || 0)).toFixed(2)}
+              {currencySymbol}{(Number(formData.opening_bank || 0) + Number(formData.capital_bank || 0)).toFixed(dec)}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -1770,7 +1806,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Number(formData.opening_bank || 0) +
                 Number(formData.capital_cash || 0) +
                 Number(formData.capital_bank || 0)
-              ).toFixed(2)}
+              ).toFixed(dec)}
             </span>
           </div>
         </div>

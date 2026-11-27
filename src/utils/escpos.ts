@@ -1,4 +1,5 @@
 import type { ReceiptPrintPayload, Settings } from "../types";
+import { getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 
 export const ESC_INIT = [0x1b, 0x40] as const;
 export const GS_CUT_PARTIAL = [0x1d, 0x56, 0x42, 0x00] as const;
@@ -51,6 +52,7 @@ export function buildEscposPreviewLines(
   payload: ReceiptPrintPayload
 ): { columns: number; lines: string[]; bytes: number[] } {
   const width = getReceiptColumnWidth(payload.paper_width || settings.paper_width);
+  const dec = getDefaultCurrencyDecimals(settings.currency_code || "USD");
   const cur =
     settings.currency_symbol?.trim() === "₹"
       ? "Rs."
@@ -70,29 +72,29 @@ export function buildEscposPreviewLines(
     lines.push(sanitizeEscposText(item.name).slice(0, width));
     lines.push(
       padTwoCol(
-        `  ${item.quantity} x ${cur}${item.unit_price.toFixed(2)}`,
-        `${cur}${item.line_total.toFixed(2)}`,
+        `  ${item.quantity} x ${cur}${item.unit_price.toFixed(dec)}`,
+        `${cur}${item.line_total.toFixed(dec)}`,
         width
       )
     );
   }
 
   lines.push(divider);
-  lines.push(padTwoCol("Subtotal:", `${cur}${payload.subtotal.toFixed(2)}`, width));
+  lines.push(padTwoCol("Subtotal:", `${cur}${payload.subtotal.toFixed(dec)}`, width));
   if (Math.abs(payload.discount_amount) >= 0.005) {
-    lines.push(padTwoCol("Discount:", `-${cur}${payload.discount_amount.toFixed(2)}`, width));
+    lines.push(padTwoCol("Discount:", `-${cur}${payload.discount_amount.toFixed(dec)}`, width));
   }
   if (Math.abs(payload.tax_amount) >= 0.005) {
     lines.push(
-      padTwoCol(`${sanitizeEscposText(settings.tax_name || "Tax")}:`, `${cur}${payload.tax_amount.toFixed(2)}`, width)
+      padTwoCol(`${sanitizeEscposText(settings.tax_name || "Tax")}:`, `${cur}${payload.tax_amount.toFixed(dec)}`, width)
     );
   }
   if (Math.abs(payload.round_off) >= 0.005) {
     const sign = payload.round_off >= 0 ? "+" : "-";
-    lines.push(padTwoCol("Round Off:", `${sign}${cur}${Math.abs(payload.round_off).toFixed(2)}`, width));
+    lines.push(padTwoCol("Round Off:", `${sign}${cur}${Math.abs(payload.round_off).toFixed(dec)}`, width));
   }
-  lines.push(padTwoCol("TOTAL:", `${cur}${payload.total_amount.toFixed(2)}`, width));
-  lines.push(padTwoCol("Paid:", `${cur}${payload.paid_amount.toFixed(2)}`, width));
+  lines.push(padTwoCol("TOTAL:", `${cur}${payload.total_amount.toFixed(dec)}`, width));
+  lines.push(padTwoCol("Paid:", `${cur}${payload.paid_amount.toFixed(dec)}`, width));
   lines.push(divider);
 
   const bytes: number[] = [...ESC_INIT];

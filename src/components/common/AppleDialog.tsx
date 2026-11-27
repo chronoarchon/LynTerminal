@@ -48,61 +48,62 @@ interface AppleDialogContextValue {
 
 const AppleDialogContext = createContext<AppleDialogContextValue | null>(null);
 
+interface QueuedDialog {
+  type: "alert" | "confirm" | "prompt";
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+  isDestructive: boolean;
+  placeholder: string;
+  requiredMatch?: string;
+  defaultValue?: string;
+  alertType: "info" | "success" | "warning" | "error";
+  resolve: (val: any) => void;
+}
+
 export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Dialog State
-  const [dialogState, setDialogState] = useState<{
-    isOpen: boolean;
-    type: "alert" | "confirm" | "prompt";
-    title: string;
-    message: string;
-    confirmText: string;
-    cancelText: string;
-    isDestructive: boolean;
-    placeholder: string;
-    requiredMatch?: string;
-    alertType: "info" | "success" | "warning" | "error";
-  }>({
-    isOpen: false,
-    type: "alert",
-    title: "",
-    message: "",
-    confirmText: "OK",
-    cancelText: "Cancel",
-    isDestructive: false,
-    placeholder: "",
-    alertType: "info",
-  });
+  const [activeDialog, setActiveDialog] = useState<QueuedDialog | null>(null);
+  const activeDialogRef = useRef<QueuedDialog | null>(null);
+  const queueRef = useRef<QueuedDialog[]>([]);
 
   const [promptInput, setPromptInput] = useState("");
-  const resolverRef = useRef<((val: any) => void) | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Toast State
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
-    if (dialogState.isOpen && dialogState.type === "prompt") {
+    if (activeDialog && activeDialog.type === "prompt") {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [dialogState.isOpen, dialogState.type]);
+  }, [activeDialog]);
 
-  useEffect(() => {
-    // Intercept native browser alert so all alert calls open as an Apple modal dialog
-    const originalAlert = window.alert;
-    window.alert = (msg?: any) => {
-      alert(String(msg ?? ""));
-    };
-    return () => {
-      window.alert = originalAlert;
-    };
-  }, []);
+  const enqueueDialog = (item: QueuedDialog) => {
+    if (!activeDialogRef.current) {
+      activeDialogRef.current = item;
+      if (item.type === "prompt") {
+        setPromptInput(item.defaultValue || "");
+      }
+      setActiveDialog(item);
+    } else {
+      queueRef.current.push(item);
+    }
+  };
+
+  const advanceQueue = () => {
+    const next = queueRef.current.shift() || null;
+    activeDialogRef.current = next;
+    if (next && next.type === "prompt") {
+      setPromptInput(next.defaultValue || "");
+    }
+    setActiveDialog(next);
+  };
 
   const confirm = (options: ConfirmOptions | string): Promise<boolean> => {
     const opts = typeof options === "string" ? { message: options } : options;
     return new Promise((resolve) => {
-      resolverRef.current = resolve;
-      setDialogState({
-        isOpen: true,
+      enqueueDialog({
         type: "confirm",
         title: opts.title || "Confirmation",
         message: opts.message,
@@ -111,16 +112,14 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
         isDestructive: opts.isDestructive ?? false,
         placeholder: "",
         alertType: opts.isDestructive ? "warning" : "info",
+        resolve,
       });
     });
   };
 
   const prompt = (options: PromptOptions): Promise<string | null> => {
     return new Promise((resolve) => {
-      resolverRef.current = resolve;
-      setPromptInput(options.defaultValue || "");
-      setDialogState({
-        isOpen: true,
+      enqueueDialog({
         type: "prompt",
         title: options.title || "Action Required",
         message: options.message,
@@ -129,7 +128,9 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
         isDestructive: options.isDestructive ?? false,
         placeholder: options.placeholder || "",
         requiredMatch: options.requiredMatch,
+        defaultValue: options.defaultValue || "",
         alertType: options.isDestructive ? "warning" : "info",
+        resolve,
       });
     });
   };
@@ -137,9 +138,7 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
   const alert = (options: AlertOptions | string): Promise<void> => {
     const opts = typeof options === "string" ? { message: options } : options;
     return new Promise((resolve) => {
-      resolverRef.current = () => resolve();
-      setDialogState({
-        isOpen: true,
+      enqueueDialog({
         type: "alert",
         title: opts.title || (opts.type === "error" ? "Error" : opts.type === "success" ? "Success" : "Notice"),
         message: opts.message,
@@ -148,9 +147,21 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
         isDestructive: false,
         placeholder: "",
         alertType: opts.type || "info",
+        resolve: () => resolve(),
       });
     });
   };
+
+  useEffect(() => {
+    // Intercept native browser alert so all alert calls open as an Apple modal dialog
+    const originalAlert = window.alert;
+    window.alert = (msg?: any) => {
+      void alert(String(msg ?? ""));
+    };
+    return () => {
+      window.alert = originalAlert;
+    };
+  }, []);
 
   const toast = (options: ToastOptions | string) => {
     const opts = typeof options === "string" ? { message: options } : options;
@@ -167,34 +178,38 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const handleConfirm = () => {
-    if (dialogState.type === "prompt") {
-      if (dialogState.requiredMatch && promptInput !== dialogState.requiredMatch) {
+    const current = activeDialogRef.current;
+    if (!current) return;
+    if (current.type === "prompt") {
+      if (current.requiredMatch && promptInput !== current.requiredMatch) {
         return;
       }
-      resolverRef.current?.(promptInput);
-    } else if (dialogState.type === "confirm") {
-      resolverRef.current?.(true);
+      current.resolve(promptInput);
+    } else if (current.type === "confirm") {
+      current.resolve(true);
     } else {
-      resolverRef.current?.(undefined);
+      current.resolve(undefined);
     }
-    setDialogState((prev) => ({ ...prev, isOpen: false }));
+    advanceQueue();
   };
 
   const handleCancel = () => {
-    if (dialogState.type === "confirm") {
-      resolverRef.current?.(false);
-    } else if (dialogState.type === "prompt") {
-      resolverRef.current?.(null);
+    const current = activeDialogRef.current;
+    if (!current) return;
+    if (current.type === "confirm") {
+      current.resolve(false);
+    } else if (current.type === "prompt") {
+      current.resolve(null);
     } else {
-      resolverRef.current?.(undefined);
+      current.resolve(undefined);
     }
-    setDialogState((prev) => ({ ...prev, isOpen: false }));
+    advanceQueue();
   };
 
   const isConfirmDisabled =
-    dialogState.type === "prompt" &&
-    dialogState.requiredMatch &&
-    promptInput !== dialogState.requiredMatch;
+    activeDialog?.type === "prompt" &&
+    activeDialog.requiredMatch &&
+    promptInput !== activeDialog.requiredMatch;
 
   return (
     <AppleDialogContext.Provider value={{ confirm, prompt, alert, toast }}>
@@ -222,7 +237,7 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
       </div>
 
       {/* 70% White / 30% Black Luxury Modal Dialog */}
-      {dialogState.isOpen && (
+      {activeDialog && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div
             className="bg-white rounded-3xl p-6 shadow-2xl border border-black/[0.08] max-w-md w-full animate-in zoom-in-95 fade-in duration-150 select-none text-black lux-modal-card"
@@ -232,16 +247,16 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
             <div className="flex items-start gap-3.5 mb-4">
               <div
                 className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
-                  dialogState.isDestructive
+                  activeDialog.isDestructive
                     ? "bg-red-50 text-red-600 border-red-200"
-                    : dialogState.alertType === "success"
+                    : activeDialog.alertType === "success"
                     ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                     : "bg-neutral-100 text-black border-black/5"
                 }`}
               >
-                {dialogState.isDestructive ? (
+                {activeDialog.isDestructive ? (
                   <AlertTriangle className="w-5 h-5 stroke-[2.2]" />
-                ) : dialogState.alertType === "success" ? (
+                ) : activeDialog.alertType === "success" ? (
                   <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
                 ) : (
                   <Info className="w-5 h-5 stroke-[2.2]" />
@@ -249,15 +264,15 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-bold text-black leading-tight">
-                  {dialogState.title}
+                  {activeDialog.title}
                 </h3>
                 <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed whitespace-pre-line">
-                  {dialogState.message}
+                  {activeDialog.message}
                 </p>
               </div>
             </div>
 
-            {dialogState.type === "prompt" && (
+            {activeDialog.type === "prompt" && (
               <div className="mb-5 mt-2">
                 <input
                   ref={inputRef}
@@ -268,25 +283,25 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                     if (e.key === "Enter" && !isConfirmDisabled) handleConfirm();
                     if (e.key === "Escape") handleCancel();
                   }}
-                  placeholder={dialogState.placeholder}
+                  placeholder={activeDialog.placeholder}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-[#F9FAFB] text-xs font-medium text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black/20 transition"
                 />
-                {dialogState.requiredMatch && (
+                {activeDialog.requiredMatch && (
                   <div className="text-[11px] text-neutral-500 mt-1.5 font-mono">
-                    Type <span className="font-bold text-red-600">{dialogState.requiredMatch}</span> to confirm
+                    Type <span className="font-bold text-red-600">{activeDialog.requiredMatch}</span> to confirm
                   </div>
                 )}
               </div>
             )}
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              {dialogState.type !== "alert" && (
+              {activeDialog.type !== "alert" && (
                 <button
                   type="button"
                   onClick={handleCancel}
                   className="px-4 py-2 rounded-full text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 border border-black/5 text-neutral-800 transition cursor-pointer"
                 >
-                  {dialogState.cancelText}
+                  {activeDialog.cancelText}
                 </button>
               )}
               <button
@@ -294,12 +309,12 @@ export const AppleDialogProvider: React.FC<{ children: ReactNode }> = ({ childre
                 disabled={Boolean(isConfirmDisabled)}
                 onClick={handleConfirm}
                 className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                  dialogState.isDestructive
+                  activeDialog.isDestructive
                     ? "bg-red-600 hover:bg-red-500 text-white shadow-md"
                     : "bg-[#0071E3] hover:bg-[#0077ED] text-white shadow-md"
                 }`}
               >
-                {dialogState.confirmText}
+                {activeDialog.confirmText}
               </button>
             </div>
           </div>

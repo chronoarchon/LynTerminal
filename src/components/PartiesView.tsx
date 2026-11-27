@@ -13,12 +13,13 @@ import {
   Copy,
   Users,
 } from "lucide-react";
-import type { Party, Settings, Payment, CustomerAging, BankAccount } from "../types";
+import type { Party, Settings, Payment, CustomerAging, BankAccount, Invoice } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
 import { formatLocalDate } from "../utils/dateUtils";
+import { printSection } from "../utils/printSection";
 
 interface PartiesViewProps {
   parties: Party[];
@@ -44,6 +45,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
   const [activeParty, setActiveParty] = useState<Party | null>(null);
   const [partyPayments, setPartyPayments] = useState<Payment[]>([]);
+  const [partyInvoices, setPartyInvoices] = useState<Invoice[]>([]);
 
   // Aging State
   const [agingList, setAgingList] = useState<CustomerAging[]>([]);
@@ -147,7 +149,10 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
   const openPaymentModal = (party: Party) => {
     setActiveParty(party);
-    setPaymentAmount(Math.abs(party.current_balance).toString());
+    const isDue =
+      (party.party_type === "CUSTOMER" && party.current_balance > 0) ||
+      (party.party_type === "VENDOR" && party.current_balance < 0);
+    setPaymentAmount(isDue ? Math.abs(party.current_balance).toString() : "");
     setPaymentMethod("CASH");
     setPaymentRef("");
     setPaymentNotes("");
@@ -157,8 +162,12 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
   const openLedgerModal = async (party: Party) => {
     setActiveParty(party);
     try {
-      const payments = await api.listPayments(party.id);
+      const [payments, allInvoices] = await Promise.all([
+        api.listPayments(party.id),
+        api.listInvoices().catch(() => [] as Invoice[]),
+      ]);
       setPartyPayments(payments);
+      setPartyInvoices(allInvoices.filter((inv) => inv.party_id === party.id && inv.status !== "CANCELLED"));
       setIsLedgerModalOpen(true);
     } catch (err) {
       alert("Failed to load ledger: " + err);
@@ -181,6 +190,19 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
       const signedInitialBalance =
         formType === "VENDOR" && openBal > 0 ? -Math.abs(openBal) : openBal;
 
+      let nextBalance = activeParty ? activeParty.current_balance : signedInitialBalance;
+      if (activeParty && activeParty.party_type !== formType && activeParty.current_balance !== 0) {
+        const flip = await confirm({
+          title: "Account Type Changed",
+          message: `Changing ${activeParty.name} from ${activeParty.party_type} to ${formType} flips balance sign (${formatCurrency(Math.abs(activeParty.current_balance))}). Flip balance sign automatically?`,
+          confirmText: "Flip Sign",
+          cancelText: "Keep As-Is",
+        });
+        if (flip) {
+          nextBalance = -activeParty.current_balance;
+        }
+      }
+
       const partyData: Party = {
         id: activeParty ? activeParty.id : "",
         name: formName.trim(),
@@ -190,9 +212,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
         address: formAddress.trim(),
         tax_number: formTaxNumber.trim(),
         opening_balance: openBal,
-        current_balance: activeParty
-          ? activeParty.current_balance
-          : signedInitialBalance,
+        current_balance: nextBalance,
         created_at: activeParty ? activeParty.created_at : "",
       };
 
@@ -496,7 +516,17 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
               <div className="flex items-center justify-between pt-1 border-t border-black/[0.04] text-xs">
                 <div>
-                  <span className="text-[10px] text-[#86868B] block">Balance</span>
+                  <span className="text-[10px] text-[#86868B] block">
+                    {party.current_balance === 0
+                      ? "Balance"
+                      : isCust
+                      ? party.current_balance > 0
+                        ? "Receivable"
+                        : "Advance"
+                      : party.current_balance < 0
+                      ? "Payable"
+                      : "Advance"}
+                  </span>
                   <span className="font-bold font-mono text-[#1D1D1F]">
                     {party.current_balance === 0
                       ? "Settled"
@@ -516,14 +546,23 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   <button
                     onClick={() => openLedgerModal(party)}
                     className="p-1.5 rounded-lg text-[#6E6E73]"
+                    title="Statement"
                   >
                     <Receipt className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => openEditParty(party)}
                     className="p-1.5 rounded-lg text-[#6E6E73]"
+                    title="Edit"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteParty(party.id, party.name)}
+                    className="p-1.5 rounded-lg text-rose-500"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -574,8 +613,8 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                     onClick={() => setFormType("CUSTOMER")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       formType === "CUSTOMER"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Customer
@@ -585,8 +624,8 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                     onClick={() => setFormType("VENDOR")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       formType === "VENDOR"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Supplier
@@ -648,6 +687,19 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                  Address
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Street, City, State, Postal code..."
+                  value={formAddress}
+                  onChange={(e) => setFormAddress(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-black focus:outline-none focus:border-black placeholder:text-neutral-400 resize-none"
+                />
+              </div>
+
               {!activeParty && (
                 <div>
                   <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
@@ -705,7 +757,17 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
 
             <form onSubmit={handleRecordPayment} className="p-5 space-y-3.5">
               <div className="p-3 rounded-xl bg-white border border-black/[0.08] text-xs flex justify-between items-center">
-                <span className="text-neutral-400">Balance:</span>
+                <span className="text-neutral-500 font-medium">
+                  {activeParty.current_balance === 0
+                    ? "Settled Balance:"
+                    : activeParty.party_type === "CUSTOMER"
+                    ? activeParty.current_balance > 0
+                      ? "Receivable Due:"
+                      : "Customer Advance:"
+                    : activeParty.current_balance < 0
+                    ? "Payable Due:"
+                    : "Supplier Advance:"}
+                </span>
                 <span className="font-mono font-bold text-black">
                   {formatCurrency(Math.abs(activeParty.current_balance))}
                 </span>
@@ -797,17 +859,19 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
       {/* ACCOUNT STATEMENT LEDGER MODAL */}
       {isLedgerModalOpen && activeParty && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-black">
+          <div data-printable="true" className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-black/[0.08] overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 text-black">
             <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div>
                 <h3 className="text-sm font-bold text-black tracking-tight">
-                  Statement
+                  Account Statement · {settings.business_name}
                 </h3>
-                <p className="text-[11px] text-neutral-400">{activeParty.name}</p>
+                <p className="text-[11px] text-neutral-500">
+                  {activeParty.name} · Current Balance: {formatCurrency(Math.abs(activeParty.current_balance))}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 no-print">
                 <button
-                  onClick={() => window.print()}
+                  onClick={() => printSection()}
                   className="p-1.5 rounded-full text-neutral-400 hover:text-black hover:bg-black/5 transition cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
@@ -822,6 +886,25 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-2.5 select-text">
+              {partyInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="p-3 rounded-xl border border-black/[0.08] bg-[#F9FAFB] flex items-center justify-between text-xs"
+                >
+                  <div>
+                    <div className="font-semibold text-black">
+                      {inv.invoice_type} #{inv.invoice_number} ({inv.status})
+                    </div>
+                    <div className="text-[10px] text-neutral-500 mt-0.5">
+                      {inv.invoice_date} · Paid: {formatCurrency(inv.paid_amount)}
+                    </div>
+                  </div>
+                  <span className="font-mono font-bold text-xs text-black">
+                    {formatCurrency(inv.total_amount)}
+                  </span>
+                </div>
+              ))}
+
               {partyPayments.map((pmt) => (
                 <div
                   key={pmt.id}
@@ -837,7 +920,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   </div>
                   <span
                     className={`font-mono font-bold text-xs ${
-                      pmt.payment_type === "IN" ? "text-emerald-400" : "text-red-400"
+                      pmt.payment_type === "IN" ? "text-emerald-600" : "text-red-600"
                     }`}
                   >
                     {pmt.payment_type === "IN" ? "+" : "-"}{formatCurrency(pmt.amount)}
@@ -845,9 +928,9 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                 </div>
               ))}
 
-              {partyPayments.length === 0 && (
+              {partyPayments.length === 0 && partyInvoices.length === 0 && (
                 <div className="text-center py-12 text-neutral-400 text-xs">
-                  No payment records found.
+                  No invoice or payment records found.
                 </div>
               )}
             </div>

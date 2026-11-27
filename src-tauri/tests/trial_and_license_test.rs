@@ -146,6 +146,7 @@ fn test_trial_expiration_locks_and_activation_unlocks() {
             line_total: 105.0,
         }],
         reference: None,
+        bank_account_id: None,
     };
 
     // Confirm that when expired, trial engine detects it and strictly blocks checkout
@@ -321,6 +322,7 @@ fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
             line_total: 189.0,
         }],
         reference: None,
+        bank_account_id: None,
     };
     let invoice = create_invoice_internal(&mut conn, payload).expect("Invoice creation must succeed when unlocked");
     assert_eq!(invoice.invoice.total_amount, 189.0);

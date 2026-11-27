@@ -69,6 +69,7 @@ fn test_credit_bill_creation_and_partial_and_full_settlement() {
         payment_method: "Credit (Udhaar)".to_string(),
         notes: "Customer Credit / Udhaar Bill".to_string(),
         reference: None,
+        bank_account_id: None,
         items: vec![],
     };
 
@@ -164,6 +165,7 @@ fn test_credit_bill_creation_and_partial_and_full_settlement() {
         payment_method: "Partial Credit ($250.00 Cash + $250.00 Credit)".to_string(),
         notes: "Customer Credit / Udhaar Bill".to_string(),
         reference: None,
+        bank_account_id: None,
         items: vec![],
     };
 

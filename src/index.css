@@ -469,9 +469,50 @@
 
   /* When printing an invoice document, HIDE THE APP ROOT COMPLETELY to prevent page clutter */
   body:has(#invoice-modal-portal) #root,
-  body.printing-doc #root,
-  body:has([data-printable="true"]) #root {
+  body.printing-doc #root {
     display: none !important;
+  }
+
+  /* Unfurl app shell & scroll containers so multi-page reports never clip at 100vh */
+  #root,
+  #root > div,
+  main,
+  .h-screen,
+  .overflow-hidden,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Isolate [data-printable="true"] sections inside #root (Reports, Statements, PO, Salary Slip) */
+  body.printing-section aside,
+  body.printing-section header,
+  body.printing-section nav {
+    display: none !important;
+  }
+  body.printing-section * {
+    visibility: hidden !important;
+  }
+  body.printing-section [data-printable="true"],
+  body.printing-section [data-printable="true"] * {
+    visibility: visible !important;
+  }
+  body.printing-section [data-printable="true"] {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 4mm 6mm !important;
   }
 
   /* Unfurl invoice modal portal container for direct pure document printing */

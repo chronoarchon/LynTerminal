@@ -22,7 +22,7 @@ import { api } from "../services/api";
 import { formatLocalDate } from "../utils/dateUtils";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { AppleSelect } from "./common/AppleSelect";
-import { useCurrency } from "../context/CurrencyContext";
+import { useCurrency, getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 import type { CompleteGstInvoice, GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { GSTTaxInvoiceModal } from "../modules/india_gst/GSTTaxInvoiceModal";
@@ -45,8 +45,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   onRefresh,
   showGst = false,
 }) => {
-  const { formatCurrency } = useCurrency();
-  const { alert: appleAlert, toast } = useAppleDialog();
+  const { currencyCode, formatCurrency } = useCurrency();
+  const dec = getDefaultCurrencyDecimals(currencyCode);
+  const { alert: appleAlert, confirm: appleConfirm, toast } = useAppleDialog();
+  const [convertPaymentMethod, setConvertPaymentMethod] = useState<"CASH" | "CARD" | "BANK" | "CREDIT">("CASH");
   const [activeTab, setActiveTab] = useState<"invoices" | "estimates" | "returns">("invoices");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
@@ -109,7 +111,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const handleOpenCreditPayModal = async (inv: Invoice) => {
     setCreditPayTarget(inv);
     const due = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
-    setCreditPayAmount(due > 0 ? due.toFixed(2) : inv.total_amount.toFixed(2));
+    setCreditPayAmount(due > 0 ? due.toFixed(dec) : inv.total_amount.toFixed(dec));
     setCreditPayMethod("CASH");
     setCreditPayNotes(
       inv.invoice_type === "PURCHASE"
@@ -251,7 +253,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const handleOpenVoidModal = (invoice: Invoice) => {
     setVoidTarget(invoice);
     setVoidAction("RETURN");
-    setVoidReason("Customer requested return / refund");
+    setVoidReason(
+      invoice.invoice_type === "PURCHASE"
+        ? "Returned to supplier"
+        : "Customer requested return / refund"
+    );
   };
 
   const handleExecuteVoid = async () => {
@@ -261,6 +267,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       setIsProcessingVoid(true);
       await api.voidOrDeleteInvoice(voidTarget.id, voidAction, voidReason.trim() || "Voided");
       setVoidTarget(null);
+      toast({ message: voidAction === "CANCEL" ? "Invoice cancelled!" : "Return processed!", type: "success" });
       onRefresh();
     } catch (err) {
       alert("Error processing invoice: " + err);
@@ -270,11 +277,16 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   };
 
   const handleConvertEstimate = async (estimateId: string) => {
-    if (confirm("Convert this quotation into a completed sale? Stock will be deducted automatically.")) {
+    const ok = await appleConfirm({
+      title: "Convert Quotation to Sale",
+      message: `Convert this quotation into a completed sale (${convertPaymentMethod})? Stock will be deducted automatically.`,
+      confirmText: "Convert",
+    });
+    if (ok) {
       try {
         setIsConvertingId(estimateId);
-        const inv = await api.convertEstimateToInvoice(estimateId, "CASH");
-        alert(`Converted into Invoice #${inv.invoice_number}`);
+        const inv = await api.convertEstimateToInvoice(estimateId, convertPaymentMethod);
+        toast({ message: `Converted into Invoice #${inv.invoice_number}`, type: "success" });
         await loadEstimates();
         onRefresh();
       } catch (e) {
@@ -598,7 +610,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                           >
                             Receipt
                           </button>
-                          {remainingDue > 0.009 && !isReturn && (
+                          {remainingDue > 0.009 && inv.invoice_type !== "RETURN" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && (
                             <button
                               onClick={() => handleOpenCreditPayModal(inv)}
                               className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-black text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer inline-flex items-center gap-1"
@@ -607,10 +619,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                               <span>Pay</span>
                             </button>
                           )}
-                          {!isReturn && (
+                          {inv.invoice_type !== "RETURN" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && (
                             <button
                               onClick={() => handleOpenVoidModal(inv)}
-                              title="Process Return / Refund"
+                              title="Process Return / Void"
                               className="p-1 rounded-lg text-[#86868B] hover:text-[#FF3B30] hover:bg-black/[0.05]"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
@@ -674,12 +686,21 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                       >
                         Receipt
                       </button>
-                      {remainingDue > 0.009 && !isReturn && (
+                      {remainingDue > 0.009 && inv.invoice_type !== "RETURN" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && (
                         <button
                           onClick={() => handleOpenCreditPayModal(inv)}
                           className="px-2.5 py-1 rounded-lg bg-[#34C759] text-black text-[10px] font-bold transition apple-press cursor-pointer"
                         >
                           Pay
+                        </button>
+                      )}
+                      {inv.invoice_type !== "RETURN" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && (
+                        <button
+                          onClick={() => handleOpenVoidModal(inv)}
+                          title="Return / Void"
+                          className="p-1 rounded-lg text-[#86868B] hover:text-[#FF3B30]"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
@@ -733,14 +754,26 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     {est.status !== "CONVERTED" && (
-                      <button
-                        onClick={() => handleConvertEstimate(est.id)}
-                        disabled={isConvertingId === est.id}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#0071E3] hover:bg-[#0077ED] text-white text-[11px] font-bold transition apple-press"
-                      >
-                        <span>Convert to Sale</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
+                      <div className="inline-flex items-center gap-1.5">
+                        <select
+                          value={convertPaymentMethod}
+                          onChange={(e) => setConvertPaymentMethod(e.target.value as any)}
+                          className="px-2 py-1 rounded-lg border border-black/[0.1] bg-white text-[11px] font-semibold text-[#1D1D1F]"
+                        >
+                          <option value="CASH">Cash</option>
+                          <option value="CARD">Card</option>
+                          <option value="BANK">Bank</option>
+                          <option value="CREDIT">Credit</option>
+                        </select>
+                        <button
+                          onClick={() => handleConvertEstimate(est.id)}
+                          disabled={isConvertingId === est.id}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#0071E3] hover:bg-[#0077ED] text-white text-[11px] font-bold transition apple-press cursor-pointer"
+                        >
+                          <span>Convert to Sale</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -795,7 +828,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             <div className="px-5 py-4 border-b border-black/[0.08] flex items-center justify-between bg-[#F9FAFB]">
               <div>
                 <h3 className="text-sm font-bold text-black tracking-tight">
-                  Refund Sale
+                  {voidTarget.invoice_type === "PURCHASE" ? "Return Purchase" : "Refund Sale"}
                 </h3>
                 <p className="text-[11px] text-neutral-400 font-mono">#{voidTarget.invoice_number}</p>
               </div>
@@ -808,6 +841,31 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             </div>
 
             <div className="p-5 space-y-3.5">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVoidAction("RETURN")}
+                  className={`py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    voidAction === "RETURN"
+                      ? "bg-[#1D1D1F] text-white border-[#1D1D1F]"
+                      : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08]"
+                  }`}
+                >
+                  Return / Credit Note
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVoidAction("CANCEL")}
+                  className={`py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    voidAction === "CANCEL"
+                      ? "bg-red-600 text-white border-red-600"
+                      : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08]"
+                  }`}
+                >
+                  Cancel Invoice
+                </button>
+              </div>
+
               <div className="p-3.5 rounded-2xl bg-white border border-black/[0.08] text-xs space-y-1">
                 <div className="flex justify-between text-neutral-400">
                   <span>Refund Total:</span>
@@ -885,6 +943,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   <AppleSelect
                     value={quotePartyId}
                     onChange={(val) => {
+                      if (!val) {
+                        setQuotePartyId("");
+                        return;
+                      }
                       const p = parties.find((pty) => pty.id === val);
                       if (p) {
                         setQuotePartyId(p.id);
@@ -955,23 +1017,76 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   {quoteItems.map((qi, idx) => (
                     <div
                       key={idx}
-                      className="p-2.5 rounded-xl bg-white border border-black/[0.08] flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl bg-white border border-black/[0.08] space-y-2 text-xs"
                     >
-                      <div className="font-medium text-black">{qi.item_name}</div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-neutral-400">
-                          {qi.quantity} {qi.unit} × {formatCurrency(qi.unit_price)}
-                        </span>
-                        <span className="font-mono font-bold text-black">
-                          {formatCurrency(qi.line_total)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setQuoteItems(quoteItems.filter((_, i) => i !== idx))}
-                          className="text-neutral-400 hover:text-red-400 ml-1 cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-black">{qi.item_name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-black">
+                            {formatCurrency(qi.line_total)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setQuoteItems(quoteItems.filter((_, i) => i !== idx))}
+                            className="text-neutral-400 hover:text-red-400 ml-1 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-neutral-500 block">Qty</label>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={qi.quantity}
+                            onChange={(e) => {
+                              const qty = Math.max(0.01, parseFloat(e.target.value) || 0);
+                              setQuoteItems((prev) =>
+                                prev.map((row, i) =>
+                                  i === idx ? { ...row, quantity: qty, line_total: Math.round(qty * row.unit_price * 100) / 100 } : row
+                                )
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-black/10 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-500 block">Price</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={qi.unit_price}
+                            onChange={(e) => {
+                              const price = Math.max(0, parseFloat(e.target.value) || 0);
+                              setQuoteItems((prev) =>
+                                prev.map((row, i) =>
+                                  i === idx ? { ...row, unit_price: price, line_total: Math.round(row.quantity * price * 100) / 100 } : row
+                                )
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-black/10 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-500 block">Tax %</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={qi.tax_rate}
+                            onChange={(e) => {
+                              const tax = Math.max(0, parseFloat(e.target.value) || 0);
+                              setQuoteItems((prev) =>
+                                prev.map((row, i) => (i === idx ? { ...row, tax_rate: tax } : row))
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-black/10 font-mono text-xs"
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1041,6 +1156,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   <AppleSelect
                     value={returnPartyId}
                     onChange={(val) => {
+                      if (!val) {
+                        setReturnPartyId("");
+                        return;
+                      }
                       const p = parties.find((pty) => pty.id === val);
                       if (p) {
                         setReturnPartyId(p.id);
@@ -1113,23 +1232,78 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   {returnItems.map((ri, idx) => (
                     <div
                       key={idx}
-                      className="p-2.5 rounded-xl bg-white border border-black/[0.08] flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl bg-white border border-black/[0.08] space-y-2 text-xs"
                     >
-                      <div className="font-medium text-black">{ri.item_name}</div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-neutral-400">
-                          {ri.quantity} {ri.unit} × {formatCurrency(ri.unit_price)}
-                        </span>
-                        <span className="font-mono font-bold text-red-400">
-                          {formatCurrency(ri.line_total)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setReturnItems(returnItems.filter((_, i) => i !== idx))}
-                          className="text-neutral-400 hover:text-red-400 ml-1 cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-black">{ri.item_name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-red-500">
+                            {formatCurrency(ri.line_total)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setReturnItems(returnItems.filter((_, i) => i !== idx))}
+                            className="text-neutral-400 hover:text-red-400 ml-1 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-neutral-500 block">Qty</label>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={ri.quantity}
+                            onChange={(e) => {
+                              const qty = Math.max(0.01, parseFloat(e.target.value) || 0);
+                              setReturnItems((prev) =>
+                                prev.map((row, i) =>
+                                  i === idx ? { ...row, quantity: qty, line_total: Math.round(qty * row.unit_price * (1 + row.tax_rate / 100) * 100) / 100 } : row
+                                )
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-black/10 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-500 block">Price</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={ri.unit_price}
+                            onChange={(e) => {
+                              const price = Math.max(0, parseFloat(e.target.value) || 0);
+                              setReturnItems((prev) =>
+                                prev.map((row, i) =>
+                                  i === idx ? { ...row, unit_price: price, line_total: Math.round(row.quantity * price * (1 + row.tax_rate / 100) * 100) / 100 } : row
+                                )
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-black/10 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-500 block">Tax %</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={ri.tax_rate}
+                            onChange={(e) => {
+                              const tax = Math.max(0, parseFloat(e.target.value) || 0);
+                              setReturnItems((prev) =>
+                                prev.map((row, i) =>
+                                  i === idx ? { ...row, tax_rate: tax, line_total: Math.round(row.quantity * row.unit_price * (1 + tax / 100) * 100) / 100 } : row
+                                )
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-black/10 font-mono text-xs"
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1282,7 +1456,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     type="button"
                     onClick={() => {
                       const rem = Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0));
-                      setCreditPayAmount(rem.toFixed(2));
+                      setCreditPayAmount(rem.toFixed(dec));
                     }}
                     className="flex-1 py-1.5 px-2 rounded-full bg-white/10 hover:bg-black/10 text-black text-xs font-bold transition cursor-pointer"
                   >
@@ -1292,7 +1466,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     type="button"
                     onClick={() => {
                       const rem = Math.max(0, creditPayTarget.total_amount - (creditPayTarget.paid_amount || 0));
-                      setCreditPayAmount((rem / 2).toFixed(2));
+                      setCreditPayAmount((rem / 2).toFixed(dec));
                     }}
                     className="flex-1 py-1.5 px-2 rounded-full bg-[#F9FAFB] hover:bg-neutral-200 text-neutral-700 text-xs font-semibold border border-black/[0.08] transition cursor-pointer"
                   >
@@ -1312,8 +1486,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     onClick={() => setCreditPayMethod("CASH")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       creditPayMethod === "CASH"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Cash
@@ -1323,8 +1497,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     onClick={() => setCreditPayMethod("CARD")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       creditPayMethod === "CARD"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Card
@@ -1334,8 +1508,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     onClick={() => setCreditPayMethod("BANK")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       creditPayMethod === "BANK"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Bank

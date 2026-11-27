@@ -366,72 +366,144 @@ export const POPULAR_HSN_CODES: HsnSuggestion[] = [
 // ============================================================================
 // 6. OFFICIAL GSTN PORTAL JSON EXPORTERS (GOVERNMENT SCHEMA COMPLIANT)
 // ============================================================================
+function csvCell(val: unknown): string {
+  const s = String(val ?? "");
+  const neutralized = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return `"${neutralized.replace(/"/g, '""')}"`;
+}
+
 export function generateGstr1PortalJson(report: Gstr1ReportData): string {
   // Official GSTN portal JSON structure for GSTR-1 offline tool
 
-  // Table 4: B2B Invoices grouped by CTIN (GSTN schema requirement)
+  // Table 4: B2B Invoices grouped by CTIN, and Table 9B: CDNR (Registered Credit Notes)
   const b2bMap = new Map<string, any[]>();
+  const cdnrMap = new Map<string, any[]>();
+
   for (const inv of report.b2b) {
-    const list = b2bMap.get(inv.customer_gstin) || [];
-    const taxRate = Math.abs(inv.taxable_value) > 0
-      ? Math.round(((inv.igst_amount + inv.cgst_amount + inv.sgst_amount) / inv.taxable_value) * 10000) / 100
+    const invAny = inv as any;
+    const isCreditNote = inv.invoice_type === "C" || inv.invoice_value < 0 || inv.taxable_value < 0;
+    const idt = inv.invoice_date.split("-").reverse().join("-"); // DD-MM-YYYY
+    const pos = inv.place_of_supply.split("-")[0].padStart(2, "0");
+    const absTaxable = Math.abs(inv.taxable_value);
+    const absIgst = Math.abs(inv.igst_amount);
+    const absCgst = Math.abs(inv.cgst_amount);
+    const absSgst = Math.abs(inv.sgst_amount);
+    const absCess = Math.abs(inv.cess_amount);
+    const taxRate = absTaxable > 0
+      ? Math.round(((absIgst + absCgst + absSgst) / absTaxable) * 10000) / 100
       : 0;
 
-    list.push({
-      inum: inv.invoice_number,
-      idt: inv.invoice_date.split("-").reverse().join("-"), // DD-MM-YYYY
-      val: inv.invoice_value,
-      pos: inv.place_of_supply.split("-")[0].padStart(2, "0"),
-      rchrg: inv.reverse_charge,
-      inv_typ: "R",
-      itms: [
-        {
-          num: 1,
+    const itms = Array.isArray(invAny.items) && invAny.items.length > 0
+      ? invAny.items.map((sl: any, idx: number) => ({
+          num: idx + 1,
           itm_det: {
-            txval: inv.taxable_value,
-            rt: taxRate,
-            iamt: inv.igst_amount,
-            camt: inv.cgst_amount,
-            samt: inv.sgst_amount,
-            csamt: inv.cess_amount,
+            txval: Math.abs(sl.taxable_value ?? 0),
+            rt: sl.tax_rate ?? taxRate,
+            iamt: Math.abs(sl.igst_amount ?? 0),
+            camt: Math.abs(sl.cgst_amount ?? 0),
+            samt: Math.abs(sl.sgst_amount ?? 0),
+            csamt: Math.abs(sl.cess_amount ?? 0),
           },
-        },
-      ],
-    });
-    b2bMap.set(inv.customer_gstin, list);
+        }))
+      : [
+          {
+            num: 1,
+            itm_det: {
+              txval: absTaxable,
+              rt: taxRate,
+              iamt: absIgst,
+              camt: absCgst,
+              samt: absSgst,
+              csamt: absCess,
+            },
+          },
+        ];
+
+    if (isCreditNote) {
+      const ntList = cdnrMap.get(inv.customer_gstin) || [];
+      ntList.push({
+        ntty: "C",
+        nt_num: inv.invoice_number,
+        nt_dt: idt,
+        val: Math.abs(inv.invoice_value),
+        pos,
+        rchrg: inv.reverse_charge,
+        inv_typ: "R",
+        itms,
+      });
+      cdnrMap.set(inv.customer_gstin, ntList);
+    } else {
+      const list = b2bMap.get(inv.customer_gstin) || [];
+      list.push({
+        inum: inv.invoice_number,
+        idt,
+        val: inv.invoice_value,
+        pos,
+        rchrg: inv.reverse_charge,
+        inv_typ: "R",
+        itms,
+      });
+      b2bMap.set(inv.customer_gstin, list);
+    }
   }
 
   const b2bFormatted = Array.from(b2bMap.entries()).map(([ctin, invList]) => ({
     ctin,
     inv: invList,
   }));
+  const cdnrFormatted = Array.from(cdnrMap.entries()).map(([ctin, ntList]) => ({
+    ctin,
+    nt: ntList,
+  }));
 
-  // Table 5: B2CL Large Invoices grouped by POS (GSTN schema requirement)
+  // Table 5: B2CL Large Invoices grouped by POS, and Table 9B: CDNUR
   const b2clMap = new Map<string, any[]>();
+  const cdnurFormatted: any[] = [];
   for (const inv of report.b2cl) {
     const posCode = inv.place_of_supply.split("-")[0].padStart(2, "0");
-    const list = b2clMap.get(posCode) || [];
-    const taxRate = Math.abs(inv.taxable_value) > 0
-      ? Math.round(((inv.igst_amount + inv.cgst_amount + inv.sgst_amount) / inv.taxable_value) * 10000) / 100
+    const isCreditNote = inv.invoice_value < 0 || inv.taxable_value < 0;
+    const idt = inv.invoice_date.split("-").reverse().join("-");
+    const absTaxable = Math.abs(inv.taxable_value);
+    const absIgst = Math.abs(inv.igst_amount);
+    const absCgst = Math.abs(inv.cgst_amount);
+    const absSgst = Math.abs(inv.sgst_amount);
+    const absCess = Math.abs(inv.cess_amount);
+    const taxRate = absTaxable > 0
+      ? Math.round(((absIgst + absCgst + absSgst) / absTaxable) * 10000) / 100
       : 0;
 
-    list.push({
-      inum: inv.invoice_number,
-      idt: inv.invoice_date.split("-").reverse().join("-"),
-      val: inv.invoice_value,
-      itms: [
-        {
-          num: 1,
-          itm_det: {
-            txval: inv.taxable_value,
-            rt: taxRate,
-            iamt: inv.igst_amount,
-            csamt: inv.cess_amount,
-          },
+    const itms = [
+      {
+        num: 1,
+        itm_det: {
+          txval: absTaxable,
+          rt: taxRate,
+          iamt: absIgst,
+          csamt: absCess,
         },
-      ],
-    });
-    b2clMap.set(posCode, list);
+      },
+    ];
+
+    if (isCreditNote) {
+      cdnurFormatted.push({
+        typ: "B2CL",
+        ntty: "C",
+        nt_num: inv.invoice_number,
+        nt_dt: idt,
+        val: Math.abs(inv.invoice_value),
+        pos: posCode,
+        itms,
+      });
+    } else {
+      const list = b2clMap.get(posCode) || [];
+      list.push({
+        inum: inv.invoice_number,
+        idt,
+        val: inv.invoice_value,
+        itms,
+      });
+      b2clMap.set(posCode, list);
+    }
   }
 
   const b2clFormatted = Array.from(b2clMap.entries()).map(([pos, invList]) => ({
@@ -440,10 +512,10 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
   }));
 
   // Table 7: B2CS Small Supplies with accurate INTRA vs INTER supply type
-  const supplierStateCode = report.gstin.substring(0, 2);
+  const supplierStateCode = (report.gstin || "").trim().length >= 2 ? report.gstin.trim().substring(0, 2) : "";
   const b2csFormatted = report.b2cs.map((item) => {
     const posCode = item.place_of_supply.split("-")[0].padStart(2, "0");
-    const isInter = posCode !== supplierStateCode;
+    const isInter = supplierStateCode ? posCode !== supplierStateCode : item.igst_amount > 0;
     return {
       sply_ty: isInter ? "INTER" : "INTRA",
       pos: posCode,
@@ -474,7 +546,7 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
     })),
   };
 
-  const portalPayload = {
+  const portalPayload: Record<string, any> = {
     gstin: report.gstin,
     fp: report.fp,
     cur_gt: report.total_turnover,
@@ -482,6 +554,8 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
     b2b: b2bFormatted,
     b2cl: b2clFormatted,
     b2cs: b2csFormatted,
+    ...(cdnrFormatted.length > 0 ? { cdnr: cdnrFormatted } : {}),
+    ...(cdnurFormatted.length > 0 ? { cdnur: cdnurFormatted } : {}),
     hsn: hsnFormatted,
     doc_issue: {
       doc_det: report.doc_summary.map((d, idx) => ({
@@ -506,8 +580,8 @@ export function generateGstr1PortalJson(report: Gstr1ReportData): string {
 
 export function generateGstr1Csv(report: Gstr1ReportData): string {
   const lines: string[] = [];
-  lines.push(`GSTR-1 AUDIT REPORT,GSTIN: ${report.gstin},Legal Name: ${report.legal_name},Period: ${report.fp}`);
-  lines.push(`Period Start: ${report.start_date},Period End: ${report.end_date},Turnover: ₹${report.total_turnover.toFixed(2)},Taxable: ₹${report.total_taxable.toFixed(2)}`);
+  lines.push([csvCell("GSTR-1 AUDIT REPORT"), csvCell(`GSTIN: ${report.gstin}`), csvCell(`Legal Name: ${report.legal_name}`), csvCell(`Period: ${report.fp}`)].join(","));
+  lines.push([csvCell(`Period Start: ${report.start_date}`), csvCell(`Period End: ${report.end_date}`), csvCell(`Turnover: ₹${report.total_turnover.toFixed(2)}`), csvCell(`Taxable: ₹${report.total_taxable.toFixed(2)}`)].join(","));
   lines.push("");
 
   // Table 4: B2B
@@ -515,7 +589,21 @@ export function generateGstr1Csv(report: Gstr1ReportData): string {
   lines.push("GSTIN of Recipient,Receiver Name,Invoice Number,Invoice Date,Invoice Value,Place Of Supply,Reverse Charge,Invoice Type,Taxable Value,IGST Amount,CGST Amount,SGST Amount,Cess Amount");
   for (const b of report.b2b) {
     lines.push(
-      `"${b.customer_gstin}","${b.customer_name}","${b.invoice_number}","${b.invoice_date}",${b.invoice_value.toFixed(2)},"${b.place_of_supply}","${b.reverse_charge}","${b.invoice_type}",${b.taxable_value.toFixed(2)},${b.igst_amount.toFixed(2)},${b.cgst_amount.toFixed(2)},${b.sgst_amount.toFixed(2)},${b.cess_amount.toFixed(2)}`
+      [
+        csvCell(b.customer_gstin),
+        csvCell(b.customer_name),
+        csvCell(b.invoice_number),
+        csvCell(b.invoice_date),
+        b.invoice_value.toFixed(2),
+        csvCell(b.place_of_supply),
+        csvCell(b.reverse_charge),
+        csvCell(b.invoice_type),
+        b.taxable_value.toFixed(2),
+        b.igst_amount.toFixed(2),
+        b.cgst_amount.toFixed(2),
+        b.sgst_amount.toFixed(2),
+        b.cess_amount.toFixed(2),
+      ].join(",")
     );
   }
   lines.push("");
@@ -525,7 +613,15 @@ export function generateGstr1Csv(report: Gstr1ReportData): string {
   lines.push("Invoice Number,Invoice Date,Invoice Value,Place Of Supply,Taxable Value,IGST Amount,Cess Amount");
   for (const l of report.b2cl) {
     lines.push(
-      `"${l.invoice_number}","${l.invoice_date}",${l.invoice_value.toFixed(2)},"${l.place_of_supply}",${l.taxable_value.toFixed(2)},${l.igst_amount.toFixed(2)},${l.cess_amount.toFixed(2)}`
+      [
+        csvCell(l.invoice_number),
+        csvCell(l.invoice_date),
+        l.invoice_value.toFixed(2),
+        csvCell(l.place_of_supply),
+        l.taxable_value.toFixed(2),
+        l.igst_amount.toFixed(2),
+        l.cess_amount.toFixed(2),
+      ].join(",")
     );
   }
   lines.push("");
@@ -535,7 +631,15 @@ export function generateGstr1Csv(report: Gstr1ReportData): string {
   lines.push("Place of Supply,Rate (%),Taxable Value,IGST Amount,CGST Amount,SGST Amount,Cess Amount");
   for (const c of report.b2cs) {
     lines.push(
-      `"${c.place_of_supply}",${c.tax_rate}%,${c.taxable_value.toFixed(2)},${c.igst_amount.toFixed(2)},${c.cgst_amount.toFixed(2)},${c.sgst_amount.toFixed(2)},${c.cess_amount.toFixed(2)}`
+      [
+        csvCell(c.place_of_supply),
+        `${c.tax_rate}%`,
+        c.taxable_value.toFixed(2),
+        c.igst_amount.toFixed(2),
+        c.cgst_amount.toFixed(2),
+        c.sgst_amount.toFixed(2),
+        c.cess_amount.toFixed(2),
+      ].join(",")
     );
   }
   lines.push("");
@@ -545,7 +649,18 @@ export function generateGstr1Csv(report: Gstr1ReportData): string {
   lines.push("HSN Code,Description,UQC,Total Quantity,Total Value,Taxable Value,IGST Amount,CGST Amount,SGST Amount,Cess Amount");
   for (const h of report.hsn_summary) {
     lines.push(
-      `"${h.hsn_code}","${h.description}","${h.uqc}",${h.total_quantity},${h.total_value.toFixed(2)},${h.taxable_value.toFixed(2)},${h.igst_amount.toFixed(2)},${h.cgst_amount.toFixed(2)},${h.sgst_amount.toFixed(2)},${h.cess_amount.toFixed(2)}`
+      [
+        csvCell(h.hsn_code),
+        csvCell(h.description),
+        csvCell(h.uqc),
+        h.total_quantity,
+        h.total_value.toFixed(2),
+        h.taxable_value.toFixed(2),
+        h.igst_amount.toFixed(2),
+        h.cgst_amount.toFixed(2),
+        h.sgst_amount.toFixed(2),
+        h.cess_amount.toFixed(2),
+      ].join(",")
     );
   }
 
@@ -554,26 +669,38 @@ export function generateGstr1Csv(report: Gstr1ReportData): string {
 
 export function generateGstr3bCsv(report: Gstr3bReportData): string {
   const lines: string[] = [];
-  lines.push(`GSTR-3B MONTHLY SUMMARY RETURN,GSTIN: ${report.gstin},Legal Name: ${report.legal_name},Period: ${report.fp}`);
-  lines.push(`Period Start: ${report.start_date},Period End: ${report.end_date}`);
+  lines.push([csvCell("GSTR-3B MONTHLY SUMMARY RETURN"), csvCell(`GSTIN: ${report.gstin}`), csvCell(`Legal Name: ${report.legal_name}`), csvCell(`Period: ${report.fp}`)].join(","));
+  lines.push([csvCell(`Period Start: ${report.start_date}`), csvCell(`Period End: ${report.end_date}`)].join(","));
   lines.push("");
   lines.push("--- 3.1 DETAILS OF OUTWARD SUPPLIES & INWARD LIABLE TO REVERSE CHARGE ---");
   lines.push("Nature of Supplies,Total Taxable Value,Integrated Tax,Central Tax,State/UT Tax,Cess");
   lines.push(
     `"(a) Outward Taxable Supplies",${report.table31.outward_taxable_value.toFixed(2)},${report.table31.outward_igst.toFixed(2)},${report.table31.outward_cgst.toFixed(2)},${report.table31.outward_sgst.toFixed(2)},${report.table31.outward_cess.toFixed(2)}`
   );
+  lines.push(
+    `"(b) Zero Rated Supplies",${report.table31.zero_rated_taxable.toFixed(2)},0.00,0.00,0.00,0.00`
+  );
+  lines.push(
+    `"(c) Nil Rated / Exempted Supplies",${report.table31.nil_exempt_taxable.toFixed(2)},0.00,0.00,0.00,0.00`
+  );
+  lines.push(
+    `"(d) Inward Supplies Liable to Reverse Charge (RCM)",${report.table31.reverse_charge_taxable.toFixed(2)},${(report.table31.reverse_charge_igst || 0).toFixed(2)},${(report.table31.reverse_charge_cgst || 0).toFixed(2)},${(report.table31.reverse_charge_sgst || 0).toFixed(2)},${(report.table31.reverse_charge_cess || 0).toFixed(2)}`
+  );
   lines.push("");
   lines.push("--- 4. ELIGIBLE INPUT TAX CREDIT (ITC) ---");
   lines.push("Details,Integrated Tax,Central Tax,State/UT Tax,Cess");
   lines.push(
-    `"(A)(5) All Other ITC from Inward Supplies",${report.table4_itc.itc_igst.toFixed(2)},${report.table4_itc.itc_cgst.toFixed(2)},${report.table4_itc.itc_sgst.toFixed(2)},${report.table4_itc.itc_cess.toFixed(2)}`
+    `"(A)(5) All Other ITC from Inward Supplies & RCM",${report.table4_itc.itc_igst.toFixed(2)},${report.table4_itc.itc_cgst.toFixed(2)},${report.table4_itc.itc_sgst.toFixed(2)},${report.table4_itc.itc_cess.toFixed(2)}`
+  );
+  lines.push(
+    `"(D) Ineligible ITC",${report.table4_itc.itc_ineligible.toFixed(2)},0.00,0.00,0.00`
   );
   lines.push("");
   lines.push("--- 6.1 PAYMENT OF TAX SUMMARY ---");
-  lines.push("Description,Integrated Tax,Central Tax,State/UT Tax,Total");
-  lines.push(`"Total Outward Tax Liability",${report.table31.outward_igst.toFixed(2)},${report.table31.outward_cgst.toFixed(2)},${report.table31.outward_sgst.toFixed(2)},${report.total_tax_payable.toFixed(2)}`);
-  lines.push(`"Total Input Tax Credit (ITC)",${report.table4_itc.itc_igst.toFixed(2)},${report.table4_itc.itc_cgst.toFixed(2)},${report.table4_itc.itc_sgst.toFixed(2)},${report.total_itc_available.toFixed(2)}`);
-  lines.push(`"Net Cash Tax Payable",${report.net_igst_payable.toFixed(2)},${report.net_cgst_payable.toFixed(2)},${report.net_sgst_payable.toFixed(2)},${report.net_cash_payable.toFixed(2)}`);
+  lines.push("Description,Integrated Tax,Central Tax,State/UT Tax,Cess,Total");
+  lines.push(`"Total Tax Liability (Outward + RCM)",${(report.table31.outward_igst + (report.table31.reverse_charge_igst || 0)).toFixed(2)},${(report.table31.outward_cgst + (report.table31.reverse_charge_cgst || 0)).toFixed(2)},${(report.table31.outward_sgst + (report.table31.reverse_charge_sgst || 0)).toFixed(2)},${(report.table31.outward_cess + (report.table31.reverse_charge_cess || 0)).toFixed(2)},${report.total_tax_payable.toFixed(2)}`);
+  lines.push(`"Total Input Tax Credit (ITC)",${report.table4_itc.itc_igst.toFixed(2)},${report.table4_itc.itc_cgst.toFixed(2)},${report.table4_itc.itc_sgst.toFixed(2)},${report.table4_itc.itc_cess.toFixed(2)},${report.total_itc_available.toFixed(2)}`);
+  lines.push(`"Net Cash Tax Payable",${report.net_igst_payable.toFixed(2)},${report.net_cgst_payable.toFixed(2)},${report.net_sgst_payable.toFixed(2)},${report.net_cess_payable.toFixed(2)},${report.net_cash_payable.toFixed(2)}`);
 
   return lines.join("\n");
 }

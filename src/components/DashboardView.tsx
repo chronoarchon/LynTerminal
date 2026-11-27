@@ -26,10 +26,10 @@ import {
 import { CurrencyIcon } from "./common/CurrencyIcon";
 import type { DashboardSummary, Settings, Party, BankAccount, Invoice, Item, Expense } from "../types";
 import { api } from "../services/api";
-import { getLocalDateString } from "../utils/date";
+import { getLocalDateString, parseLocalDate } from "../utils/date";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
-import { useCurrency } from "../context/CurrencyContext";
+import { useCurrency, getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 import type { GstSettings } from "../modules/india_gst/gstTypes";
 import { gstApi } from "../modules/india_gst/gstApi";
 import { ManageMoneyModal } from "./ManageMoneyModal";
@@ -52,7 +52,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate,
   onRefresh,
 }) => {
-  const { currencySymbol, formatCurrency } = useCurrency();
+  const { currencySymbol, currencyCode, formatCurrency } = useCurrency();
+  const decimals = getDefaultCurrencyDecimals(currencyCode);
   const currency = currencySymbol || settings.currency_symbol || "$";
   const { alert, toast } = useAppleDialog();
 
@@ -139,6 +140,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [dashboardPayTarget, setDashboardPayTarget] = useState<Invoice | null>(null);
   const [dashboardPayAmount, setDashboardPayAmount] = useState<string>("");
   const [dashboardPayMethod, setDashboardPayMethod] = useState<string>("CASH");
+  const [dashboardPayBankId, setDashboardPayBankId] = useState<string>("");
   const [isSubmittingDashboardPay, setIsSubmittingDashboardPay] = useState<boolean>(false);
 
   // Debtor customer accounts (ranked by credit amount: largest to smallest, 1 to endless)
@@ -160,7 +162,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         );
       })
       .sort((a, b) => {
-        const diff = new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime();
+        const diff = parseLocalDate(a.invoice_date).getTime() - parseLocalDate(b.invoice_date).getTime();
         if (diff !== 0) return diff;
         const createdDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         if (createdDiff !== 0) return createdDiff;
@@ -176,7 +178,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const handleOpenDashboardCreditPay = (inv: Invoice) => {
     setDashboardPayTarget(inv);
     const due = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
-    setDashboardPayAmount(due > 0 ? due.toFixed(2) : inv.total_amount.toFixed(2));
+    setDashboardPayAmount(due > 0 ? due.toFixed(decimals) : inv.total_amount.toFixed(decimals));
     setDashboardPayMethod("CASH");
   };
 
@@ -222,6 +224,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         amount: amt,
         payment_type: "IN",
         payment_method: dashboardPayMethod,
+        bank_account_id: dashboardPayMethod === "BANK" && dashboardPayBankId ? dashboardPayBankId : null,
         payment_date: getLocalDateString(),
         reference: dashboardPayTarget.id ? `Credit Settlement #${dashboardPayTarget.invoice_number}` : `Account Settlement - ${dashboardPayTarget.party_name}`,
         notes: dashboardPayTarget.id ? `Credit settlement for Invoice #${dashboardPayTarget.invoice_number}` : `Customer account settlement`,
@@ -259,7 +262,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       setBankAccounts(banks);
       setExpenses(expList);
       if (banks.length > 0) {
-        setSupplierBankId(banks[0].id);
+        const primary = banks.find((b) => b.is_primary) || banks[0];
+        setSupplierBankId((prev) => prev || primary.id);
+        setDashboardPayBankId((prev) => prev || primary.id);
       }
     } catch (e) {
       console.error("Failed to load dashboard data:", e);
@@ -268,17 +273,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [summary, parties]);
 
   const vendors = parties.filter((p) => p.party_type === "VENDOR");
 
   const handleOpenPaySupplier = (vendor?: Party) => {
     if (vendor) {
       setSupplierId(vendor.id);
-      setSupplierAmount(Math.abs(vendor.current_balance).toString());
+      setSupplierAmount(vendor.current_balance < 0 ? Math.abs(vendor.current_balance).toFixed(decimals) : "");
     } else if (vendors.length > 0) {
       setSupplierId(vendors[0].id);
-      setSupplierAmount(Math.abs(vendors[0].current_balance).toString());
+      setSupplierAmount(vendors[0].current_balance < 0 ? Math.abs(vendors[0].current_balance).toFixed(decimals) : "");
     }
     setIsPaySupplierOpen(true);
   };
@@ -320,15 +325,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   // 7-day revenue trend
+  const todayStr = getLocalDateString();
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     const dateStr = getLocalDateString(d);
     const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-    const daySales = invoices
-      .filter((inv) => inv.invoice_type === "SALE" && inv.invoice_date === dateStr)
+    const dayGross = invoices
+      .filter((inv) => inv.invoice_type === "SALE" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && inv.invoice_date === dateStr)
       .reduce((sum, inv) => sum + inv.total_amount, 0);
-    const dayCount = invoices.filter((inv) => inv.invoice_type === "SALE" && inv.invoice_date === dateStr).length;
+    const dayRet = invoices
+      .filter((inv) => inv.invoice_type === "RETURN" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && inv.invoice_date === dateStr)
+      .reduce((sum, inv) => sum + inv.total_amount, 0);
+    const daySales = Math.max(0, dayGross - dayRet);
+    const dayCount = invoices.filter(
+      (inv) => inv.invoice_type === "SALE" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && inv.invoice_date === dateStr
+    ).length;
     return { dateStr, dayName, daySales, dayCount };
   });
 
@@ -340,8 +352,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const categories = Array.from(new Set(items.map((it) => it.category || "General")));
   const categoryStats = categories.map((cat, idx) => {
     const catItems = items.filter((it) => (it.category || "General") === cat);
-    const totalValue = catItems.reduce((sum, it) => sum + it.stock_quantity * it.sale_price, 0);
-    const totalStock = catItems.reduce((sum, it) => sum + it.stock_quantity, 0);
+    const totalValue = catItems.reduce((sum, it) => sum + Math.max(0, it.stock_quantity) * it.purchase_price, 0);
+    const totalStock = catItems.reduce((sum, it) => sum + Math.max(0, it.stock_quantity), 0);
     const colors = [
       { bg: "bg-[#0071E3]", text: "text-[#0071E3]", light: "bg-[#0071E3]/10", border: "border-[#0071E3]/20" },
       { bg: "bg-[#34C759]", text: "text-[#34C759]", light: "bg-[#34C759]/10", border: "border-[#34C759]/20" },
@@ -357,12 +369,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Top products
   const topProducts = [...items]
-    .sort((a, b) => (b.stock_quantity * b.sale_price) - (a.stock_quantity * a.sale_price))
+    .sort((a, b) => (Math.max(0, b.stock_quantity) * b.purchase_price) - (Math.max(0, a.stock_quantity) * a.purchase_price))
     .slice(0, 5);
 
   // Recent sales invoices
   const recentSales = invoices
-    .filter((inv) => inv.invoice_type === "SALE")
+    .filter((inv) => inv.invoice_type === "SALE" && inv.status !== "RETURNED" && inv.status !== "CANCELLED" && inv.invoice_date.slice(0, 10) <= todayStr)
     .slice(0, 6);
 
   const totalAssets = summary?.total_assets ?? (
@@ -372,7 +384,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     (summary?.total_stock_value || 0)
   );
 
-  const totalLiabilities = summary?.total_payables || 0;
+  const totalLiabilities = summary?.total_liabilities ?? summary?.total_payables ?? 0;
   const netWorth = summary?.net_worth ?? (totalAssets - totalLiabilities);
 
   return (
@@ -1098,7 +1110,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {creditInvoicesByAge.map((inv) => {
                   const due = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
                   const daysAgo = Math.floor(
-                    (new Date().getTime() - new Date(inv.invoice_date).getTime()) / (1000 * 60 * 60 * 24)
+                    (parseLocalDate(getLocalDateString()).getTime() - parseLocalDate(inv.invoice_date).getTime()) / (1000 * 60 * 60 * 24)
                   );
 
                   return (
@@ -1584,7 +1596,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     type="button"
                     onClick={() => {
                       const rem = Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0));
-                      setDashboardPayAmount(rem.toFixed(2));
+                      setDashboardPayAmount(rem.toFixed(decimals));
                     }}
                     className="flex-1 py-1.5 px-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0071E3] border border-blue-200 text-xs font-bold transition cursor-pointer"
                   >
@@ -1594,7 +1606,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     type="button"
                     onClick={() => {
                       const rem = Math.max(0, dashboardPayTarget.total_amount - (dashboardPayTarget.paid_amount || 0));
-                      setDashboardPayAmount((rem / 2).toFixed(2));
+                      setDashboardPayAmount((rem / 2).toFixed(decimals));
                     }}
                     className="flex-1 py-1.5 px-2 rounded-xl bg-[#F9FAFB] hover:bg-neutral-100 text-neutral-700 text-xs font-semibold border border-black/[0.08] transition cursor-pointer"
                   >
@@ -1643,6 +1655,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     Bank
                   </button>
                 </div>
+                {dashboardPayMethod === "BANK" && bankAccounts.length > 0 && (
+                  <div className="mt-2">
+                    <AppleSelect
+                      value={dashboardPayBankId}
+                      onChange={setDashboardPayBankId}
+                      options={bankAccounts.map((b) => ({
+                        value: b.id,
+                        label: `${b.account_name} (${formatCurrency(b.current_balance)})`,
+                      }))}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

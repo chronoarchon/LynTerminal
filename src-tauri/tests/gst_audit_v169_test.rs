@@ -78,6 +78,7 @@ fn test_gstr3b_rule_88a_itc_setoff_and_cess_isolation() {
             vehicle_no: None,
             transporter_name: None,
             bill_reference_type: "New Ref".into(),
+            bank_account_id: None,
             items: vec![],
         },
     ).unwrap();
@@ -120,6 +121,7 @@ fn test_gstr3b_rule_88a_itc_setoff_and_cess_isolation() {
             vehicle_no: None,
             transporter_name: None,
             bill_reference_type: "New Ref".into(),
+            bank_account_id: None,
             items: vec![],
         },
     ).unwrap();
@@ -156,6 +158,7 @@ fn test_gstr3b_rule_88a_itc_setoff_and_cess_isolation() {
             vehicle_no: None,
             transporter_name: None,
             bill_reference_type: "New Ref".into(),
+            bank_account_id: None,
             items: vec![],
         },
     ).unwrap();
@@ -226,6 +229,7 @@ fn test_gstr1_mixed_rate_fractional_slabs_returns_and_cancelled() {
             vehicle_no: None,
             transporter_name: None,
             bill_reference_type: "New Ref".into(),
+            bank_account_id: None,
             items: vec![
                 CreateGstItemPayload {
                     item_id: Some(item_id.clone()),
@@ -311,6 +315,7 @@ fn test_gstr1_mixed_rate_fractional_slabs_returns_and_cancelled() {
             vehicle_no: None,
             transporter_name: None,
             bill_reference_type: "New Ref".into(),
+            bank_account_id: None,
             items: vec![],
         },
     ).unwrap();

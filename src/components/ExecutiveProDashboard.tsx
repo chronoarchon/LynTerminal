@@ -142,8 +142,8 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
 
     const periodReturns =
       selectedTimeRange === "all"
-        ? invoices.filter((inv) => inv.invoice_type === "RETURN")
-        : invoices.filter((inv) => inv.invoice_type === "RETURN" && inRange(inv.invoice_date, startStr, todayStr));
+        ? invoices.filter((inv) => isActiveInvoice(inv, "RETURN"))
+        : invoices.filter((inv) => isActiveInvoice(inv, "RETURN") && inRange(inv.invoice_date, startStr, todayStr));
 
     const periodPurchasesInvoices =
       selectedTimeRange === "all"
@@ -187,7 +187,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
         .filter((inv) => isActiveSale(inv) && inRange(inv.invoice_date, prevStartStr, prevEndStr))
         .reduce((sum, inv) => sum + inv.total_amount, 0);
       const prevReturns = invoices
-        .filter((inv) => inv.invoice_type === "RETURN" && inRange(inv.invoice_date, prevStartStr, prevEndStr))
+        .filter((inv) => isActiveInvoice(inv, "RETURN") && inRange(inv.invoice_date, prevStartStr, prevEndStr))
         .reduce((sum, inv) => sum + inv.total_amount, 0);
       const prevNet = prevSales - prevReturns;
       if (prevNet > 0.01) {
@@ -332,8 +332,15 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
 
   // Recent sales filtered by active search, payment type, and period
   const recentSales = useMemo(() => {
+    const todayStr = getLocalDateString();
     return invoices
-      .filter((inv) => inv.invoice_type === "SALE")
+      .filter(
+        (inv) =>
+          inv.invoice_type === "SALE" &&
+          inv.status !== "RETURNED" &&
+          inv.status !== "CANCELLED" &&
+          inv.invoice_date.slice(0, 10) <= todayStr
+      )
       .filter((inv) => {
         if (selectedTimeRange === "all") return true;
         return inv.invoice_date.slice(0, 10) >= periodMetrics.startStr;
@@ -438,7 +445,7 @@ export const ExecutiveProDashboard: React.FC<ExecutiveProDashboardProps> = ({
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Primary Action: POS Sale */}
             <button
-              onClick={() => onNavigate("pos")}
+              onClick={() => onNavigate(isGstEnabled && isIndiaCurrency ? "gst_pos" : "pos")}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-xs transition apple-press cursor-pointer whitespace-nowrap shrink-0"
             >
               <Receipt className="w-3.5 h-3.5" />

@@ -14,7 +14,7 @@ import {
   Lock,
   ExternalLink,
 } from "lucide-react";
-import type { Item, Party, Settings, LicenseStatus } from "../../types";
+import type { Item, Party, Settings, LicenseStatus, BankAccount } from "../../types";
 import type {
   GstSettings,
   CompleteGstInvoice,
@@ -65,6 +65,8 @@ interface GSTCartItem {
   rate: number;
   discount_amount: number;
   tax_rate: number; // 0, 5, 12, 18, 28
+  cess_rate: number;
+  is_service: boolean;
 }
 
 export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
@@ -96,6 +98,10 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
   const [splitCash, setSplitCash] = useState<string>("");
   const [splitCard, setSplitCard] = useState<string>("");
   const [paidAmountStr, setPaidAmountStr] = useState<string>("");
+  const [creditPaidMethod, setCreditPaidMethod] = useState<"CASH" | "BANK" | "UPI">("CASH");
+  const [billDiscount, setBillDiscount] = useState<number>(0);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [refNumber, setRefNumber] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [billRefType, setBillRefType] = useState<string>("New Ref");
@@ -111,10 +117,24 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
   const { alert, toast } = useAppleDialog();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const hsnReqSeqRef = useRef<number>(0);
 
   useEffect(() => {
     searchInputRef.current?.focus();
+    api.listBankAccounts().then((banks) => {
+      setBankAccounts(banks);
+      if (banks.length > 0) {
+        const primary = banks.find((b) => b.is_primary) || banks[0];
+        setSelectedBankId((prev) => prev || primary.id);
+      }
+    }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!selectedPartyId && !customerGstin && gstSettings?.state_code) {
+      setPosStateCode(gstSettings.state_code);
+    }
+  }, [gstSettings?.state_code, selectedPartyId, customerGstin]);
 
   // Sync customer details when selecting party
   const selectedParty = useMemo(() => {
@@ -142,8 +162,11 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
       }).catch(() => {});
     } else {
       setPartyCreditLimit(0);
+      setCustomerGstin("");
+      setPosStateCode(gstSettings.state_code || "27");
+      setCreditDays(30);
     }
-  }, [selectedParty]);
+  }, [selectedParty, gstSettings.state_code]);
 
   const categories = useMemo(() => {
     return ["All", ...Array.from(new Set(items.map((i) => i.category))).filter(Boolean)];
@@ -203,23 +226,32 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
           unit: item.unit || "PCS",
           rate: item.sale_price,
           discount_amount: 0,
-          tax_rate: item.tax_rate ?? 18,
+          tax_rate: item.tax_rate ?? settings.default_tax_rate ?? 18,
+          cess_rate: 0,
+          is_service: false,
         },
       ];
     });
 
+    const reqId = ++hsnReqSeqRef.current;
     gstApi
       .getItemGstProfile(item.id)
       .then((profile) => {
-        if (profile?.hsn_code && profile.hsn_code.trim()) {
+        if (profile) {
           setCart((prev) =>
             prev.map((ci) =>
-              ci.item_id === item.id && ci.hsn_code === "8471"
-                ? { ...ci, hsn_code: profile.hsn_code.trim() }
+              ci.item_id === item.id
+                ? {
+                    ...ci,
+                    hsn_code: profile.hsn_code?.trim() ? profile.hsn_code.trim() : ci.hsn_code,
+                    cess_rate: profile.cess_rate ?? ci.cess_rate,
+                    is_service: profile.is_service ?? ci.is_service,
+                  }
                 : ci
             )
           );
         }
+        void reqId;
       })
       .catch(() => {});
   };
@@ -259,6 +291,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
     setSelectedPartyId("");
     setCustomCustomerName("");
     setCustomerGstin("");
+    setBillDiscount(0);
     setPaidAmountStr("");
     setRefNumber("");
     setNotes("");
@@ -268,29 +301,42 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
     if (paymentType === "SPLIT") setPaymentType("CASH");
   };
 
-  // Calculations with Place of Supply logic
+  // Calculations with Place of Supply & INCLUSIVE/EXCLUSIVE tax mode logic
   const supplierCode = gstSettings.state_code || "27";
   const posCode = posStateCode || supplierCode;
   const isInterstate = supplierCode !== posCode;
+  const isTaxInclusive = (settings.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
+
+  const grossCartTotal = cart.reduce((sum, item) => sum + Math.max(0, item.rate * item.quantity - item.discount_amount), 0);
+  const effectiveBillDiscount = Math.min(grossCartTotal, Math.max(0, billDiscount));
+  const discFactor = grossCartTotal > 0 ? Math.max(0, grossCartTotal - effectiveBillDiscount) / grossCartTotal : 1;
 
   const lineCalculations = useMemo(() => {
     return cart.map((item) => {
       const gross = item.rate * item.quantity;
-      const taxable = Math.max(0, gross - item.discount_amount);
+      const netLine = Math.max(0, gross - item.discount_amount) * discFactor;
+      const combinedRate = item.tax_rate + (item.cess_rate || 0);
+      const taxable = isTaxInclusive && combinedRate > 0
+        ? Math.round((netLine / (1 + combinedRate / 100)) * 100) / 100
+        : Math.round(netLine * 100) / 100;
       const breakdown = calculateGstBreakdown(taxable, item.tax_rate, supplierCode, posCode);
+      const cessAmount = Math.round((taxable * ((item.cess_rate || 0) / 100)) * 100) / 100;
       return {
         ...item,
         taxable_amount: taxable,
+        cessAmount,
         ...breakdown,
+        lineTotal: Math.round((taxable + breakdown.totalTax + cessAmount) * 100) / 100,
       };
     });
-  }, [cart, supplierCode, posCode]);
+  }, [cart, supplierCode, posCode, isTaxInclusive, discFactor]);
 
   const subtotalTaxable = lineCalculations.reduce((sum, l) => sum + l.taxable_amount, 0);
   const totalCgst = lineCalculations.reduce((sum, l) => sum + l.cgstAmount, 0);
   const totalSgst = lineCalculations.reduce((sum, l) => sum + l.sgstAmount, 0);
   const totalIgst = lineCalculations.reduce((sum, l) => sum + l.igstAmount, 0);
-  const totalTax = totalCgst + totalSgst + totalIgst;
+  const totalCess = lineCalculations.reduce((sum, l) => sum + l.cessAmount, 0);
+  const totalTax = totalCgst + totalSgst + totalIgst + totalCess;
   const rawTotal = subtotalTaxable + totalTax;
 
   // Indian Round-Off to nearest rupee
@@ -366,7 +412,28 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
       return;
     }
 
-    if (licenseStatus?.is_expired) {
+    if (paymentType === "CREDIT" && !selectedPartyId) {
+      alert({
+        title: "Customer Required for Credit",
+        message: "Credit sales require selecting a Sundry Debtor customer. Walk-in consumers cannot be billed on Credit.",
+        type: "warning",
+      });
+      return;
+    }
+
+    if (paymentType === "CREDIT" && paidAmountStr.trim() !== "") {
+      const parsedAdv = parseFloat(paidAmountStr);
+      if (Number.isNaN(parsedAdv) || parsedAdv < 0 || parsedAdv > roundedGrandTotal) {
+        alert({
+          title: "Invalid Advance Amount",
+          message: `Advance paid must be between ₹0 and ₹${roundedGrandTotal.toFixed(2)}.`,
+          type: "warning",
+        });
+        return;
+      }
+    }
+
+    if (licenseStatus?.is_expired && licenseStatus?.platform !== "linux") {
       onOpenLicenseModal?.();
       alert({
         title: "14-Day Free Trial Expired",
@@ -405,8 +472,8 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         sgst_amount: l.sgstAmount,
         igst_rate: l.igstRate,
         igst_amount: l.igstAmount,
-        cess_rate: 0,
-        cess_amount: 0,
+        cess_rate: l.cess_rate || 0,
+        cess_amount: l.cessAmount || 0,
         line_total: l.lineTotal,
       }));
 
@@ -416,19 +483,21 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         party_name: partyName,
         invoice_date: todayStr,
         due_date: dueDateStr,
-        subtotal: subtotalTaxable,
-        discount_amount: 0,
+        subtotal: Math.round((subtotalTaxable + effectiveBillDiscount) * 100) / 100,
+        discount_amount: Math.round(effectiveBillDiscount * 100) / 100,
         total_tax: totalTax,
         cgst_amount: totalCgst,
         sgst_amount: totalSgst,
         igst_amount: totalIgst,
-        cess_amount: 0,
+        cess_amount: totalCess,
         round_off: roundOff,
         total_amount: roundedGrandTotal,
         paid_amount: effectivePaidAmount,
         payment_method:
           paymentType === "CREDIT"
-            ? `Credit (${creditDays} Days)`
+            ? effectivePaidAmount > 0
+              ? `Partial Credit (₹${effectivePaidAmount.toFixed(2)} ${creditPaidMethod} + ₹${dueBalance.toFixed(2)} Credit)`
+              : `Credit (${creditDays} Days)`
             : paymentType === "SPLIT"
             ? formatSplitPaymentDescription(
                 "₹",
@@ -437,6 +506,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 "Card/UPI"
               )
             : paymentType,
+        bank_account_id: selectedBankId || null,
         notes: notes || (paymentType === "CREDIT" ? "Credit Tax Invoice" : "GST POS Cash Sale"),
         reference: refNumber.trim() || null,
         place_of_supply: placeOfSupplyDesc,
@@ -706,7 +776,16 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             </div>
           </div>
 
-          {/* Customer GSTIN input if walk-in or manual */}
+          {/* Customer GSTIN & Walk-in Name */}
+          {!selectedPartyId && (
+            <input
+              type="text"
+              value={customCustomerName}
+              onChange={(e) => setCustomCustomerName(e.target.value)}
+              placeholder="Walk-in customer name (optional)..."
+              className="w-full text-[11px] px-2 py-1 rounded-lg bg-white border border-black/[0.08] focus:outline-hidden"
+            />
+          )}
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -757,6 +836,20 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-neutral-400">Rate ₹:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.rate}
+                      onChange={(e) => {
+                        const r = Math.max(0, parseFloat(e.target.value) || 0);
+                        setCart((prev) => prev.map((ci, i) => (i === idx ? { ...ci, rate: r } : ci)));
+                      }}
+                      className="w-16 font-mono text-[10px] px-1 py-0.5 rounded bg-white border border-black/10 text-right"
+                    />
+                  </div>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-neutral-400">HSN:</span>
                     <input
@@ -1020,6 +1113,28 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
                 <div className="col-span-2">
                   <label className="block text-[10px] text-neutral-600 font-semibold mb-0.5">
+                    Advance Payment Mode
+                  </label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {(["CASH", "UPI", "BANK"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setCreditPaidMethod(m)}
+                        className={`py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                          creditPaidMethod === m
+                            ? "bg-[#1D1D1F] text-white border-[#1D1D1F]"
+                            : "bg-white text-neutral-600 border-black/10"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[10px] text-neutral-600 font-semibold mb-0.5">
                     Statutory Bill Reference Type
                   </label>
                   <select
@@ -1044,7 +1159,46 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             </div>
           )}
 
-          {/* Totals Breakdown */}
+          {/* Totals Breakdown & Discount/Notes */}
+          <div className="grid grid-cols-2 gap-1.5 pt-1">
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-neutral-400">Disc ₹</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={billDiscount === 0 ? "" : billDiscount}
+                onChange={(e) => setBillDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                placeholder="0"
+                className="w-full pl-11 pr-2 py-1 rounded-lg bg-white border border-black/[0.08] text-[11px] font-mono text-right focus:outline-hidden"
+              />
+            </div>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Invoice notes..."
+              className="w-full px-2 py-1 rounded-lg bg-white border border-black/[0.08] text-[11px] focus:outline-hidden"
+            />
+          </div>
+          {bankAccounts.length > 0 &&
+            (paymentType === "UPI" ||
+              paymentType === "CARD" ||
+              paymentType === "BANK" ||
+              paymentType === "SPLIT" ||
+              (paymentType === "CREDIT" && effectivePaidAmount > 0 && creditPaidMethod !== "CASH")) && (
+              <select
+                value={selectedBankId}
+                onChange={(e) => setSelectedBankId(e.target.value)}
+                className="w-full px-2.5 py-1 rounded-lg bg-white border border-black/[0.08] text-[11px] font-medium text-black focus:outline-hidden"
+              >
+                {bankAccounts.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    Bank: {b.account_name} ({b.bank_name})
+                  </option>
+                ))}
+              </select>
+            )}
           <div className="space-y-1 font-mono text-xs pt-1 border-t border-black/[0.06]">
             <div className="flex justify-between text-neutral-500 text-[11px]">
               <span className="font-sans">Taxable Subtotal:</span>

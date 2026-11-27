@@ -154,6 +154,7 @@ fn test_comprehensive_performance_and_windows_readiness() {
             total_amount: 460.20,
             paid_amount: 460.20,
             reference: Some(format!("REF-{:04}", i)),
+            bank_account_id: None,
         };
 
         {
@@ -344,6 +345,7 @@ fn test_comprehensive_performance_and_windows_readiness() {
             total_amount: 118.0,
             paid_amount: 118.0,
             reference: None,
+            bank_account_id: None,
         };
         let mut conn = shared_db.conn.lock().unwrap();
         let _ = create_invoice_internal(&mut conn, payload).unwrap();

@@ -640,10 +640,10 @@ export function buildGstr3bPdf(report: Gstr3bReportData): jsPDF {
       [
         "(d) Inward supplies liable to reverse charge (RCM)",
         fmtNum(report.table31.reverse_charge_taxable),
-        "0.00",
-        "0.00",
-        "0.00",
-        "0.00",
+        fmtNum(report.table31.reverse_charge_igst || 0),
+        fmtNum(report.table31.reverse_charge_cgst || 0),
+        fmtNum(report.table31.reverse_charge_sgst || 0),
+        fmtNum(report.table31.reverse_charge_cess || 0),
       ],
     ],
     "No outward supply entries."
@@ -694,25 +694,25 @@ export function buildGstr3bPdf(report: Gstr3bReportData): jsPDF {
     [
       [
         "Integrated Tax (IGST)",
-        fmtNum(report.table31.outward_igst),
+        fmtNum(report.table31.outward_igst + (report.table31.reverse_charge_igst || 0)),
         fmtNum(report.itc_utilized_igst),
         fmtNum(report.net_igst_payable),
       ],
       [
         "Central Tax (CGST)",
-        fmtNum(report.table31.outward_cgst),
+        fmtNum(report.table31.outward_cgst + (report.table31.reverse_charge_cgst || 0)),
         fmtNum(report.itc_utilized_cgst),
         fmtNum(report.net_cgst_payable),
       ],
       [
         "State / UT Tax (SGST)",
-        fmtNum(report.table31.outward_sgst),
+        fmtNum(report.table31.outward_sgst + (report.table31.reverse_charge_sgst || 0)),
         fmtNum(report.itc_utilized_sgst),
         fmtNum(report.net_sgst_payable),
       ],
       [
         "Cess",
-        fmtNum(report.table31.outward_cess),
+        fmtNum(report.table31.outward_cess + (report.table31.reverse_charge_cess || 0)),
         fmtNum(report.itc_utilized_cess),
         fmtNum(report.net_cess_payable),
       ],

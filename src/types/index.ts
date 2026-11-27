@@ -113,7 +113,7 @@ export interface Invoice {
   tax_amount: number;
   total_amount: number;
   paid_amount: number;
-  status: "PAID" | "PARTIAL" | "UNPAID" | "RETURNED" | "CREDIT";
+  status: "PAID" | "PARTIAL" | "UNPAID" | "RETURNED" | "CANCELLED" | "CREDIT";
   payment_method: string;
   notes: string;
   created_at: string;
@@ -159,6 +159,7 @@ export interface InvoicePayload {
   notes: string;
   items: InvoiceItemPayload[];
   reference?: string | null;
+  bank_account_id?: string | null;
 }
 
 export interface InvoiceDetail {
@@ -299,6 +300,7 @@ export interface QuickProductPayload {
   tax_rate?: number | null;
   stock_quantity: number;
   unit: string;
+  barcode?: string | null;
 }
 
 // ----------------------------------------------------------------------------

@@ -62,6 +62,7 @@ fn test_v170_supplier_payment_fifo_bank_sync_and_credit_aging() {
             payment_method: "Credit".into(),
             notes: "Purchase Bill 1".into(),
             reference: None,
+            bank_account_id: None,
             items: vec![],
         },
     )
@@ -83,6 +84,7 @@ fn test_v170_supplier_payment_fifo_bank_sync_and_credit_aging() {
             payment_method: "Credit".into(),
             notes: "Purchase Bill 2".into(),
             reference: None,
+            bank_account_id: None,
             items: vec![],
         },
     )
@@ -288,6 +290,7 @@ fn test_v170_daybook_salary_double_count_and_expenses_created_at() {
             payment_method: "Cash".into(),
             notes: "Walk-in Cash".into(),
             reference: None,
+            bank_account_id: None,
             items: vec![],
         },
     )
@@ -308,6 +311,7 @@ fn test_v170_daybook_salary_double_count_and_expenses_created_at() {
             payment_method: "UPI".into(),
             notes: "Walk-in UPI".into(),
             reference: None,
+            bank_account_id: None,
             items: vec![],
         },
     )
@@ -372,6 +376,7 @@ fn test_v170_purchase_return_tax_void_cancel_and_sequences() {
             payment_method: "Credit".into(),
             notes: "".into(),
             reference: None,
+            bank_account_id: None,
             items: vec![],
         },
     )
@@ -428,6 +433,7 @@ fn test_v170_purchase_return_tax_void_cancel_and_sequences() {
             payment_method: "Credit".into(),
             notes: "".into(),
             reference: None,
+            bank_account_id: None,
             items: vec![],
         },
     )

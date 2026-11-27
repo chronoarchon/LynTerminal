@@ -131,6 +131,7 @@ fn test_gst_invoice_creation_intra_and_inter_state_split() {
         vehicle_no: None,
         transporter_name: None,
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![CreateGstItemPayload {
             item_id: Some(item_id.clone()),
             item_name: "Enterprise Server Rack".into(),
@@ -220,6 +221,7 @@ fn test_bill_by_bill_tracking_and_settlement() {
         vehicle_no: None,
         transporter_name: None,
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![],
     }).unwrap();
 
@@ -252,6 +254,7 @@ fn test_bill_by_bill_tracking_and_settlement() {
         vehicle_no: None,
         transporter_name: None,
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![],
     }).unwrap();
 
@@ -360,6 +363,7 @@ fn test_gstr1_and_gstr3b_statutory_reports() {
         vehicle_no: Some("MH01AB1234".into()),
         transporter_name: Some("VRL Logistics".into()),
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![CreateGstItemPayload {
             item_id: None,
             item_name: "Cloud Server Blades".into(),
@@ -412,6 +416,7 @@ fn test_gstr1_and_gstr3b_statutory_reports() {
         vehicle_no: None,
         transporter_name: None,
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![CreateGstItemPayload {
             item_id: None,
             item_name: "Wireless Optical Mouse".into(),
@@ -464,6 +469,7 @@ fn test_gstr1_and_gstr3b_statutory_reports() {
         vehicle_no: None,
         transporter_name: None,
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![],
     }).unwrap();
 
@@ -561,6 +567,7 @@ fn test_bill_settlement_financial_integrity_validation() {
         vehicle_no: None,
         transporter_name: None,
         bill_reference_type: "New Ref".into(),
+        bank_account_id: None,
         items: vec![],
     }).unwrap();
 

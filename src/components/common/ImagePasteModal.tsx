@@ -133,10 +133,17 @@ export const ImagePasteModal: React.FC<ImagePasteModalProps> = ({ onNavigateTab 
 
   const handleAttachReceipt = () => {
     if (!dataUrl) return;
-    window.dispatchEvent(new CustomEvent("lynterminal_attach_receipt", { detail: dataUrl }));
+    try {
+      sessionStorage.setItem("lynterminal_pending_receipt", dataUrl);
+    } catch (err) {
+      console.error("Failed to store pending receipt:", err);
+      alert("Storage limit exceeded. Please choose a smaller receipt image.");
+      return;
+    }
     if (onNavigateTab) {
       onNavigateTab("expenses");
     }
+    window.dispatchEvent(new CustomEvent("lynterminal_attach_receipt", { detail: dataUrl }));
     setIsOpen(false);
   };
 

@@ -288,7 +288,7 @@ impl DatabaseManager {
             CREATE TABLE IF NOT EXISTS payments (
                 id TEXT PRIMARY KEY,
                 invoice_id TEXT,
-                party_id TEXT NOT NULL,
+                party_id TEXT,
                 party_name TEXT NOT NULL,
                 amount REAL NOT NULL,
                 payment_type TEXT NOT NULL,
@@ -296,8 +296,9 @@ impl DatabaseManager {
                 payment_date TEXT NOT NULL,
                 reference TEXT NOT NULL,
                 notes TEXT NOT NULL,
+                bank_account_id TEXT DEFAULT '',
                 FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
-                FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE CASCADE
+                FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE RESTRICT
             );
 
             CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
@@ -506,7 +507,7 @@ impl DatabaseManager {
                 reference TEXT NOT NULL DEFAULT '',
                 notes TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
-                FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+                FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE RESTRICT
             );
 
             CREATE TABLE IF NOT EXISTS gst_settings (
@@ -598,7 +599,7 @@ impl DatabaseManager {
 
             CREATE TABLE IF NOT EXISTS bill_settlements (
                 id TEXT PRIMARY KEY,
-                payment_id TEXT NOT NULL,
+                payment_id TEXT,
                 invoice_id TEXT NOT NULL,
                 party_id TEXT NOT NULL,
                 settled_amount REAL NOT NULL,
@@ -606,8 +607,22 @@ impl DatabaseManager {
                 notes TEXT DEFAULT '',
                 FOREIGN KEY(payment_id) REFERENCES payments(id) ON DELETE CASCADE,
                 FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
-                FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE CASCADE
+                FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE RESTRICT
             );
+
+            CREATE TABLE IF NOT EXISTS deposits (
+                id TEXT PRIMARY KEY,
+                deposit_type TEXT NOT NULL,
+                account_type TEXT NOT NULL,
+                bank_account_id TEXT DEFAULT '',
+                cash_amount REAL NOT NULL DEFAULT 0.0,
+                bank_amount REAL NOT NULL DEFAULT 0.0,
+                notes TEXT NOT NULL DEFAULT '',
+                deposit_date TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_deposits_date ON deposits(deposit_date);
+            CREATE INDEX IF NOT EXISTS idx_deposits_ts ON deposits(timestamp);
 
             CREATE TABLE IF NOT EXISTS app_license (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -630,8 +645,8 @@ impl DatabaseManager {
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN tax_preset TEXT DEFAULT 'CUSTOM'", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN preview_after_sale INTEGER DEFAULT 0", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN auto_print INTEGER DEFAULT 0", []);
-        let _ = conn.execute("ALTER TABLE settings ADD COLUMN opening_cash REAL DEFAULT 500.0", []);
-        let _ = conn.execute("ALTER TABLE settings ADD COLUMN opening_bank REAL DEFAULT 10000.0", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN opening_cash REAL DEFAULT 0.0", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN opening_bank REAL DEFAULT 0.0", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN opening_balance_mode TEXT DEFAULT 'CASH'", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN capital_cash REAL DEFAULT 0.0", []);
         let _ = conn.execute("ALTER TABLE settings ADD COLUMN capital_bank REAL DEFAULT 0.0", []);
@@ -748,6 +763,109 @@ impl DatabaseManager {
             );
             let _ = conn.execute(
                 "INSERT OR IGNORE INTO schema_migrations (name, applied_at) VALUES ('v1_7_0_vendor_open_bal_fix', ?1)",
+                params![now],
+            );
+        }
+
+        let fk_integrity_applied: bool = conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM schema_migrations WHERE name = 'v1_7_1_nullable_fk_integrity'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap_or(false);
+
+        if !fk_integrity_applied {
+            let now = chrono::Local::now().to_rfc3339();
+            conn.execute_batch("PRAGMA foreign_keys = OFF;")?;
+            let rebuild_res = conn.execute_batch(
+                "
+                BEGIN IMMEDIATE;
+
+                CREATE TABLE payments_new (
+                    id TEXT PRIMARY KEY,
+                    invoice_id TEXT,
+                    party_id TEXT,
+                    party_name TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    payment_type TEXT NOT NULL,
+                    payment_method TEXT NOT NULL,
+                    payment_date TEXT NOT NULL,
+                    reference TEXT NOT NULL,
+                    notes TEXT NOT NULL,
+                    bank_account_id TEXT DEFAULT '',
+                    FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
+                    FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE RESTRICT
+                );
+                INSERT INTO payments_new (
+                    id, invoice_id, party_id, party_name, amount, payment_type,
+                    payment_method, payment_date, reference, notes, bank_account_id
+                )
+                SELECT
+                    id, invoice_id, NULLIF(TRIM(party_id), ''), party_name, amount, payment_type,
+                    payment_method, payment_date, reference, notes, COALESCE(bank_account_id, '')
+                FROM payments;
+                DROP TABLE payments;
+                ALTER TABLE payments_new RENAME TO payments;
+                CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
+                CREATE INDEX IF NOT EXISTS idx_payments_party ON payments(party_id);
+                CREATE INDEX IF NOT EXISTS idx_payments_type ON payments(payment_type);
+                CREATE INDEX IF NOT EXISTS idx_payments_party_date ON payments(party_id, payment_date);
+
+                CREATE TABLE bill_settlements_new (
+                    id TEXT PRIMARY KEY,
+                    payment_id TEXT,
+                    invoice_id TEXT NOT NULL,
+                    party_id TEXT NOT NULL,
+                    settled_amount REAL NOT NULL,
+                    settlement_date TEXT NOT NULL,
+                    notes TEXT DEFAULT '',
+                    FOREIGN KEY(payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+                    FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+                    FOREIGN KEY(party_id) REFERENCES parties(id) ON DELETE RESTRICT
+                );
+                INSERT INTO bill_settlements_new (
+                    id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
+                )
+                SELECT
+                    id, NULLIF(TRIM(payment_id), ''), invoice_id, party_id, settled_amount, settlement_date, COALESCE(notes, '')
+                FROM bill_settlements;
+                DROP TABLE bill_settlements;
+                ALTER TABLE bill_settlements_new RENAME TO bill_settlements;
+
+                CREATE TABLE salary_payments_new (
+                    id TEXT PRIMARY KEY,
+                    voucher_number TEXT NOT NULL UNIQUE,
+                    employee_id TEXT NOT NULL,
+                    employee_name TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    payment_date TEXT NOT NULL,
+                    payment_source TEXT NOT NULL,
+                    for_month TEXT NOT NULL,
+                    days_present INTEGER NOT NULL,
+                    bonus REAL NOT NULL DEFAULT 0.0,
+                    deductions REAL NOT NULL DEFAULT 0.0,
+                    reference TEXT NOT NULL DEFAULT '',
+                    notes TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE RESTRICT
+                );
+                INSERT INTO salary_payments_new
+                SELECT
+                    id, voucher_number, employee_id, employee_name, amount, payment_date,
+                    payment_source, for_month, days_present, bonus, deductions,
+                    reference, notes, created_at
+                FROM salary_payments;
+                DROP TABLE salary_payments;
+                ALTER TABLE salary_payments_new RENAME TO salary_payments;
+
+                COMMIT;
+                "
+            );
+            let _ = conn.execute_batch("PRAGMA foreign_keys = ON;");
+            rebuild_res?;
+            let _ = conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations (name, applied_at) VALUES ('v1_7_1_nullable_fk_integrity', ?1)",
                 params![now],
             );
         }

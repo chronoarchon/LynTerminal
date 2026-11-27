@@ -91,7 +91,19 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {
             current.push_str(word);
         } else {
             lines.push(current);
-            current = word.to_string();
+            current = String::new();
+            if word.len() <= width {
+                current.push_str(word);
+            } else {
+                for chunk in word.as_bytes().chunks(width) {
+                    let part = String::from_utf8_lossy(chunk).to_string();
+                    if part.len() == width {
+                        lines.push(part);
+                    } else {
+                        current = part;
+                    }
+                }
+            }
         }
     }
     if !current.is_empty() {
@@ -328,7 +340,9 @@ fn validate_serial_or_usb_target(target: &str) -> Result<String, String> {
             || trimmed.starts_with("/dev/ttyUSB")
             || trimmed.starts_with("/dev/ttyACM")
             || trimmed.starts_with("/dev/ttyS")
-            || trimmed.starts_with("/dev/lp"))
+            || trimmed.starts_with("/dev/lp")
+            || trimmed.starts_with("/dev/cu.")
+            || trimmed.starts_with("/dev/tty."))
             && !trimmed.contains("..")
         {
             Ok(trimmed.to_string())

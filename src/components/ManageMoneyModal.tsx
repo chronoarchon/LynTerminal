@@ -14,6 +14,7 @@ import {
 import type { Settings, DashboardSummary, BankAccount } from "../types";
 import { api } from "../services/api";
 import { getLocalDateString } from "../utils/date";
+import { useCurrency, getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 
 interface ManageMoneyModalProps {
   isOpen: boolean;
@@ -38,6 +39,8 @@ export function ManageMoneyModal({
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const { currencyCode } = useCurrency();
+  const dec = getDefaultCurrencyDecimals(currencyCode);
   const currencySymbol = settings?.currency_symbol || "$";
   const cashInHand = summary?.cash_in_hand ?? 0;
   const cashInBank = summary?.cash_in_bank ?? 0;
@@ -148,7 +151,7 @@ export function ManageMoneyModal({
 
       setFeedback({
         type: "success",
-        message: `Successfully deposited ${currencySymbol}${amountNum.toFixed(2)} to ${
+        message: `Successfully deposited ${currencySymbol}${amountNum.toFixed(dec)} to ${
           depositDestination === "CASH"
             ? "Cash Drawer"
             : depositDestination === "BANK"
@@ -190,7 +193,7 @@ export function ManageMoneyModal({
 
       setFeedback({
         type: "success",
-        message: `Successfully transferred ${currencySymbol}${amountNum.toFixed(2)} (${
+        message: `Successfully transferred ${currencySymbol}${amountNum.toFixed(dec)} (${
           transferDirection === "CASH_TO_BANK" ? "Cash Drawer ➔ Bank Account" : "Bank Account ➔ Cash Drawer"
         })!`,
       });
@@ -274,7 +277,7 @@ export function ManageMoneyModal({
               <span>Cash Drawer</span>
             </div>
             <div className="font-mono font-bold text-black text-xs sm:text-sm mt-0.5">
-              {currencySymbol}{cashInHand.toFixed(2)}
+              {currencySymbol}{cashInHand.toFixed(dec)}
             </div>
           </div>
 
@@ -284,7 +287,7 @@ export function ManageMoneyModal({
               <span>Bank Balance</span>
             </div>
             <div className="font-mono font-bold text-black text-xs sm:text-sm mt-0.5">
-              {currencySymbol}{cashInBank.toFixed(2)}
+              {currencySymbol}{cashInBank.toFixed(dec)}
             </div>
           </div>
 
@@ -294,14 +297,14 @@ export function ManageMoneyModal({
               <span>Net Liquidity</span>
             </div>
             <div className="font-mono font-bold text-black text-xs sm:text-sm mt-0.5">
-              {currencySymbol}{(cashInHand + cashInBank).toFixed(2)}
+              {currencySymbol}{(cashInHand + cashInBank).toFixed(dec)}
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <div className="px-5 sm:px-6 pt-3 pb-2 border-b border-black/[0.08]">
-          <div className="grid grid-cols-3 gap-1 p-1 bg-white border border-black/[0.08] rounded-2xl text-xs font-semibold">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-100 border border-black/[0.08] rounded-2xl text-xs font-semibold">
             <button
               type="button"
               onClick={() => {
@@ -310,8 +313,8 @@ export function ManageMoneyModal({
               }}
               className={`py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
                 activeTab === "deposit"
-                  ? "bg-white text-black shadow-md font-bold"
-                  : "text-neutral-400 hover:text-black"
+                  ? "bg-[#1D1D1F] text-white shadow-md font-bold"
+                  : "text-neutral-600 hover:text-black"
               }`}
             >
               <ArrowDownLeft className="w-3.5 h-3.5" />
@@ -326,8 +329,8 @@ export function ManageMoneyModal({
               }}
               className={`py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
                 activeTab === "transfer"
-                  ? "bg-white text-black shadow-md font-bold"
-                  : "text-neutral-400 hover:text-black"
+                  ? "bg-[#1D1D1F] text-white shadow-md font-bold"
+                  : "text-neutral-600 hover:text-black"
               }`}
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -342,8 +345,8 @@ export function ManageMoneyModal({
               }}
               className={`py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
                 activeTab === "manage"
-                  ? "bg-white text-black shadow-md font-bold"
-                  : "text-neutral-400 hover:text-black"
+                  ? "bg-[#1D1D1F] text-white shadow-md font-bold"
+                  : "text-neutral-600 hover:text-black"
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -453,7 +456,7 @@ export function ManageMoneyModal({
                   >
                     {bankAccounts.map((acct) => (
                       <option key={acct.id} value={acct.id}>
-                        {acct.account_name} ({acct.bank_name} - {acct.account_number}) · Balance: {currencySymbol}{acct.current_balance.toFixed(2)}
+                        {acct.account_name} ({acct.bank_name} - {acct.account_number}) · Balance: {currencySymbol}{acct.current_balance.toFixed(dec)}
                       </option>
                     ))}
                   </select>
@@ -486,7 +489,7 @@ export function ManageMoneyModal({
                     <button
                       key={amt}
                       type="button"
-                      onClick={() => setDepositAmount(String(amt))}
+                      onClick={() => setDepositAmount((prev) => String((parseFloat(prev) || 0) + amt))}
                       className="px-2.5 py-1 rounded-lg bg-[#F9FAFB] hover:bg-neutral-200 border border-black/[0.08] text-[11px] font-mono font-semibold text-black transition cursor-pointer"
                     >
                       +{currencySymbol}{amt}
@@ -637,7 +640,7 @@ export function ManageMoneyModal({
                   {bankAccounts.length > 0 ? (
                     bankAccounts.map((acct) => (
                       <option key={acct.id} value={acct.id}>
-                        {acct.account_name} ({acct.bank_name}) · Current: {currencySymbol}{acct.current_balance.toFixed(2)}
+                        {acct.account_name} ({acct.bank_name}) · Current: {currencySymbol}{acct.current_balance.toFixed(dec)}
                       </option>
                     ))
                   ) : (
@@ -657,12 +660,12 @@ export function ManageMoneyModal({
                     onClick={() => {
                       const maxAvailable =
                         transferDirection === "CASH_TO_BANK" ? Math.max(0, cashInHand) : Math.max(0, cashInBank);
-                      setTransferAmount(String(maxAvailable.toFixed(2)));
+                      setTransferAmount(String(maxAvailable.toFixed(dec)));
                     }}
                     className="text-[10px] font-semibold text-black hover:underline cursor-pointer"
                   >
                     Max ({currencySymbol}
-                    {(transferDirection === "CASH_TO_BANK" ? cashInHand : cashInBank).toFixed(2)})
+                    {(transferDirection === "CASH_TO_BANK" ? cashInHand : cashInBank).toFixed(dec)})
                   </button>
                 </div>
                 <div className="relative">
@@ -718,11 +721,11 @@ export function ManageMoneyModal({
                     Opening Float Calibration
                   </h3>
                   <span className="text-[11px] font-mono font-bold text-black bg-white/10 px-2 py-0.5 rounded-lg border border-black/[0.08]">
-                    Total: {currencySymbol}{(Number(manageOpeningCash || 0) + Number(manageOpeningBank || 0)).toFixed(2)}
+                    Total: {currencySymbol}{(Number(manageOpeningCash || 0) + Number(manageOpeningBank || 0)).toFixed(dec)}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-1 p-1 bg-white border border-black/[0.08] rounded-xl text-xs font-medium">
+                <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-100 border border-black/[0.08] rounded-xl text-xs font-medium">
                   <button
                     type="button"
                     onClick={() => {
@@ -733,8 +736,8 @@ export function ManageMoneyModal({
                     }}
                     className={`py-1 rounded-lg text-center transition cursor-pointer ${
                       manageBalanceMode === "CASH"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "text-neutral-400 hover:text-black"
+                        ? "bg-[#1D1D1F] text-white font-bold shadow-sm"
+                        : "text-neutral-600 hover:text-black"
                     }`}
                   >
                     Cash Only
@@ -749,8 +752,8 @@ export function ManageMoneyModal({
                     }}
                     className={`py-1 rounded-lg text-center transition cursor-pointer ${
                       manageBalanceMode === "BANK"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "text-neutral-400 hover:text-black"
+                        ? "bg-[#1D1D1F] text-white font-bold shadow-sm"
+                        : "text-neutral-600 hover:text-black"
                     }`}
                   >
                     Bank Only
@@ -760,8 +763,8 @@ export function ManageMoneyModal({
                     onClick={() => setManageBalanceMode("SPLIT")}
                     className={`py-1 rounded-lg text-center transition cursor-pointer ${
                       manageBalanceMode === "SPLIT"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "text-neutral-400 hover:text-black"
+                        ? "bg-[#1D1D1F] text-white font-bold shadow-sm"
+                        : "text-neutral-600 hover:text-black"
                     }`}
                   >
                     Split
@@ -810,8 +813,51 @@ export function ManageMoneyModal({
                     Owner Equity Injections
                   </h3>
                   <span className="text-[11px] font-mono font-bold text-black bg-white/10 px-2 py-0.5 rounded-lg border border-black/[0.08]">
-                    Total: {currencySymbol}{(Number(manageCapitalCash || 0) + Number(manageCapitalBank || 0)).toFixed(2)}
+                    Total: {currencySymbol}{(Number(manageCapitalCash || 0) + Number(manageCapitalBank || 0)).toFixed(dec)}
                   </span>
+                </div>
+
+                {/* Capital Mode */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManageCapitalMode("CASH");
+                      setManageCapitalBank(0);
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-medium transition cursor-pointer ${
+                      manageCapitalMode === "CASH"
+                        ? "bg-[#1D1D1F] text-white font-bold shadow-sm"
+                        : "bg-white text-neutral-600 hover:text-black border border-black/[0.06]"
+                    }`}
+                  >
+                    Cash Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManageCapitalMode("BANK");
+                      setManageCapitalCash(0);
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-medium transition cursor-pointer ${
+                      manageCapitalMode === "BANK"
+                        ? "bg-[#1D1D1F] text-white font-bold shadow-sm"
+                        : "bg-white text-neutral-600 hover:text-black border border-black/[0.06]"
+                    }`}
+                  >
+                    Bank Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManageCapitalMode("SPLIT")}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-medium transition cursor-pointer ${
+                      manageCapitalMode === "SPLIT"
+                        ? "bg-[#1D1D1F] text-white font-bold shadow-sm"
+                        : "bg-white text-neutral-600 hover:text-black border border-black/[0.06]"
+                    }`}
+                  >
+                    Split (Both)
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -821,11 +867,12 @@ export function ManageMoneyModal({
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step={dec === 0 ? "1" : "0.01"}
                       min="0"
+                      disabled={manageCapitalMode === "BANK"}
                       value={manageCapitalCash}
                       onChange={(e) => setManageCapitalCash(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
+                      className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 disabled:opacity-50"
                     />
                   </div>
 
@@ -835,11 +882,12 @@ export function ManageMoneyModal({
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step={dec === 0 ? "1" : "0.01"}
                       min="0"
+                      disabled={manageCapitalMode === "CASH"}
                       value={manageCapitalBank}
                       onChange={(e) => setManageCapitalBank(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
+                      className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 disabled:opacity-50"
                     />
                   </div>
                 </div>
@@ -855,7 +903,7 @@ export function ManageMoneyModal({
                     Number(manageOpeningBank || 0) +
                     Number(manageCapitalCash || 0) +
                     Number(manageCapitalBank || 0)
-                  ).toFixed(2)}
+                  ).toFixed(dec)}
                 </span>
               </div>
 

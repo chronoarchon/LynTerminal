@@ -9,8 +9,9 @@ import {
   Repeat,
   Camera,
 } from "lucide-react";
-import type { Expense, Settings, RecurringBill } from "../types";
+import type { Expense, Settings, RecurringBill, BankAccount } from "../types";
 import { api } from "../services/api";
+import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
 import { formatLocalDate } from "../utils/dateUtils";
@@ -21,9 +22,9 @@ interface ExpensesViewProps {
 }
 
 const CATEGORIES = [
-  "Rent & Lease",
+  "Rent",
+  "Utilities",
   "Salaries & Wages",
-  "Utilities & Electricity",
   "Inventory & Logistics",
   "Packaging & Supplies",
   "Repairs & Maintenance",
@@ -34,13 +35,13 @@ const CATEGORIES = [
 ];
 
 const RECURRING_CATEGORIES = [
-  "RENT",
-  "ELECTRICITY",
-  "INTERNET",
-  "SUBSCRIPTION",
-  "MAINTENANCE",
-  "SUPPLIES",
-  "OTHER",
+  "Rent",
+  "Utilities",
+  "Internet",
+  "Software & Subscriptions",
+  "Repairs & Maintenance",
+  "Packaging & Supplies",
+  "Miscellaneous",
 ];
 
 const PAYMENT_METHODS = [
@@ -56,6 +57,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   onRefreshSummary,
 }) => {
   const { currencySymbol, formatCurrency } = useCurrency();
+  const { confirm: appleConfirm, toast } = useAppleDialog();
   const currency = currencySymbol || settings?.currency_symbol || "$";
   const [activeSubTab, setActiveSubTab] = useState<"EXPENSES" | "RECURRING">("EXPENSES");
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -71,9 +73,16 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    const pending = sessionStorage.getItem("lynterminal_pending_receipt");
+    if (pending) {
+      sessionStorage.removeItem("lynterminal_pending_receipt");
+      setReceiptImage(pending);
+      setIsModalOpen(true);
+    }
     const handleAttach = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
       if (customEvent.detail) {
+        sessionStorage.removeItem("lynterminal_pending_receipt");
         setReceiptImage(customEvent.detail);
         setIsModalOpen(true);
       }
@@ -93,6 +102,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
   // Recurring Bills State
   const [recurringBills, setRecurringBills] = useState<RecurringBill[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [payBankId, setPayBankId] = useState("");
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [isPayBillModalOpen, setIsPayBillModalOpen] = useState(false);
   const [selectedBillToPay, setSelectedBillToPay] = useState<RecurringBill | null>(null);
   const [payAmount, setPayAmount] = useState("");
@@ -139,6 +151,13 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
   useEffect(() => {
     loadRecurringBills();
+    api.listBankAccounts().then((banks) => {
+      setBankAccounts(banks);
+      if (banks.length > 0) {
+        const primary = banks.find((b) => b.is_primary) || banks[0];
+        setPayBankId((prev) => prev || primary.id);
+      }
+    }).catch(() => {});
   }, []);
 
   const handleOpenAdd = () => {
@@ -190,7 +209,12 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
       if (saved && saved.id) {
         if (receiptImage) {
-          localStorage.setItem("lynterminal_receipt_" + saved.id, receiptImage);
+          try {
+            localStorage.setItem("lynterminal_receipt_" + saved.id, receiptImage);
+          } catch (storageErr) {
+            console.error("Failed to save receipt image:", storageErr);
+            toast({ message: "Expense saved, but receipt image exceeded browser storage limit.", type: "error" });
+          }
         } else {
           localStorage.removeItem("lynterminal_receipt_" + saved.id);
         }
@@ -206,7 +230,13 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this expense entry?")) return;
+    const ok = await appleConfirm({
+      title: "Delete Expense",
+      message: "Are you sure you want to delete this expense entry?",
+      confirmText: "Delete",
+      isDestructive: true,
+    });
+    if (!ok) return;
     try {
       await api.deleteExpense(id);
       localStorage.removeItem("lynterminal_receipt_" + id);
@@ -246,6 +276,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         bill_id: selectedBillToPay.id,
         amount: amt,
         payment_source: paySource,
+        bank_account_id: paySource === "BANK" ? (payBankId || null) : null,
         payment_date: payDate,
         reference: payRef.trim(),
         notes: payNotes.trim(),
@@ -269,6 +300,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
     try {
       await api.saveRecurringBill({
+        id: editingBillId || undefined,
         title: newBillTitle.trim(),
         category: newBillCategory,
         due_day: newBillDueDay,
@@ -277,13 +309,40 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
       });
 
       setIsAddBillModalOpen(false);
+      setEditingBillId(null);
       setNewBillTitle("");
-      setNewBillCategory("RENT");
+      setNewBillCategory(RECURRING_CATEGORIES[0]);
       setNewBillEstimated("");
       setNewBillNotes("");
       await loadRecurringBills();
     } catch (err) {
-      alert("Failed to create bill: " + err);
+      alert("Failed to save bill: " + err);
+    }
+  };
+
+  const handleOpenEditRecurringBill = (bill: RecurringBill) => {
+    setEditingBillId(bill.id);
+    setNewBillTitle(bill.title);
+    setNewBillCategory(bill.category || RECURRING_CATEGORIES[0]);
+    setNewBillDueDay(bill.due_day);
+    setNewBillEstimated(bill.estimated_amount != null ? String(bill.estimated_amount) : "");
+    setNewBillNotes(bill.notes || "");
+    setIsAddBillModalOpen(true);
+  };
+
+  const handleDeleteRecurringBill = async (bill: RecurringBill) => {
+    const ok = await appleConfirm({
+      title: "Delete Recurring Bill",
+      message: `Delete recurring bill "${bill.title}"?`,
+      confirmText: "Delete",
+      isDestructive: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteRecurringBill(bill.id);
+      await loadRecurringBills();
+    } catch (err) {
+      alert("Failed to delete bill: " + err);
     }
   };
 
@@ -578,12 +637,29 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   </span>
                 </div>
 
-                <button
-                  onClick={() => handleOpenPayBill(bill)}
-                  className="px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
-                >
-                  Pay Bill
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleOpenEditRecurringBill(bill)}
+                    className="p-1.5 rounded-lg text-[#6E6E73] hover:text-black hover:bg-black/5 transition cursor-pointer"
+                    title="Edit Recurring Bill"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRecurringBill(bill)}
+                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                    title="Delete Recurring Bill"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleOpenPayBill(bill)}
+                    disabled={bill.status === "PAID"}
+                    className="px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-2xs transition apple-press cursor-pointer"
+                  >
+                    {bill.status === "PAID" ? "Paid" : "Pay Bill"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -829,8 +905,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                     onClick={() => setPaySource("CASH")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       paySource === "CASH"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Cash Drawer
@@ -840,13 +916,25 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                     onClick={() => setPaySource("BANK")}
                     className={`py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                       paySource === "BANK"
-                        ? "bg-white text-black border-white shadow-sm"
-                        : "bg-[#F9FAFB] text-neutral-400 border-black/[0.08] hover:text-black"
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-[#F9FAFB] text-neutral-600 border-black/[0.08] hover:text-black"
                     }`}
                   >
                     Bank
                   </button>
                 </div>
+                {paySource === "BANK" && bankAccounts.length > 0 && (
+                  <div className="mt-2">
+                    <AppleSelect
+                      value={payBankId}
+                      onChange={setPayBankId}
+                      options={bankAccounts.map((b) => ({
+                        value: b.id,
+                        label: `${b.account_name} (${formatCurrency(b.current_balance)})`,
+                      }))}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

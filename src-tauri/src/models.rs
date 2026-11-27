@@ -194,6 +194,8 @@ pub struct InvoicePayload {
     pub notes: String,
     pub items: Vec<InvoiceItemPayload>,
     pub reference: Option<String>,
+    #[serde(default)]
+    pub bank_account_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -373,6 +375,8 @@ pub struct QuickProductPayload {
     pub tax_rate: Option<f64>,
     pub stock_quantity: f64,
     pub unit: String,
+    #[serde(default)]
+    pub barcode: Option<String>,
 }
 
 // ----------------------------------------------------------------------------

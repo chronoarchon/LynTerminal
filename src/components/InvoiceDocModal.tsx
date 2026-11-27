@@ -575,7 +575,13 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                     {copyType}
                   </div>
                   <div className="text-xl font-bold text-[#1D1D1F] tracking-tight">
-                    TAX INVOICE
+                    {invoice.invoice_type === "RETURN"
+                      ? "CREDIT NOTE"
+                      : invoice.invoice_type === "PURCHASE"
+                      ? "PURCHASE BILL"
+                      : invoice.tax_amount <= 0
+                      ? "BILL OF SUPPLY"
+                      : "TAX INVOICE"}
                   </div>
                   <div className="text-xs font-mono font-bold text-black mt-1">
                     {invoice.invoice_number}

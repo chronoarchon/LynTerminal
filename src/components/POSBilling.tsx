@@ -19,12 +19,12 @@ import {
   Lock,
   ExternalLink,
 } from "lucide-react";
-import type { Item, Party, Settings, InvoicePayload, InvoiceDetail, LicenseStatus } from "../types";
+import type { Item, Party, Settings, InvoicePayload, InvoiceDetail, LicenseStatus, BankAccount } from "../types";
 import { api } from "../services/api";
 import { getLocalDateString, getLocalDateOffset } from "../utils/date";
 import { InvoiceDocModal } from "./InvoiceDocModal";
 import { useAppleDialog } from "./common/AppleDialog";
-import { useCurrency } from "../context/CurrencyContext";
+import { useCurrency, getDefaultCurrencyDecimals } from "../context/CurrencyContext";
 import { CurrencyIcon } from "./common/CurrencyIcon";
 import {
   useBarcodeScanner,
@@ -70,8 +70,11 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   onRefreshData,
   onOpenLicenseModal,
 }) => {
-  const { currencySymbol, formatCurrency } = useCurrency();
+  const { currencySymbol, currencyCode, formatCurrency } = useCurrency();
+  const decimals = getDefaultCurrencyDecimals(currencyCode);
   const currency = currencySymbol || settings.currency_symbol || "$";
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -112,6 +115,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   const [showQuickAddModal, setShowQuickAddModal] = useState(false);
   const [quickProduct, setQuickProduct] = useState({
     name: "",
+    barcode: "",
     size: "",
     brand: "",
     category: "General",
@@ -143,6 +147,13 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
   useEffect(() => {
     barcodeInputRef.current?.focus();
+    api.listBankAccounts().then((banks) => {
+      setBankAccounts(banks);
+      if (banks.length > 0) {
+        const primary = banks.find((b) => b.is_primary) || banks[0];
+        setSelectedBankId((prev) => prev || primary.id);
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -195,7 +206,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       setSearchTerm("");
     } else {
       playScanFeedbackTone(false);
-      setQuickProduct((prev) => ({ ...prev, name: query }));
+      setQuickProduct((prev) => ({ ...prev, name: "", barcode: query }));
       setShowQuickAddModal(true);
     }
   };
@@ -208,6 +219,29 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   const handleBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     processScannedCode(searchTerm);
+  };
+
+  const switchBillMode = (nextMode: "SALE" | "QUOTATION" | "PURCHASE") => {
+    setBillMode(nextMode);
+    setSelectedPartyId("");
+    setCustomCustomerName("");
+    const nextIsPurchase = nextMode === "PURCHASE";
+    setCart((prev) =>
+      prev.map((ci) => {
+        const catalogItem = items.find((it) => it.id === ci.item_id);
+        if (!catalogItem) {
+          return {
+            ...ci,
+            tax_rate: nextIsPurchase ? 0 : ci.tax_rate,
+          };
+        }
+        return {
+          ...ci,
+          unit_price: nextIsPurchase ? catalogItem.purchase_price : catalogItem.sale_price,
+          tax_rate: nextIsPurchase ? 0 : (catalogItem.tax_rate ?? settings.default_tax_rate),
+        };
+      })
+    );
   };
 
   const addToCart = (item: Item) => {
@@ -319,9 +353,9 @@ export const POSBilling: React.FC<POSBillingProps> = ({
     totalAmount = taxableAmount + taxAmount;
   }
 
-  const tenderedNum = parseFloat(tenderedAmount) || totalAmount;
-  const changeDue = Math.max(0, tenderedNum - totalAmount);
-  const roundedBillTotal = roundCurrency(totalAmount);
+  const tenderedNum = tenderedAmount.trim() === "" ? totalAmount : Number(tenderedAmount);
+  const changeDue = Math.max(0, (Number.isFinite(tenderedNum) ? tenderedNum : 0) - totalAmount);
+  const roundedBillTotal = roundCurrency(totalAmount, decimals);
   const splitValidation = useMemo(
     () =>
       validateSplitTender(splitCash, splitCard, roundedBillTotal, formatCurrency),
@@ -332,26 +366,26 @@ export const POSBilling: React.FC<POSBillingProps> = ({
   useEffect(() => {
     if (!isSplitPayment) return;
     if (roundedBillTotal <= 0) {
-      setSplitCash("0.00");
-      setSplitCard("0.00");
+      setSplitCash((0).toFixed(decimals));
+      setSplitCard((0).toFixed(decimals));
       return;
     }
     const existingCash = Number(splitCash);
     if (splitCash.trim() !== "" && Number.isFinite(existingCash) && existingCash >= 0) {
-      const clampedCash = Math.min(roundedBillTotal, roundCurrency(existingCash));
-      const remCard = roundCurrency(roundedBillTotal - clampedCash);
-      const nextCash = clampedCash.toFixed(2);
-      const nextCard = remCard.toFixed(2);
+      const clampedCash = Math.min(roundedBillTotal, roundCurrency(existingCash, decimals));
+      const remCard = roundCurrency(roundedBillTotal - clampedCash, decimals);
+      const nextCash = clampedCash.toFixed(decimals);
+      const nextCard = remCard.toFixed(decimals);
       if (nextCash !== splitCash || nextCard !== splitCard) {
         setSplitCash(nextCash);
         setSplitCard(nextCard);
       }
     } else {
-      const init = createInitialSplit(roundedBillTotal);
+      const init = createInitialSplit(roundedBillTotal, decimals);
       setSplitCash(init.cash);
       setSplitCard(init.card);
     }
-  }, [isSplitPayment, roundedBillTotal]);
+  }, [isSplitPayment, roundedBillTotal, decimals]);
 
   const totalCartCount = cart.reduce((sum, ci) => sum + ci.quantity, 0);
 
@@ -400,15 +434,17 @@ export const POSBilling: React.FC<POSBillingProps> = ({
     setIsQuickAdding(true);
 
     try {
+      const parsedStock = parseFloat(quickProduct.stock_quantity);
       const createdItem = await api.quickCreateProduct({
         name: quickProduct.name.trim(),
+        barcode: quickProduct.barcode.trim() || null,
         size: quickProduct.size.trim() || null,
         brand: quickProduct.brand.trim() || null,
         sale_price: parseFloat(quickProduct.sale_price) || 0,
         purchase_price: quickProduct.purchase_price ? parseFloat(quickProduct.purchase_price) : null,
         category: quickProduct.category.trim() || "General",
         tax_rate: quickProduct.tax_rate !== "" ? parseFloat(quickProduct.tax_rate) : null,
-        stock_quantity: parseFloat(quickProduct.stock_quantity) || 50,
+        stock_quantity: Number.isNaN(parsedStock) ? 50 : Math.max(0, parsedStock),
         unit: quickProduct.unit.trim() || "pcs",
       });
 
@@ -417,6 +453,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       setShowQuickAddModal(false);
       setQuickProduct({
         name: "",
+        barcode: "",
         size: "",
         brand: "",
         category: "General",
@@ -464,16 +501,19 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       if (isQuotation) {
         const quoteItems = cart.map((ci) => {
-          const lineTotal = ci.unit_price * ci.quantity * (1 - ci.discount_percent / 100);
+          const rawLine = ci.unit_price * ci.quantity * (1 - ci.discount_percent / 100) * discFactor;
+          const rate = ci.tax_rate ?? settings.default_tax_rate;
+          const exTaxLine = isTaxInclusive && rate > 0 ? rawLine / (1 + rate / 100) : rawLine;
+          const exTaxUnit = ci.quantity > 0 ? exTaxLine / ci.quantity : ci.unit_price;
           return {
             item_id: ci.item_id,
             item_name: ci.item_name,
             quantity: ci.quantity,
             unit: ci.unit,
-            unit_price: ci.unit_price,
-            discount_percent: ci.discount_percent,
-            tax_rate: ci.tax_rate,
-            line_total: Math.round(lineTotal * 100) / 100,
+            unit_price: Math.round(exTaxUnit * 100) / 100,
+            discount_percent: 0,
+            tax_rate: rate,
+            line_total: Math.round(exTaxLine * 100) / 100,
           };
         });
 
@@ -490,7 +530,20 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         onInvoiceCreated();
         onRefreshData();
         setMobileView("catalog");
+        appleToast({ message: "Quotation / Estimate saved!", type: "success" });
         return;
+      }
+
+      if (paymentMethod === "CASH" && !isSplitPayment && tenderedAmount.trim() !== "") {
+        if (!Number.isFinite(tenderedNum) || tenderedNum < totalAmount - 0.01) {
+          appleAlert({
+            title: "Insufficient Cash Tendered",
+            message: `Cash tendered (${formatCurrency(Number.isFinite(tenderedNum) ? tenderedNum : 0)}) is less than bill total (${formatCurrency(totalAmount)}). Use Split or Credit for partial payments.`,
+            type: "warning",
+          });
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       let effectivePaid = Math.round(totalAmount * 100) / 100;
@@ -512,7 +565,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           currency,
           splitValidation.cashAmount,
           splitValidation.cardAmount,
-          "Card"
+          "Card",
+          decimals
         );
       } else if (paymentMethod === "CARD") {
         paymentMethodDesc = isPurchase ? "Bank Wire" : "Card";
@@ -538,7 +592,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           const partial = parseFloat(creditPaidAmount) || 0;
           effectivePaid = Math.min(totalAmount, Math.max(0, Math.round(partial * 100) / 100));
           const remCredit = Math.round((totalAmount - effectivePaid) * 100) / 100;
-          paymentMethodDesc = `Partial Credit (${currency}${effectivePaid.toFixed(2)} ${creditPaidMethod} + ${currency}${remCredit.toFixed(2)} Credit)`;
+          paymentMethodDesc = `Partial Credit (${currency}${effectivePaid.toFixed(decimals)} ${creditPaidMethod} + ${currency}${remCredit.toFixed(decimals)} Credit)`;
         } else {
           effectivePaid = 0;
           paymentMethodDesc = "Credit";
@@ -557,6 +611,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         total_amount: Math.round(totalAmount * 100) / 100,
         paid_amount: effectivePaid,
         payment_method: paymentMethodDesc,
+        bank_account_id: selectedBankId || null,
         notes:
           notes ||
           (paymentMethod === "CREDIT"
@@ -676,7 +731,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           </div>
           <div>
             <div className="text-xs font-semibold text-white">
-              Sale Completed · {successToast.number}
+              {successToast.detail.invoice.invoice_type === "PURCHASE" ? "Purchase Completed" : "Sale Completed"} · {successToast.number}
             </div>
             <div className="text-[11px] text-[#A1A1A6]">
               {formatCurrency(successToast.total)} recorded
@@ -752,7 +807,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           <button
             type="button"
             onClick={() => {
-              setQuickProduct((prev) => ({ ...prev, name: searchTerm }));
+              setQuickProduct((prev) => ({ ...prev, name: "", barcode: searchTerm }));
               setShowQuickAddModal(true);
             }}
             className="px-3 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs shrink-0 transition apple-press"
@@ -883,11 +938,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           <div className="flex items-center p-0.5 bg-[#F5F5F7] rounded-xl border border-black/[0.06] mb-3">
             <button
               type="button"
-              onClick={() => {
-                setBillMode("SALE");
-                setSelectedPartyId("");
-                setCustomCustomerName("");
-              }}
+              onClick={() => switchBillMode("SALE")}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition apple-press ${
                 billMode === "SALE"
                   ? "bg-white text-[#1D1D1F] shadow-xs"
@@ -898,11 +949,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setBillMode("QUOTATION");
-                setSelectedPartyId("");
-                setCustomCustomerName("");
-              }}
+              onClick={() => switchBillMode("QUOTATION")}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition apple-press ${
                 billMode === "QUOTATION"
                   ? "bg-white text-[#FF9500] shadow-xs"
@@ -913,11 +960,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setBillMode("PURCHASE");
-                setSelectedPartyId("");
-                setCustomCustomerName("");
-              }}
+              onClick={() => switchBillMode("PURCHASE")}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition apple-press ${
                 billMode === "PURCHASE"
                   ? "bg-white text-[#34C759] shadow-xs"
@@ -1026,6 +1069,16 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               <span className="text-[11px] font-medium sm:hidden">+</span>
             </button>
           </div>
+
+          {!selectedPartyId && (
+            <input
+              type="text"
+              placeholder={billMode === "PURCHASE" ? "Walk-in / Supplier name (optional)..." : "Walk-in customer name (optional)..."}
+              value={customCustomerName}
+              onChange={(e) => setCustomCustomerName(e.target.value)}
+              className="mt-2 w-full h-7 px-2.5 rounded-lg bg-[#F5F5F7] border border-black/[0.06] text-[11px] font-medium text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:bg-white focus:border-black"
+            />
+          )}
         </div>
 
         {/* Ticket Line Items */}
@@ -1140,6 +1193,28 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               </div>
             )}
 
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#86868B]">Disc {currency}</span>
+                <input
+                  type="number"
+                  min="0"
+                  step={decimals === 0 ? "1" : "0.01"}
+                  value={discountAmount === 0 ? "" : discountAmount}
+                  onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  placeholder="0"
+                  className="w-full pl-12 pr-2 py-1 rounded-lg bg-[#F5F5F7] border border-black/[0.06] text-[11px] font-mono text-right text-[#1D1D1F] focus:outline-none focus:bg-white focus:border-black"
+                />
+              </div>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Bill notes..."
+                className="w-full px-2.5 py-1 rounded-lg bg-[#F5F5F7] border border-black/[0.06] text-[11px] text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:bg-white focus:border-black"
+              />
+            </div>
+
             <div className="flex justify-between items-baseline pt-1.5 border-t border-black/[0.06] text-sm font-bold text-[#1D1D1F]">
               <span>Grand Total</span>
               <span className="text-xl font-mono font-bold text-[#1D1D1F]">
@@ -1244,9 +1319,9 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     <div className="flex gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setTenderedAmount(totalAmount.toFixed(2))}
+                        onClick={() => setTenderedAmount(totalAmount.toFixed(decimals))}
                         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition apple-press cursor-pointer border ${
-                          tenderedAmount === totalAmount.toFixed(2)
+                          tenderedAmount === totalAmount.toFixed(decimals)
                             ? "bg-[#18181B] text-white border-[#18181B] shadow-xs"
                             : "bg-[#F5F5F7] hover:bg-[#EBEBED] text-[#1D1D1F] border-black/[0.08]"
                         }`}
@@ -1257,13 +1332,13 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          if (tenderedAmount === totalAmount.toFixed(2)) {
+                          if (tenderedAmount === totalAmount.toFixed(decimals)) {
                             setTenderedAmount("");
                           }
                           cashInputRef.current?.focus();
                         }}
                         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition apple-press cursor-pointer border ${
-                          tenderedAmount !== "" && tenderedAmount !== totalAmount.toFixed(2)
+                          tenderedAmount !== "" && tenderedAmount !== totalAmount.toFixed(decimals)
                             ? "bg-[#18181B] text-white border-[#18181B] shadow-xs"
                             : "bg-[#F5F5F7] hover:bg-[#EBEBED] text-[#1D1D1F] border-black/[0.08]"
                         }`}
@@ -1279,22 +1354,39 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       <span>Change Due:</span>
                       <span className="font-mono text-sm font-bold">
                         {currency}
-                        {changeDue.toFixed(2)}
+                        {changeDue.toFixed(decimals)}
                       </span>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Reference Number for Card / Custom Methods */}
-              {(paymentMethod === "CARD" || paymentMethod === "CUSTOM_1" || paymentMethod === "CUSTOM_2") && !isSplitPayment && (
-                <input
-                  type="text"
-                  placeholder="Card auth code or transaction ref (optional)..."
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
-                />
+              {/* Reference Number & Bank Account for Card / Custom / Split Methods */}
+              {(paymentMethod === "CARD" || paymentMethod === "CUSTOM_1" || paymentMethod === "CUSTOM_2" || isSplitPayment) && (
+                <div className="space-y-1.5">
+                  {bankAccounts.length > 0 && (
+                    <select
+                      value={selectedBankId}
+                      onChange={(e) => setSelectedBankId(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F] focus:outline-none focus:border-black"
+                    >
+                      {bankAccounts.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          Bank: {b.account_name} ({b.bank_name})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {!isSplitPayment && (
+                    <input
+                      type="text"
+                      placeholder="Card auth code or transaction ref (optional)..."
+                      value={referenceNumber}
+                      onChange={(e) => setReferenceNumber(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
+                    />
+                  )}
+                </div>
               )}
 
               {/* Secondary Options: Split Tender, Credit & Receipt Preview */}
@@ -1547,7 +1639,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                       type="button"
                       onClick={() => {
                         setIsHalfCredit(true);
-                        setCreditPaidAmount((totalAmount / 2).toFixed(2));
+                        setCreditPaidAmount((totalAmount / 2).toFixed(decimals));
                       }}
                       className={`py-1.5 px-2 rounded-lg transition ${
                         isHalfCredit
@@ -1574,14 +1666,14 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                         <div className="flex gap-1">
                           <button
                             type="button"
-                            onClick={() => setCreditPaidAmount((totalAmount / 2).toFixed(2))}
+                            onClick={() => setCreditPaidAmount((totalAmount / 2).toFixed(decimals))}
                             className="px-2 py-1 rounded-lg bg-[#FF9500]/10 hover:bg-[#FF9500]/20 text-[10px] font-bold text-[#FF9500] transition cursor-pointer"
                           >
                             50% (Half)
                           </button>
                           <button
                             type="button"
-                            onClick={() => setCreditPaidAmount((totalAmount * 0.25).toFixed(2))}
+                            onClick={() => setCreditPaidAmount((totalAmount * 0.25).toFixed(decimals))}
                             className="px-2 py-1 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-[10px] font-semibold text-[#1D1D1F] transition cursor-pointer"
                           >
                             25%
@@ -1622,10 +1714,10 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                         return (
                           <div className="p-2 rounded-xl bg-white border border-[#FF9500]/20 text-[11px] flex justify-between items-center">
                             <span>
-                              Paid: <strong className="font-mono text-emerald-600">{currency}{paidNum.toFixed(2)}</strong>
+                              Paid: <strong className="font-mono text-emerald-600">{currency}{paidNum.toFixed(decimals)}</strong>
                             </span>
                             <span>
-                              To Credit: <strong className="font-mono text-[#FF9500]">{currency}{remCredit.toFixed(2)}</strong>
+                              To Credit: <strong className="font-mono text-[#FF9500]">{currency}{remCredit.toFixed(decimals)}</strong>
                             </span>
                           </div>
                         );
@@ -1771,6 +1863,48 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                     onChange={(e) => setQuickProduct({ ...quickProduct, stock_quantity: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                    Barcode / SKU
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Auto-generated if blank"
+                    value={quickProduct.barcode}
+                    onChange={(e) => setQuickProduct({ ...quickProduct, barcode: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20 placeholder:text-neutral-400"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                      Unit
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="pcs"
+                      value={quickProduct.unit}
+                      onChange={(e) => setQuickProduct({ ...quickProduct, unit: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-black/10 bg-white text-xs font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                      Tax %
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder={String(settings.default_tax_rate ?? 0)}
+                      value={quickProduct.tax_rate}
+                      onChange={(e) => setQuickProduct({ ...quickProduct, tax_rate: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-black/10 bg-white text-xs font-mono font-medium text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black/20"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -16,9 +16,10 @@ export interface SplitTenderValidation {
  * Rounds currency figures accurately to 2 decimal places across all currencies
  * (avoids JS floating point drift like 180 - 100.00 = 79.99999999999999).
  */
-export function roundCurrency(value: number): number {
+export function roundCurrency(value: number, decimals: number = 2): number {
   if (!Number.isFinite(value)) return 0;
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  const factor = Math.pow(10, decimals);
+  return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
 /**
@@ -34,16 +35,16 @@ function parseTenderInput(raw: string): number | null {
 /**
  * Initializes a balanced default split for a given bill total.
  */
-export function createInitialSplit(totalAmount: number): SplitTenderState {
-  const total = Math.max(0, roundCurrency(totalAmount));
+export function createInitialSplit(totalAmount: number, decimals: number = 2): SplitTenderState {
+  const total = Math.max(0, roundCurrency(totalAmount, decimals));
   if (total <= 0) {
-    return { cash: "0.00", card: "0.00" };
+    return { cash: (0).toFixed(decimals), card: (0).toFixed(decimals) };
   }
-  const halfCash = roundCurrency(total / 2);
-  const remainderCard = roundCurrency(total - halfCash);
+  const halfCash = roundCurrency(total / 2, decimals);
+  const remainderCard = roundCurrency(total - halfCash, decimals);
   return {
-    cash: halfCash.toFixed(2),
-    card: remainderCard.toFixed(2),
+    cash: halfCash.toFixed(decimals),
+    card: remainderCard.toFixed(decimals),
   };
 }
 
@@ -55,9 +56,10 @@ export function createInitialSplit(totalAmount: number): SplitTenderState {
 export function calculateCounterSplit(
   editedSide: "cash" | "card",
   rawValue: string,
-  totalAmount: number
+  totalAmount: number,
+  decimals: number = 2
 ): SplitTenderState {
-  const total = Math.max(0, roundCurrency(totalAmount));
+  const total = Math.max(0, roundCurrency(totalAmount, decimals));
   const sanitized = rawValue.replace(/[^0-9.]/g, "");
   const dotParts = sanitized.split(".");
   const normalizedInput =
@@ -67,32 +69,32 @@ export function calculateCounterSplit(
 
   if (!normalizedInput) {
     return editedSide === "cash"
-      ? { cash: "", card: total.toFixed(2) }
-      : { cash: total.toFixed(2), card: "" };
+      ? { cash: "", card: total.toFixed(decimals) }
+      : { cash: total.toFixed(decimals), card: "" };
   }
 
   const parsed = parseTenderInput(normalizedInput);
   if (parsed === null || Number.isNaN(parsed)) {
     return editedSide === "cash"
-      ? { cash: normalizedInput, card: total.toFixed(2) }
-      : { cash: total.toFixed(2), card: normalizedInput };
+      ? { cash: normalizedInput, card: total.toFixed(decimals) }
+      : { cash: total.toFixed(decimals), card: normalizedInput };
   }
 
   if (parsed < 0) {
     return editedSide === "cash"
-      ? { cash: "0.00", card: total.toFixed(2) }
-      : { cash: total.toFixed(2), card: "0.00" };
+      ? { cash: (0).toFixed(decimals), card: total.toFixed(decimals) }
+      : { cash: total.toFixed(decimals), card: (0).toFixed(decimals) };
   }
 
-  const bounded = roundCurrency(Math.min(total, parsed));
-  const counter = roundCurrency(Math.max(0, total - bounded));
+  const bounded = roundCurrency(Math.min(total, parsed), decimals);
+  const counter = roundCurrency(Math.max(0, total - bounded), decimals);
 
   // Keep raw normalizedInput if within valid range so user can type decimals like "80." smoothly
   const preservedInput = parsed <= total ? normalizedInput : normalizedInput;
 
   return editedSide === "cash"
-    ? { cash: preservedInput, card: counter.toFixed(2) }
-    : { cash: counter.toFixed(2), card: preservedInput };
+    ? { cash: preservedInput, card: counter.toFixed(decimals) }
+    : { cash: counter.toFixed(decimals), card: preservedInput };
 }
 
 /**
@@ -192,8 +194,9 @@ export function formatSplitPaymentDescription(
   currencySymbol: string,
   cashAmount: number,
   cardAmount: number,
-  secondaryLabel: string = "Card"
+  secondaryLabel: string = "Card",
+  decimals: number = 2
 ): string {
   const sym = currencySymbol || "$";
-  return `Split (${sym}${roundCurrency(cashAmount).toFixed(2)} Cash + ${sym}${roundCurrency(cardAmount).toFixed(2)} ${secondaryLabel})`;
+  return `Split (${sym}${roundCurrency(cashAmount, decimals).toFixed(decimals)} Cash + ${sym}${roundCurrency(cardAmount, decimals).toFixed(decimals)} ${secondaryLabel})`;
 }

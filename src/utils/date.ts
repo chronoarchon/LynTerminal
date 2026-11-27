@@ -14,3 +14,12 @@ export function getLocalDateOffset(daysAgo: number): string {
   d.setDate(d.getDate() - daysAgo);
   return getLocalDateString(d);
 }
+
+export function parseLocalDate(dateStr: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec((dateStr || "").trim());
+  if (m) {
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}

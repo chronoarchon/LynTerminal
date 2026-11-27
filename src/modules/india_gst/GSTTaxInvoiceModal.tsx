@@ -225,6 +225,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
       cgst: number;
       sgst: number;
       igst: number;
+      cess: number;
       totalTax: number;
     }
   >();
@@ -237,13 +238,15 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
       cgst: 0,
       sgst: 0,
       igst: 0,
+      cess: 0,
       totalTax: 0,
     };
     existing.taxable += itm.taxable_amount;
     existing.cgst += itm.cgst_amount;
     existing.sgst += itm.sgst_amount;
     existing.igst += itm.igst_amount;
-    existing.totalTax += itm.cgst_amount + itm.sgst_amount + itm.igst_amount;
+    existing.cess += itm.cess_amount || 0;
+    existing.totalTax += itm.cgst_amount + itm.sgst_amount + itm.igst_amount + (itm.cess_amount || 0);
     hsnMap.set(key, existing);
   }
 
@@ -432,7 +435,15 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               {/* Title & Header */}
               <div className="text-center py-2.5 border-b border-black/[0.1] print-avoid-break">
                 <h1 className="text-lg sm:text-xl font-black tracking-tight uppercase text-black">
-                  TAX INVOICE
+                  {invoice.invoice_type === "RETURN"
+                    ? "CREDIT NOTE"
+                    : invoice.invoice_type === "PURCHASE"
+                    ? "PURCHASE BILL"
+                    : invoice.tax_amount <= 0 && !effectiveGst.gst_composition
+                    ? "BILL OF SUPPLY"
+                    : effectiveGst.gst_composition
+                    ? "BILL OF SUPPLY (COMPOSITION)"
+                    : "TAX INVOICE"}
                 </h1>
                 <p className="text-[10px] text-neutral-500 font-medium tracking-wide">
                   (Issued under Section 31 of CGST Act, 2017 read with Rule 46 of CGST Rules)
@@ -598,6 +609,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                       <th className="py-1.5 px-1 text-center font-mono">HSN/SAC</th>
                       <th className="py-1.5 px-1 text-center">Qty</th>
                       <th className="py-1.5 px-1 text-right">Rate (₹)</th>
+                      <th className="py-1.5 px-1 text-right">Disc (₹)</th>
                       <th className="py-1.5 px-1 text-right">Taxable (₹)</th>
                       {!isInterstate ? (
                         <>
@@ -631,6 +643,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                           </td>
                           <td className="py-1.5 px-1 text-right font-mono text-neutral-700">
                             {item.rate.toFixed(2)}
+                          </td>
+                          <td className="py-1.5 px-1 text-right font-mono text-emerald-600">
+                            {(item.discount_amount || 0) > 0 ? item.discount_amount.toFixed(2) : "-"}
                           </td>
                           <td className="py-1.5 px-1 text-right font-mono font-semibold text-black">
                             {item.taxable_amount.toFixed(2)}
@@ -682,6 +697,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                         ) : (
                           <th className="py-1 px-1 text-right">IGST</th>
                         )}
+                        <th className="py-1 px-1 text-right">Cess</th>
                         <th className="py-1 px-1.5 text-right">Total Tax</th>
                       </tr>
                     </thead>
@@ -698,6 +714,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                           ) : (
                             <td className="py-1 px-1 text-right">₹{hsn.igst.toFixed(2)}</td>
                           )}
+                          <td className="py-1 px-1 text-right">₹{hsn.cess.toFixed(2)}</td>
                           <td className="py-1 px-1.5 text-right font-bold">₹{hsn.totalTax.toFixed(2)}</td>
                         </tr>
                       ))}

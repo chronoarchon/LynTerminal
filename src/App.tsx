@@ -104,7 +104,7 @@ export function AppContent() {
     }
     return false;
   });
-  const [initialLoading, setInitialLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [gstSettings, setGstSettings] = useState<GstSettings | null>(null);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(() => {
@@ -197,14 +197,26 @@ export function AppContent() {
   const isGstActive = settings.currency_code === "INR" && (gstSettings?.is_enabled ?? true);
 
   useEffect(() => {
-    if (!isGstActive && ["gst_hub", "gst_pos", "gst_credit", "gstr1", "gstr3b"].includes(activeTab)) {
+    if (!initialLoading && !isGstActive && ["gst_hub", "gst_pos", "gst_credit", "gstr1", "gstr3b"].includes(activeTab)) {
       setActiveTab("pos");
     }
-  }, [isGstActive, activeTab]);
+  }, [initialLoading, isGstActive, activeTab]);
 
-  // Global hotkeys (F1 for Accounting Hub, F2 for POS, F4 Contra, F5 Payment, F6 Receipt/Credit, F8 GST POS, F9 Purchase, Ctrl+1..0 for tabs)
+  // Global hotkeys (F1 for Accounting Hub, F2 for POS, F4 Contra, F6 Receipt/Credit, F8 GST POS, F9 Purchase, Ctrl+1..0 for tabs)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLocked || isSetupOpen || isLicenseModalOpen) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
       if (e.key === "F2") {
         e.preventDefault();
         setActiveTab("pos");
@@ -214,9 +226,6 @@ export function AppContent() {
       } else if (e.key === "F6") {
         e.preventDefault();
         setActiveTab(isGstActive ? "gst_credit" : "invoices");
-      } else if (e.key === "F5") {
-        e.preventDefault();
-        setActiveTab(isGstActive ? "gst_credit" : "expenses");
       } else if (e.key === "F4") {
         e.preventDefault();
         setActiveTab("expenses");
@@ -266,7 +275,7 @@ export function AppContent() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isGstActive]);
+  }, [isGstActive, isLocked, isSetupOpen, isLicenseModalOpen, handleLockApp]);
 
   const handleSettingsUpdated = (newSettings: Settings) => {
     setSettings(newSettings);
@@ -395,18 +404,20 @@ export function AppContent() {
           />
         );
       case "gst_hub":
-        return (
+        return gstSettings ? (
           <AccountingHub
             settings={settings}
-            gstSettings={gstSettings || ({} as any)}
+            gstSettings={gstSettings}
             onNavigateTab={setActiveTab}
           />
+        ) : (
+          <ViewFallback />
         );
       case "gst_pos":
-        return (
+        return gstSettings ? (
           <GSTPOSBilling
             settings={settings}
-            gstSettings={gstSettings || ({} as any)}
+            gstSettings={gstSettings}
             items={items}
             parties={parties}
             licenseStatus={licenseStatus}
@@ -414,6 +425,8 @@ export function AppContent() {
             onRefreshData={loadAllData}
             onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           />
+        ) : (
+          <ViewFallback />
         );
       case "gst_credit":
         return (
@@ -453,7 +466,7 @@ export function AppContent() {
             settings={settings}
             licenseStatus={licenseStatus}
             onOpenQuickSale={() => {
-              if (licenseStatus?.is_expired) {
+              if (licenseStatus?.is_expired && !licenseStatus?.is_licensed && licenseStatus?.platform !== "linux") {
                 setIsLicenseModalOpen(true);
               } else {
                 setActiveTab(isGstActive ? "gst_pos" : "pos");
@@ -518,7 +531,7 @@ export function AppContent() {
           />
         )}
         {/* Universal Clipboard Image Paste Modal */}
-        <ImagePasteModal onNavigateTab={setActiveTab} />
+        {!isLocked && !isSetupOpen && <ImagePasteModal onNavigateTab={setActiveTab} />}
       </div>
 
     </CurrencyProvider>

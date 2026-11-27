@@ -72,10 +72,11 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
     const q = search.toLowerCase();
     return logs.filter((log) => {
       return (
-        log.action.toLowerCase().includes(q) ||
-        log.entity.toLowerCase().includes(q) ||
-        log.details.toLowerCase().includes(q) ||
-        log.timestamp.toLowerCase().includes(q)
+        (log.action || "").toLowerCase().includes(q) ||
+        (log.entity || "").toLowerCase().includes(q) ||
+        (log.entity_id || "").toLowerCase().includes(q) ||
+        (log.details || "").toLowerCase().includes(q) ||
+        (log.timestamp || "").toLowerCase().includes(q)
       );
     });
   }, [logs, search]);
