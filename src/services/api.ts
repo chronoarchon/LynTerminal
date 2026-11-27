@@ -220,6 +220,30 @@ export const api = {
   checkAppUpdate: () => invoke<AppUpdateInfo>("check_app_update"),
   restartApp: () => invoke<void>("restart_app"),
 
+  // Hardware Thermal Printer & Cash Drawer Engine
+  listPrinters: () => invoke<import("../types").PrinterDeviceInfo[]>("list_printers"),
+  printRawEscpos: (payload: import("../types").ReceiptPrintPayload) =>
+    invoke<string>("print_raw_escpos", { payload }),
+  testPrintReceipt: (params?: {
+    printerType?: string;
+    printerTarget?: string;
+    paperWidth?: string;
+    autoCut?: boolean;
+    openCashDrawerFlag?: boolean;
+  }) =>
+    invoke<string>("test_print_receipt", {
+      printerType: params?.printerType ?? null,
+      printerTarget: params?.printerTarget ?? null,
+      paperWidth: params?.paperWidth ?? null,
+      autoCut: params?.autoCut ?? null,
+      openCashDrawerFlag: params?.openCashDrawerFlag ?? null,
+    }),
+  openCashDrawer: (params?: { printerType?: string; printerTarget?: string }) =>
+    invoke<string>("open_cash_drawer", {
+      printerType: params?.printerType ?? null,
+      printerTarget: params?.printerTarget ?? null,
+    }),
+
   // Commercial Licensing & 14-Day Trial Engine
   getLicenseStatus: () => invoke<LicenseStatus>("get_license_status"),
   activateLicense: (licenseKey: string, customerEmail?: string) =>

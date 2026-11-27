@@ -13,7 +13,7 @@ import {
   Copy,
   Users,
 } from "lucide-react";
-import type { Party, Settings, Payment, CustomerAging } from "../types";
+import type { Party, Settings, Payment, CustomerAging, BankAccount } from "../types";
 import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
@@ -62,7 +62,19 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
   // Payment Form State
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [paymentBankId, setPaymentBankId] = useState("");
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [paymentRef, setPaymentRef] = useState("");
+
+  useEffect(() => {
+    api.listBankAccounts()
+      .then((banks) => {
+        setBankAccounts(banks);
+        const primary = banks.find((b) => b.is_primary) || banks[0];
+        if (primary) setPaymentBankId(primary.id);
+      })
+      .catch(() => {});
+  }, []);
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
@@ -165,6 +177,10 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
     if (!formName.trim()) return;
 
     try {
+      const openBal = parseFloat(formOpeningBalance) || 0;
+      const signedInitialBalance =
+        formType === "VENDOR" && openBal > 0 ? -Math.abs(openBal) : openBal;
+
       const partyData: Party = {
         id: activeParty ? activeParty.id : "",
         name: formName.trim(),
@@ -173,10 +189,10 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
         email: formEmail.trim(),
         address: formAddress.trim(),
         tax_number: formTaxNumber.trim(),
-        opening_balance: parseFloat(formOpeningBalance) || 0,
+        opening_balance: openBal,
         current_balance: activeParty
           ? activeParty.current_balance
-          : parseFloat(formOpeningBalance) || 0,
+          : signedInitialBalance,
         created_at: activeParty ? activeParty.created_at : "",
       };
 
@@ -210,6 +226,7 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
         payment_date: formatLocalDate(),
         reference: paymentRef,
         notes: paymentNotes || (isCustomer ? "Customer payment received" : "Supplier settlement"),
+        bank_account_id: paymentMethod !== "CASH" ? (paymentBankId || null) : null,
       });
 
       setIsPaymentModalOpen(false);
@@ -723,6 +740,25 @@ export const PartiesView: React.FC<PartiesViewProps> = ({
                   ]}
                 />
               </div>
+
+              {paymentMethod !== "CASH" && bankAccounts.length > 0 && (
+                <div>
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                    Bank Account
+                  </label>
+                  <select
+                    value={paymentBankId}
+                    onChange={(e) => setPaymentBankId(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-semibold text-black focus:outline-none focus:border-black"
+                  >
+                    {bankAccounts.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.account_name} ({b.bank_name}) — {formatCurrency(b.current_balance)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="text-[11px] font-semibold text-neutral-700 block mb-1">

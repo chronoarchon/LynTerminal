@@ -277,6 +277,7 @@ fn test_bill_by_bill_tracking_and_settlement() {
         payment_date: "2026-11-16".into(),
         reference: "NEFT-UTR-998811".into(),
         notes: "Settled against Bill 1 in full and Bill 2 part".into(),
+        bank_account_id: None,
         allocations: vec![
             BillAllocationPayload {
                 invoice_id: inv1.invoice.id.clone(),
@@ -573,6 +574,7 @@ fn test_bill_settlement_financial_integrity_validation() {
         payment_date: "2026-11-16".into(),
         reference: "VOUCHER-01".into(),
         notes: "".into(),
+        bank_account_id: None,
         allocations: vec![],
     });
     assert!(err_neg.is_err(), "Negative settlement amount must be rejected");
@@ -587,6 +589,7 @@ fn test_bill_settlement_financial_integrity_validation() {
         payment_date: "2026-11-16".into(),
         reference: "VOUCHER-02".into(),
         notes: "".into(),
+        bank_account_id: None,
         allocations: vec![],
     });
     assert!(err_party.is_err(), "Non-existent party must be rejected");
@@ -601,6 +604,7 @@ fn test_bill_settlement_financial_integrity_validation() {
         payment_date: "2026-11-16".into(),
         reference: "VOUCHER-03".into(),
         notes: "Trying to clear Party A invoice with Party B payment".into(),
+        bank_account_id: None,
         allocations: vec![BillAllocationPayload {
             invoice_id: inv_a.invoice.id.clone(), // Belongs to Party A!
             amount: 5000.0,
@@ -618,6 +622,7 @@ fn test_bill_settlement_financial_integrity_validation() {
         payment_date: "2026-11-16".into(),
         reference: "VOUCHER-04".into(),
         notes: "".into(),
+        bank_account_id: None,
         allocations: vec![BillAllocationPayload {
             invoice_id: inv_a.invoice.id.clone(),
             amount: 5000.0, // Exceeds 2000 payment!
@@ -635,6 +640,7 @@ fn test_bill_settlement_financial_integrity_validation() {
         payment_date: "2026-11-16".into(),
         reference: "VOUCHER-VALID".into(),
         notes: "Partial payment".into(),
+        bank_account_id: None,
         allocations: vec![BillAllocationPayload {
             invoice_id: inv_a.invoice.id.clone(),
             amount: 3000.0,
@@ -718,3 +724,6 @@ fn test_legacy_or_standard_invoice_gst_synthesis() {
 
 #[path = "gst_audit_v169_test.rs"]
 mod gst_audit_v169_test;
+
+#[path = "release_v170_test.rs"]
+mod release_v170_test;

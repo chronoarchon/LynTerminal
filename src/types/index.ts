@@ -27,6 +27,46 @@ export interface Settings {
   custom_payment_1_enabled?: boolean;
   custom_payment_2_name?: string;
   custom_payment_2_enabled?: boolean;
+  printer_type?: "BROWSER_DIALOG" | "OS_SPOOLER" | "NETWORK_9100" | "SERIAL" | "USB_RAW";
+  printer_target?: string;
+  paper_width?: "58mm" | "80mm" | "A4";
+  auto_cut?: boolean;
+  open_cash_drawer?: boolean;
+}
+
+export interface PrinterDeviceInfo {
+  name: string;
+  printer_type: "BROWSER_DIALOG" | "OS_SPOOLER" | "NETWORK_9100" | "SERIAL" | "USB_RAW";
+  target: string;
+  is_default: boolean;
+  platform: string;
+}
+
+export interface ReceiptPrintLine {
+  name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  tax_rate?: number | null;
+}
+
+export interface ReceiptPrintPayload {
+  invoice_number: string;
+  invoice_date: string;
+  invoice_type: string;
+  party_name: string;
+  payment_method: string;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  round_off: number;
+  total_amount: number;
+  paid_amount: number;
+  items: ReceiptPrintLine[];
+  gstin?: string | null;
+  notes?: string | null;
+  paper_width?: string | null;
+  open_drawer?: boolean | null;
 }
 
 export interface Item {
@@ -137,6 +177,7 @@ export interface Payment {
   payment_date: string;
   reference: string;
   notes: string;
+  bank_account_id?: string | null;
 }
 
 export interface Expense {
@@ -173,6 +214,7 @@ export interface AuditLog {
 export interface DashboardSummary {
   total_sales: number;
   total_purchases: number;
+  cogs?: number;
   total_receivables: number;
   total_payables: number;
   total_expenses: number;
@@ -201,9 +243,12 @@ export interface DaybookEntry {
   date: string;
   reference: string;
   title: string;
-  entry_type: "SALE" | "PURCHASE" | "PAYMENT_IN" | "PAYMENT_OUT" | "EXPENSE";
+  entry_type: "SALE" | "PURCHASE" | "PAYMENT_IN" | "PAYMENT_OUT" | "EXPENSE" | "SALARY" | "TRANSFER" | "LOAN_DRAWDOWN" | "LOAN_REPAYMENT";
   cash_in: number;
   cash_out: number;
+  bank_in?: number;
+  bank_out?: number;
+  payment_channel?: string;
   balance: number;
 }
 
@@ -398,8 +443,9 @@ export interface SupplierPaymentPayload {
   party_id: string;
   party_name: string;
   amount: number;
-  payment_method: "CASH" | "BANK";
+  payment_method: string;
   bank_account_id?: string | null;
+  payment_date?: string | null;
   reference: string;
   notes: string;
 }

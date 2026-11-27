@@ -17,6 +17,11 @@ import { api } from "../services/api";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 import { useCurrency } from "../context/CurrencyContext";
+import {
+  useBarcodeScanner,
+  findItemByBarcodeOrSku,
+  playScanFeedbackTone,
+} from "../hooks/useBarcodeScanner";
 
 interface InventoryViewProps {
   items: Item[];
@@ -71,6 +76,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [formGodown, setFormGodown] = useState("Main Store");
   const [formSize, setFormSize] = useState("");
   const [formBrand, setFormBrand] = useState("");
+
+  useBarcodeScanner({
+    enabled: !isAdjustModalOpen && !isHistoryModalOpen && !isTransferModalOpen,
+    onScan: (code) => {
+      const clean = code.trim();
+      if (!clean) return;
+      if (isEditModalOpen) {
+        setFormBarcode(clean);
+        playScanFeedbackTone(true);
+        return;
+      }
+      setSearchTerm(clean);
+      const match = findItemByBarcodeOrSku(items, clean);
+      if (match) {
+        playScanFeedbackTone(true);
+        toast({ message: `Found "${match.name}" (${match.stock_quantity} ${match.unit})`, type: "info" });
+      } else {
+        playScanFeedbackTone(false);
+        toast({ message: `No product matched barcode "${clean}"`, type: "info" });
+      }
+    },
+  });
 
   const categories = useMemo(() => {
     return ["All", ...Array.from(new Set(items.map((i) => i.category))).filter(Boolean)];
@@ -319,7 +346,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <Search className="w-4 h-4 text-[#86868B] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search products by name, SKU, or barcode..."
+            data-barcode-input="true"
+            placeholder="Search products by name, SKU, or scan barcode..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#F5F5F7] border border-black/[0.06] rounded-xl pl-10 pr-3 py-1.5 text-xs text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-black"

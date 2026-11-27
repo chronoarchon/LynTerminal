@@ -266,7 +266,7 @@ export function AppContent() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [isGstActive]);
 
   const handleSettingsUpdated = (newSettings: Settings) => {
     setSettings(newSettings);

@@ -32,7 +32,12 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
 }) => {
   const { invoice, items } = invoiceDetail;
   const { formatCurrency } = useCurrency();
-  const [docFormat, setDocFormat] = useState<"thermal" | "standard">("thermal");
+  const [docFormat, setDocFormat] = useState<"58mm" | "80mm" | "A4">(() => {
+    if (settings.paper_width === "58mm" || settings.paper_width === "80mm" || settings.paper_width === "A4") {
+      return settings.paper_width;
+    }
+    return "80mm";
+  });
   const [copyType, setCopyType] = useState<
     "ORIGINAL FOR RECIPIENT" | "DUPLICATE FOR TRANSPORTER" | "TRIPLICATE FOR SUPPLIER"
   >("ORIGINAL FOR RECIPIENT");
@@ -70,9 +75,9 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
 
     let pdf: jsPDF;
 
-    if (docFormat === "thermal") {
-      // Continuous thermal slip format (exact height of items)
-      const imgWidth = 80;
+    if (docFormat === "58mm" || docFormat === "80mm") {
+      // Continuous thermal slip format (58mm 2-inch or 80mm 3-inch)
+      const imgWidth = docFormat === "58mm" ? 58 : 80;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       pdf = new jsPDF({
         orientation: "portrait",
@@ -252,9 +257,20 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
 
               <div className="flex items-center p-0.5 rounded-xl bg-neutral-100 border border-black/[0.06] text-xs">
                 <button
-                  onClick={() => setDocFormat("thermal")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    docFormat === "thermal"
+                  onClick={() => setDocFormat("58mm")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "58mm"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-500 hover:text-black"
+                  }`}
+                >
+                  <ReceiptIcon className="w-3.5 h-3.5" />
+                  <span>58mm</span>
+                </button>
+                <button
+                  onClick={() => setDocFormat("80mm")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "80mm"
                       ? "bg-white text-black shadow-xs"
                       : "text-neutral-500 hover:text-black"
                   }`}
@@ -263,9 +279,9 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                   <span>80mm</span>
                 </button>
                 <button
-                  onClick={() => setDocFormat("standard")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    docFormat === "standard"
+                  onClick={() => setDocFormat("A4")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "A4"
                       ? "bg-white text-black shadow-xs"
                       : "text-neutral-500 hover:text-black"
                   }`}
@@ -274,6 +290,46 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
                   <span>A4</span>
                 </button>
               </div>
+
+              {settings.printer_type && settings.printer_type !== "BROWSER_DIALOG" && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const msg = await api.printRawEscpos({
+                        invoice_number: invoice.invoice_number,
+                        invoice_date: invoice.invoice_date,
+                        invoice_type: invoice.invoice_type,
+                        party_name: invoice.party_name,
+                        payment_method: invoice.payment_method,
+                        subtotal: invoice.subtotal,
+                        discount_amount: invoice.discount_amount,
+                        tax_amount: invoice.tax_amount,
+                        round_off: 0,
+                        total_amount: invoice.total_amount,
+                        paid_amount: invoice.paid_amount,
+                        items: items.map((it) => ({
+                          name: it.item_name,
+                          quantity: it.quantity,
+                          unit_price: it.unit_price,
+                          line_total: it.line_total,
+                          tax_rate: it.tax_rate,
+                        })),
+                        notes: invoice.notes,
+                        paper_width: docFormat === "58mm" ? "58mm" : "80mm",
+                        open_drawer: settings.open_cash_drawer ?? false,
+                      });
+                      toast({ message: msg, type: "success" });
+                    } catch (err) {
+                      alert({ title: "ESC/POS Print Error", message: String(err), type: "error" });
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition active:scale-95 cursor-pointer shadow-2xs"
+                  title="Send raw ESC/POS directly to configured thermal printer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>ESC/POS</span>
+                </button>
+              )}
 
               <button
                 onClick={handleExportPdf}
@@ -309,12 +365,16 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
         {/* Scrollable Document Area with Clean Light Canvas */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-20 bg-[#F5F5F7]">
           
-          {/* FORMAT 1: 80mm Thermal Receipt (Counter POS Slip) */}
-          {docFormat === "thermal" && (
+          {/* FORMAT 1: 58mm / 80mm Thermal Receipt (Counter POS Slip) */}
+          {(docFormat === "58mm" || docFormat === "80mm") && (
             <div
               ref={docRef}
               data-printable="true"
-              className="mx-auto w-[360px] max-w-full bg-white p-6 sm:p-8 pb-10 rounded-2xl shadow-lg border border-black/[0.08] text-[#1D1D1F] font-mono text-xs space-y-4 select-text thermal-receipt my-2"
+              className={`mx-auto max-w-full bg-white rounded-2xl shadow-lg border border-black/[0.08] text-[#1D1D1F] font-mono space-y-4 select-text my-2 ${
+                docFormat === "58mm"
+                  ? "w-[260px] p-4 pb-8 text-[11px] thermal-receipt-58"
+                  : "w-[360px] p-6 sm:p-8 pb-10 text-xs thermal-receipt"
+              }`}
             >
               {/* Header branding */}
               <div className="text-center space-y-1 pb-3 border-b border-solid border-black/15">
@@ -470,7 +530,7 @@ export const InvoiceDocModal: React.FC<InvoiceDocModalProps> = ({
           )}
 
           {/* FORMAT 2: Apple-style Minimalist Standard A4 Commercial Invoice */}
-          {docFormat === "standard" && (
+          {docFormat === "A4" && (
             <div
               ref={docRef}
               data-printable="true"

@@ -22,6 +22,12 @@ import type {
   CreateGstItemPayload,
 } from "./gstTypes";
 import { gstApi } from "./gstApi";
+import { api } from "../../services/api";
+import {
+  useBarcodeScanner,
+  findItemByBarcodeOrSku,
+  playScanFeedbackTone,
+} from "../../hooks/useBarcodeScanner";
 import { getLocalDateString, getLocalDateOffset } from "../../utils/date";
 import {
   INDIAN_STATES,
@@ -101,6 +107,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
   // Completed Invoice Modal
   const [completedInvoice, setCompletedInvoice] = useState<CompleteGstInvoice | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
 
   const { alert, toast } = useAppleDialog();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -151,10 +158,32 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
       return (
         item.name.toLowerCase().includes(term) ||
         item.sku.toLowerCase().includes(term) ||
-        item.barcode.includes(term)
+        item.barcode.toLowerCase().includes(term)
       );
     });
   }, [items, searchTerm, selectedCategory]);
+
+  const handleScanCode = (rawCode: string) => {
+    const query = rawCode.trim();
+    if (!query) return;
+    const exactMatch = findItemByBarcodeOrSku(items, query);
+    if (exactMatch) {
+      addToCart(exactMatch);
+      playScanFeedbackTone(true);
+      setSearchTerm("");
+    } else {
+      playScanFeedbackTone(false);
+      toast({
+        message: `No catalog item matched barcode "${query}"`,
+        type: "info",
+      });
+    }
+  };
+
+  useBarcodeScanner({
+    enabled: !completedInvoice,
+    onScan: handleScanCode,
+  });
 
   const addToCart = (item: Item) => {
     setCart((prev) => {
@@ -425,7 +454,41 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
       const result = await gstApi.createGstInvoice(payload);
 
-      setCompletedInvoice(result);
+      if (settings.preview_after_sale !== false) {
+        setCompletedInvoice(result);
+      }
+
+      if (settings.auto_print) {
+        if (settings.printer_type && settings.printer_type !== "BROWSER_DIALOG") {
+          api.printRawEscpos({
+            invoice_number: result.invoice.invoice_number,
+            invoice_date: result.invoice.invoice_date,
+            invoice_type: result.invoice.invoice_type,
+            party_name: result.invoice.party_name,
+            payment_method: result.invoice.payment_method,
+            subtotal: result.invoice.subtotal,
+            discount_amount: result.invoice.discount_amount,
+            tax_amount: result.invoice.tax_amount,
+            round_off: result.gst_info.round_off || 0,
+            total_amount: result.invoice.total_amount,
+            paid_amount: result.invoice.paid_amount,
+            items: result.items.map((it, idx) => ({
+              name: it.item_name,
+              quantity: it.quantity,
+              unit_price: it.unit_price,
+              line_total: result.gst_items[idx]?.line_total ?? it.line_total,
+              tax_rate: it.tax_rate,
+            })),
+            gstin: result.gst_info.supplier_gstin || gstSettings.gstin,
+            notes: result.invoice.notes,
+            paper_width: settings.paper_width || "80mm",
+            open_drawer: settings.open_cash_drawer ?? false,
+          }).catch((e) => console.warn("Auto-print failed:", e));
+        } else {
+          setCompletedInvoice(result);
+        }
+      }
+
       clearCart();
       onInvoiceCreated();
       onRefreshData();
@@ -474,23 +537,60 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         </div>
       )}
 
+      <div className="lg:hidden flex p-1 rounded-xl bg-black/[0.06] border border-black/[0.06] shrink-0">
+        <button
+          type="button"
+          onClick={() => setMobileView("catalog")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${
+            mobileView === "catalog"
+              ? "bg-white text-[#1D1D1F] shadow-xs font-semibold"
+              : "text-[#86868B]"
+          }`}
+        >
+          Catalog ({items.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView("cart")}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+            mobileView === "cart"
+              ? "bg-white text-[#1D1D1F] shadow-xs font-semibold"
+              : "text-[#86868B]"
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>Bill Register ({cart.length})</span>
+        </button>
+      </div>
+
       <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
 
       {/* LEFT COLUMN: Product Catalog & Quick HSN Picker */}
-      <div className="flex-1 flex flex-col bg-white rounded-2xl border border-black/[0.08] shadow-xs overflow-hidden min-w-0">
+      <div
+        className={`flex-1 flex flex-col bg-white rounded-2xl border border-black/[0.08] shadow-xs overflow-hidden min-w-0 ${
+          mobileView === "cart" ? "hidden lg:flex" : "flex"
+        }`}
+      >
         {/* Search & Categories Bar */}
         <div className="p-3 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FAFAFA]">
-          <div className="relative flex-1 min-w-[200px]">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleScanCode(searchTerm);
+            }}
+            className="relative flex-1 min-w-[200px]"
+          >
             <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               ref={searchInputRef}
               type="text"
+              data-barcode-input="true"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search items by name, SKU or barcode..."
+              placeholder="Search items by name, SKU or scan barcode [Enter]..."
               className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-white border border-black/[0.08] focus:outline-hidden focus:border-black transition"
             />
-          </div>
+          </form>
 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
             {categories.map((cat) => (
@@ -548,7 +648,11 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
       </div>
 
       {/* RIGHT COLUMN: GST Tax Invoice Register & Credit Checkout */}
-      <div className="w-full lg:w-[440px] flex flex-col h-full bg-white rounded-2xl border border-black/[0.08] shadow-md overflow-hidden shrink-0">
+      <div
+        className={`w-full lg:w-[440px] flex-col h-full bg-white rounded-2xl border border-black/[0.08] shadow-md overflow-hidden shrink-0 ${
+          mobileView === "catalog" ? "hidden lg:flex" : "flex"
+        }`}
+      >
         
         {/* Register Header */}
         <div className="p-3.5 bg-[#FAFAFA] border-b border-black/[0.06] space-y-2 shrink-0">
@@ -607,7 +711,16 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             <input
               type="text"
               value={customerGstin}
-              onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                const val = e.target.value.toUpperCase();
+                setCustomerGstin(val);
+                if (val.length >= 2 && /^\d{2}/.test(val)) {
+                  const stCode = val.slice(0, 2);
+                  if (INDIAN_STATES.some((s) => s.code === stCode)) {
+                    setPosStateCode(stCode);
+                  }
+                }
+              }}
               placeholder="Customer GSTIN (e.g. 27AABCR9999R1ZZ)"
               className="flex-1 text-[11px] font-mono px-2 py-1 rounded-lg bg-white border border-black/[0.08] focus:outline-hidden"
             />
@@ -925,7 +1038,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
               {isCreditOverLimit && (
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#FF3B30]">
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Warning: Bill pushes customer balance over ₹50,000 credit limit</span>
+                  <span>Warning: Bill pushes customer balance over ₹{partyCreditLimit.toLocaleString("en-IN")} credit limit</span>
                 </div>
               )}
             </div>

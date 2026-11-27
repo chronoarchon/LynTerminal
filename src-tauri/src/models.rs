@@ -8,6 +8,9 @@ fn default_opening_balance_mode() -> String { "CASH".into() }
 fn default_capital_mode() -> String { "CASH".into() }
 fn default_custom_payment_1_name() -> String { "UPI".into() }
 fn default_custom_payment_2_name() -> String { "Bank Transfer".into() }
+fn default_printer_type() -> String { "BROWSER_DIALOG".into() }
+fn default_paper_width() -> String { "80mm".into() }
+fn default_auto_cut() -> bool { true }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -55,6 +58,16 @@ pub struct Settings {
     pub custom_payment_2_name: String,
     #[serde(default)]
     pub custom_payment_2_enabled: bool,
+    #[serde(default = "default_printer_type")]
+    pub printer_type: String,         // "BROWSER_DIALOG" | "OS_SPOOLER" | "NETWORK_9100" | "SERIAL" | "USB_RAW"
+    #[serde(default)]
+    pub printer_target: String,       // Printer name, IP:port, COM port, or /dev/usb/lp0
+    #[serde(default = "default_paper_width")]
+    pub paper_width: String,          // "58mm" | "80mm" | "A4"
+    #[serde(default = "default_auto_cut")]
+    pub auto_cut: bool,
+    #[serde(default)]
+    pub open_cash_drawer: bool,
 }
 
 impl Default for Settings {
@@ -88,6 +101,11 @@ impl Default for Settings {
             custom_payment_1_enabled: false,
             custom_payment_2_name: "Bank Transfer".into(),
             custom_payment_2_enabled: false,
+            printer_type: "BROWSER_DIALOG".into(),
+            printer_target: "".into(),
+            paper_width: "80mm".into(),
+            auto_cut: true,
+            open_cash_drawer: false,
         }
     }
 }
@@ -208,6 +226,8 @@ pub struct Payment {
     pub payment_date: String,
     pub reference: String,
     pub notes: String,
+    #[serde(default)]
+    pub bank_account_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -248,6 +268,8 @@ pub struct AuditLog {
 pub struct DashboardSummary {
     pub total_sales: f64,
     pub total_purchases: f64,
+    #[serde(default)]
+    pub cogs: f64,
     pub total_receivables: f64,
     pub total_payables: f64,
     pub total_expenses: f64,
@@ -283,9 +305,15 @@ pub struct DaybookEntry {
     pub date: String,
     pub reference: String,
     pub title: String,
-    pub entry_type: String, // "SALE" | "PURCHASE" | "PAYMENT_IN" | "PAYMENT_OUT" | "EXPENSE"
+    pub entry_type: String, // "SALE" | "PURCHASE" | "PAYMENT_IN" | "PAYMENT_OUT" | "EXPENSE" | "SALARY" | "TRANSFER" | "LOAN_DRAWDOWN" | "LOAN_REPAYMENT"
     pub cash_in: f64,
     pub cash_out: f64,
+    #[serde(default)]
+    pub bank_in: f64,
+    #[serde(default)]
+    pub bank_out: f64,
+    #[serde(default)]
+    pub payment_channel: String, // "CASH" | "BANK" | "SPLIT"
     pub balance: f64,
 }
 
@@ -501,8 +529,10 @@ pub struct SupplierPaymentPayload {
     pub party_id: String,
     pub party_name: String,
     pub amount: f64,
-    pub payment_method: String, // "CASH" | "BANK"
+    pub payment_method: String, // "CASH" | "BANK" | "UPI" | "Card" etc.
     pub bank_account_id: Option<String>,
+    #[serde(default)]
+    pub payment_date: Option<String>,
     pub reference: String,
     pub notes: String,
 }
@@ -731,6 +761,54 @@ pub struct LicenseActivationPayload {
     pub license_key: String,
     pub customer_email: Option<String>,
 }
+
+// ----------------------------------------------------------------------------
+// HARDWARE PRINTERS, ESC/POS & CASH DRAWER MODELS
+// ----------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrinterDeviceInfo {
+    pub name: String,
+    pub printer_type: String, // "OS_SPOOLER" | "SERIAL" | "USB_RAW" | "NETWORK_9100" | "BROWSER_DIALOG"
+    pub target: String,
+    pub is_default: bool,
+    pub platform: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReceiptPrintLine {
+    pub name: String,
+    pub quantity: f64,
+    pub unit_price: f64,
+    pub line_total: f64,
+    #[serde(default)]
+    pub tax_rate: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReceiptPrintPayload {
+    pub invoice_number: String,
+    pub invoice_date: String,
+    pub invoice_type: String,
+    pub party_name: String,
+    pub payment_method: String,
+    pub subtotal: f64,
+    pub discount_amount: f64,
+    pub tax_amount: f64,
+    pub round_off: f64,
+    pub total_amount: f64,
+    pub paid_amount: f64,
+    pub items: Vec<ReceiptPrintLine>,
+    #[serde(default)]
+    pub gstin: Option<String>,
+    #[serde(default)]
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub paper_width: Option<String>, // override "58mm" | "80mm"
+    #[serde(default)]
+    pub open_drawer: Option<bool>,
+}
+
 
 
 

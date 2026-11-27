@@ -1,13 +1,32 @@
-use chrono::{Local, NaiveDate};
+use chrono::{DateTime, Local, NaiveDate};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::State;
 use uuid::Uuid;
 
-use crate::commands::AppState;
+use crate::commands::{parse_payment_liquidity, AppState};
 use crate::db::DatabaseManager;
 use crate::models::{Invoice, InvoiceItem};
+
+fn parse_flexible_date(raw: &str) -> Option<NaiveDate> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Ok(d) = NaiveDate::parse_from_str(trimmed, "%Y-%m-%d") {
+        return Some(d);
+    }
+    if let Ok(dt) = DateTime::parse_from_rfc3339(trimmed) {
+        return Some(dt.date_naive());
+    }
+    if trimmed.len() >= 10 {
+        if let Ok(d) = NaiveDate::parse_from_str(&trimmed[..10], "%Y-%m-%d") {
+            return Some(d);
+        }
+    }
+    None
+}
 
 // ----------------------------------------------------------------------------
 // GST DATA STRUCTURES
@@ -241,6 +260,8 @@ pub struct BillSettlementPayload {
     pub payment_date: String,
     pub reference: String,
     pub notes: String,
+    #[serde(default)]
+    pub bank_account_id: Option<String>,
     pub allocations: Vec<BillAllocationPayload>,
 }
 
@@ -633,9 +654,9 @@ pub fn create_gst_invoice_internal(
         )
         .unwrap_or_else(|_| "27AABCU9603R1ZN".into());
 
-    let status = if payload.paid_amount >= payload.total_amount {
+    let status = if payload.paid_amount >= payload.total_amount - 0.01 {
         "PAID"
-    } else if payload.paid_amount > 0.0 {
+    } else if payload.paid_amount > 0.01 {
         "PARTIAL"
     } else {
         "UNPAID"
@@ -1021,6 +1042,27 @@ pub fn create_gst_invoice_internal(
                         invoice_number,
                         format!("Refund for GST Credit Note #{}", invoice_number),
                     ],
+                )
+                .ok();
+            }
+        }
+    }
+
+    // Update primary bank account balance when GST invoice involves bank/digital tender
+    if payload.paid_amount > 0.0 {
+        let (_, bank_part) = parse_payment_liquidity(&payload.payment_method, payload.paid_amount);
+        if bank_part > 0.0 {
+            let bank_delta = if payload.invoice_type == "SALE" {
+                bank_part
+            } else if payload.invoice_type == "PURCHASE" || payload.invoice_type == "RETURN" {
+                -bank_part
+            } else {
+                0.0
+            };
+            if bank_delta != 0.0 {
+                tx.execute(
+                    "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                    params![bank_delta],
                 )
                 .ok();
             }
@@ -1435,7 +1477,7 @@ pub fn get_sundry_debtors_aging_internal(conn: &Connection) -> Result<Vec<PartyC
             }
 
             pending_bills_count += 1;
-            let days_old = if let Ok(parsed) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+            let days_old = if let Some(parsed) = parse_flexible_date(&date_str) {
                 (today - parsed).num_days()
             } else {
                 0
@@ -1526,7 +1568,8 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
     for row in rows.filter_map(Result::ok) {
         let (party_id, party_name, phone, email, current_balance, gstin, state_name, credit_limit, credit_period_days, tally_ledger_group) = row;
 
-        let total_payable = current_balance.abs();
+        // Vendor payables are negative; positive current_balance is a supplier advance, not payable debt
+        let total_payable = if current_balance < 0.0 { current_balance.abs() } else { 0.0 };
 
         let mut inv_stmt = conn
             .prepare(
@@ -1562,7 +1605,7 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
             }
 
             pending_bills_count += 1;
-            let days_old = if let Ok(parsed) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+            let days_old = if let Some(parsed) = parse_flexible_date(&date_str) {
                 (today - parsed).num_days()
             } else {
                 0
@@ -1614,58 +1657,92 @@ pub fn get_sundry_creditors_aging_internal(conn: &Connection) -> Result<Vec<Part
 pub fn get_party_pending_bills_internal(conn: &Connection, party_id: &str) -> Result<Vec<PendingBill>, String> {
     let today = Local::now().date_naive();
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT i.id, i.invoice_number, i.invoice_type, i.party_id, i.party_name,
-                    i.invoice_date, i.due_date, i.total_amount, i.paid_amount, i.status,
-                    COALESCE(g.bill_reference_type, 'New Ref')
-             FROM invoices i
-             LEFT JOIN gst_invoices g ON i.id = g.invoice_id
-             WHERE i.party_id = ?1 AND i.status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
-             ORDER BY i.invoice_date ASC",
+    let party_type: String = conn
+        .query_row(
+            "SELECT party_type FROM parties WHERE id = ?1",
+            params![party_id],
+            |r| r.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        .unwrap_or_default();
 
-    let bills = stmt
-        .query_map(params![party_id], |r| {
-            let inv_id: String = r.get(0)?;
-            let inv_num: String = r.get(1)?;
-            let inv_type: String = r.get(2)?;
-            let p_id: String = r.get(3)?;
-            let p_name: String = r.get(4)?;
-            let inv_date: String = r.get(5)?;
-            let due_date: String = r.get(6)?;
-            let total: f64 = r.get(7)?;
-            let paid: f64 = r.get(8)?;
-            let status: String = r.get(9)?;
-            let bill_ref: String = r.get(10)?;
+    let expected_inv_type: Option<&str> = match party_type.as_str() {
+        "VENDOR" => Some("PURCHASE"),
+        "CUSTOMER" => Some("SALE"),
+        _ => None,
+    };
 
-            let balance_due = total - paid;
-            let due_parsed = NaiveDate::parse_from_str(&due_date, "%Y-%m-%d")
-                .or_else(|_| NaiveDate::parse_from_str(&inv_date, "%Y-%m-%d"))
-                .unwrap_or(today);
+    let sql = if expected_inv_type.is_some() {
+        "SELECT i.id, i.invoice_number, i.invoice_type, i.party_id, i.party_name,
+                i.invoice_date, i.due_date, i.total_amount, i.paid_amount, i.status,
+                COALESCE(g.bill_reference_type, 'New Ref')
+         FROM invoices i
+         LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+         WHERE i.party_id = ?1
+           AND i.invoice_type = ?2
+           AND i.status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
+           AND (i.total_amount - i.paid_amount) > 0.01
+         ORDER BY i.invoice_date ASC, i.created_at ASC"
+    } else {
+        "SELECT i.id, i.invoice_number, i.invoice_type, i.party_id, i.party_name,
+                i.invoice_date, i.due_date, i.total_amount, i.paid_amount, i.status,
+                COALESCE(g.bill_reference_type, 'New Ref')
+         FROM invoices i
+         LEFT JOIN gst_invoices g ON i.id = g.invoice_id
+         WHERE i.party_id = ?1
+           AND i.status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
+           AND (i.total_amount - i.paid_amount) > 0.01
+         ORDER BY i.invoice_date ASC, i.created_at ASC"
+    };
 
-            let overdue_days = (today - due_parsed).num_days();
+    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+    let map_row = |r: &rusqlite::Row<'_>| -> rusqlite::Result<PendingBill> {
+        let inv_id: String = r.get(0)?;
+        let inv_num: String = r.get(1)?;
+        let inv_type: String = r.get(2)?;
+        let p_id: String = r.get(3)?;
+        let p_name: String = r.get(4)?;
+        let inv_date: String = r.get(5)?;
+        let due_date: String = r.get(6)?;
+        let total: f64 = r.get(7)?;
+        let paid: f64 = r.get(8)?;
+        let status: String = r.get(9)?;
+        let bill_ref: String = r.get(10)?;
 
-            Ok(PendingBill {
-                invoice_id: inv_id,
-                invoice_number: inv_num,
-                invoice_type: inv_type,
-                party_id: p_id,
-                party_name: p_name,
-                invoice_date: inv_date,
-                due_date,
-                total_amount: total,
-                paid_amount: paid,
-                balance_due,
-                overdue_days,
-                status,
-                bill_ref,
-            })
+        let balance_due = total - paid;
+        let due_parsed = parse_flexible_date(&due_date)
+            .or_else(|| parse_flexible_date(&inv_date))
+            .unwrap_or(today);
+
+        let overdue_days = (today - due_parsed).num_days();
+
+        Ok(PendingBill {
+            invoice_id: inv_id,
+            invoice_number: inv_num,
+            invoice_type: inv_type,
+            party_id: p_id,
+            party_name: p_name,
+            invoice_date: inv_date,
+            due_date,
+            total_amount: total,
+            paid_amount: paid,
+            balance_due,
+            overdue_days,
+            status,
+            bill_ref,
         })
-        .map_err(|e| e.to_string())?
-        .filter_map(Result::ok)
-        .collect();
+    };
+
+    let bills: Vec<PendingBill> = if let Some(inv_t) = expected_inv_type {
+        stmt.query_map(params![party_id, inv_t], map_row)
+            .map_err(|e| e.to_string())?
+            .filter_map(Result::ok)
+            .collect()
+    } else {
+        stmt.query_map(params![party_id], map_row)
+            .map_err(|e| e.to_string())?
+            .filter_map(Result::ok)
+            .collect()
+    };
 
     Ok(bills)
 }
@@ -1674,7 +1751,7 @@ pub fn settle_bill_by_bill_internal(
     conn: &mut Connection,
     payload: BillSettlementPayload,
 ) -> Result<bool, String> {
-    if payload.total_amount <= 0.0 {
+    if payload.total_amount <= 0.0 || !payload.total_amount.is_finite() {
         return Err("Settlement total amount must be strictly greater than 0".into());
     }
 
@@ -1706,13 +1783,19 @@ pub fn settle_bill_by_bill_internal(
         ));
     }
 
+    let bank_id_clean = payload
+        .bank_account_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
     let payment_id = Uuid::new_v4().to_string();
 
     tx.execute(
         "INSERT INTO payments (
             id, invoice_id, party_id, party_name, amount, payment_type,
-            payment_method, payment_date, reference, notes
-        ) VALUES (?1, NULL, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            payment_method, payment_date, reference, notes, bank_account_id
+        ) VALUES (?1, NULL, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             payment_id,
             payload.party_id,
@@ -1723,11 +1806,15 @@ pub fn settle_bill_by_bill_internal(
             payload.payment_date,
             payload.reference,
             payload.notes,
+            bank_id_clean.unwrap_or(""),
         ],
     )
     .map_err(|e| e.to_string())?;
 
-    for alloc in payload.allocations {
+    let mut total_settled_across_bills = 0.0;
+    let mut touched_invoices: Vec<String> = Vec::new();
+
+    for alloc in &payload.allocations {
         if alloc.amount <= 0.0 {
             continue;
         }
@@ -1751,7 +1838,7 @@ pub fn settle_bill_by_bill_internal(
         // Cap allocation at remaining balance due to prevent overpayment of an individual invoice
         let remaining_due = (total - current_paid).max(0.0);
         let effective_settled = alloc.amount.min(remaining_due);
-        if effective_settled <= 0.0 {
+        if effective_settled <= 0.005 {
             continue;
         }
 
@@ -1771,10 +1858,10 @@ pub fn settle_bill_by_bill_internal(
         )
         .map_err(|e| e.to_string())?;
 
-        let new_paid = (current_paid + effective_settled).min(total);
+        let new_paid = ((current_paid + effective_settled).min(total) * 100.0).round() / 100.0;
         let new_status = if new_paid >= total - 0.01 {
             "PAID"
-        } else if new_paid > 0.0 {
+        } else if new_paid > 0.01 {
             "PARTIAL"
         } else {
             "UNPAID"
@@ -1785,6 +1872,94 @@ pub fn settle_bill_by_bill_internal(
             params![new_paid, new_status, alloc.invoice_id],
         )
         .map_err(|e| e.to_string())?;
+
+        total_settled_across_bills += effective_settled;
+        touched_invoices.push(alloc.invoice_id.clone());
+    }
+
+    // Reconcile any unallocated/excess payment (e.g. from capped allocations or lump-sum settlement)
+    // across remaining open bills FIFO so invoice statuses stay synced with party balance.
+    let mut excess = payload.total_amount - total_settled_across_bills;
+    if excess > 0.01 {
+        let target_inv_type = if payload.payment_type == "OUT" { "PURCHASE" } else { "SALE" };
+        let open_bills: Vec<(String, f64, f64)> = {
+            let mut stmt = tx
+                .prepare(
+                    "SELECT id, total_amount, paid_amount FROM invoices
+                     WHERE party_id = ?1
+                       AND invoice_type = ?2
+                       AND status NOT IN ('PAID', 'RETURNED', 'CANCELLED')
+                       AND (total_amount - paid_amount) > 0.01
+                     ORDER BY invoice_date ASC, created_at ASC",
+                )
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map(params![payload.party_id, target_inv_type], |r| {
+                    Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?, r.get::<_, f64>(2)?))
+                })
+                .map_err(|e| e.to_string())?
+                .filter_map(Result::ok)
+                .collect();
+            rows
+        };
+
+        for (bill_id, total, current_paid) in open_bills {
+            if excess <= 0.01 {
+                break;
+            }
+            if touched_invoices.contains(&bill_id) {
+                continue;
+            }
+            let due = (total - current_paid).max(0.0);
+            if due <= 0.01 {
+                continue;
+            }
+            let alloc_amt = excess.min(due);
+            tx.execute(
+                "INSERT INTO bill_settlements (
+                    id, payment_id, invoice_id, party_id, settled_amount, settlement_date, notes
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    payment_id,
+                    bill_id,
+                    payload.party_id,
+                    alloc_amt,
+                    payload.payment_date,
+                    format!("Auto-allocated from {}", payload.reference),
+                ],
+            )
+            .map_err(|e| e.to_string())?;
+
+            let new_paid = ((current_paid + alloc_amt).min(total) * 100.0).round() / 100.0;
+            let new_status = if new_paid >= total - 0.01 { "PAID" } else { "PARTIAL" };
+            tx.execute(
+                "UPDATE invoices SET paid_amount = ?1, status = ?2 WHERE id = ?3",
+                params![new_paid, new_status, bill_id],
+            )
+            .map_err(|e| e.to_string())?;
+
+            excess -= alloc_amt;
+        }
+    }
+
+    // Update bank_accounts balance if payment goes through bank/UPI/card/transfer channels
+    let (_, bank_part) = parse_payment_liquidity(&payload.payment_method, payload.total_amount);
+    if bank_part > 0.0 {
+        let bank_delta = if payload.payment_type == "IN" { bank_part } else { -bank_part };
+        if let Some(bid) = bank_id_clean {
+            tx.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE id = ?2",
+                params![bank_delta, bid],
+            )
+            .ok();
+        } else {
+            tx.execute(
+                "UPDATE bank_accounts SET current_balance = current_balance + ?1 WHERE is_primary = 1",
+                params![bank_delta],
+            )
+            .ok();
+        }
     }
 
     if payload.payment_type == "IN" {

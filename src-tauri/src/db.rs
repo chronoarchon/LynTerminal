@@ -312,7 +312,8 @@ impl DatabaseManager {
                 amount REAL NOT NULL,
                 expense_date TEXT NOT NULL,
                 payment_method TEXT NOT NULL,
-                notes TEXT NOT NULL
+                notes TEXT NOT NULL,
+                created_at TEXT DEFAULT ''
             );
 
             CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
@@ -691,6 +692,65 @@ impl DatabaseManager {
         let _ = conn.execute("ALTER TABLE items ADD COLUMN tax_rate REAL DEFAULT NULL", []);
 
         let _ = conn.execute("ALTER TABLE invoices ADD COLUMN reference TEXT DEFAULT ''", []);
+        let _ = conn.execute("ALTER TABLE expenses ADD COLUMN created_at TEXT DEFAULT ''", []);
+        let _ = conn.execute("ALTER TABLE payments ADD COLUMN bank_account_id TEXT DEFAULT ''", []);
+
+        // Hardware / Printer configuration columns on settings
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN printer_type TEXT NOT NULL DEFAULT 'BROWSER_DIALOG'", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN printer_target TEXT NOT NULL DEFAULT ''", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN paper_width TEXT NOT NULL DEFAULT '80mm'", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN auto_cut INTEGER NOT NULL DEFAULT 1", []);
+        let _ = conn.execute("ALTER TABLE settings ADD COLUMN open_cash_drawer INTEGER NOT NULL DEFAULT 0", []);
+
+        // Idempotent v1.7.0 data & status reconciliation
+        let _ = conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                name TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL
+            );
+
+            UPDATE invoices
+            SET status = 'PAID'
+            WHERE status NOT IN ('CANCELLED', 'RETURNED', 'PAID')
+              AND total_amount > 0
+              AND paid_amount >= total_amount - 0.01;
+
+            UPDATE invoices
+            SET status = 'PARTIAL'
+            WHERE status NOT IN ('CANCELLED', 'RETURNED', 'PARTIAL', 'PAID')
+              AND total_amount > 0
+              AND paid_amount > 0.01
+              AND paid_amount < total_amount - 0.01;
+            "
+        );
+
+        let vendor_fix_applied: bool = conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM schema_migrations WHERE name = 'v1_7_0_vendor_open_bal_fix'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap_or(false);
+
+        if !vendor_fix_applied {
+            let now = chrono::Local::now().to_rfc3339();
+            let _ = conn.execute(
+                "UPDATE parties
+                 SET current_balance = current_balance - (2.0 * opening_balance)
+                 WHERE party_type = 'VENDOR'
+                   AND opening_balance > 0.01
+                   AND current_balance > 0.01
+                   AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.party_id = parties.id)
+                   AND NOT EXISTS (SELECT 1 FROM purchase_returns pr WHERE pr.party_id = parties.id)
+                   AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.party_id = parties.id AND i.status = 'RETURNED')",
+                [],
+            );
+            let _ = conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations (name, applied_at) VALUES ('v1_7_0_vendor_open_bal_fix', ?1)",
+                params![now],
+            );
+        }
 
         // Ensure default recurring bills exist
         let bill_count: i64 = conn.query_row(

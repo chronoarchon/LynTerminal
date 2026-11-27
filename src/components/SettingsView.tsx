@@ -18,8 +18,10 @@ import {
   Coins,
   Upload,
   Trash2,
+  Printer,
+  RefreshCw,
 } from "lucide-react";
-import type { Settings, BackupInfo, AuthState } from "../types";
+import type { Settings, BackupInfo, AuthState, PrinterDeviceInfo } from "../types";
 import { api } from "../services/api";
 import { AppleSelect } from "./common/AppleSelect";
 import { useAppleDialog } from "./common/AppleDialog";
@@ -29,6 +31,7 @@ import { gstApi } from "../modules/india_gst/gstApi";
 import { INDIAN_STATES } from "../modules/india_gst/gstUtils";
 import { sanitizeGstSettings } from "../modules/india_gst/gstDefaults";
 import { ManageMoneyModal } from "./ManageMoneyModal";
+import { printPdfDocument } from "../utils/printPdf";
 
 interface SettingsViewProps {
   settings: Settings | null;
@@ -142,7 +145,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     custom_payment_1_enabled: false,
     custom_payment_2_name: "Bank Transfer",
     custom_payment_2_enabled: false,
+    printer_type: "BROWSER_DIALOG",
+    printer_target: "",
+    paper_width: "80mm",
+    auto_cut: true,
+    open_cash_drawer: false,
   });
+
+  const [discoveredPrinters, setDiscoveredPrinters] = useState<PrinterDeviceInfo[]>([]);
+  const [isScanningPrinters, setIsScanningPrinters] = useState(false);
+  const [isTestingPrinter, setIsTestingPrinter] = useState(false);
+  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
+
+  const scanHardwarePrinters = async () => {
+    try {
+      setIsScanningPrinters(true);
+      const list = await api.listPrinters();
+      setDiscoveredPrinters(list || []);
+    } catch {
+      setDiscoveredPrinters([]);
+    } finally {
+      setIsScanningPrinters(false);
+    }
+  };
 
   const { currencySymbol } = useCurrency();
   const [authState, setAuthState] = useState<AuthState | null>(null);
@@ -172,6 +197,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   useEffect(() => {
     api.getAuthState().then(setAuthState).catch(() => {});
     api.getDashboardSummary().then(setSummary).catch(() => {});
+    scanHardwarePrinters();
     gstApi
       .getGstSettings()
       .then((res) => {
@@ -400,6 +426,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         custom_payment_1_enabled: settings.custom_payment_1_enabled || false,
         custom_payment_2_name: settings.custom_payment_2_name || "Bank Transfer",
         custom_payment_2_enabled: settings.custom_payment_2_enabled || false,
+        printer_type: settings.printer_type || "BROWSER_DIALOG",
+        printer_target: settings.printer_target || "",
+        paper_width: settings.paper_width || "80mm",
+        auto_cut: settings.auto_cut ?? true,
+        open_cash_drawer: settings.open_cash_drawer ?? false,
       });
     }
   }, [settings]);
@@ -433,6 +464,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         capital_bank: Number(formData.capital_bank) || 0,
         capital_mode: formData.capital_mode || "CASH",
         default_tax_rate: Number(formData.default_tax_rate) || 0,
+        printer_type: formData.printer_type || "BROWSER_DIALOG",
+        printer_target: (formData.printer_target || "").trim(),
+        paper_width: formData.paper_width || "80mm",
+        auto_cut: formData.auto_cut ?? true,
+        open_cash_drawer: formData.open_cash_drawer ?? false,
       };
       const updated = await api.saveSettings(payload);
       if (formData.currency_code === "INR") {
@@ -1180,13 +1216,245 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* SECTION 3: Receipt Formatting & Register Defaults */}
-      <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-4">
-        <div className="flex items-center gap-2 border-b border-black/[0.06] pb-3">
-          <Receipt className="w-4 h-4 text-black" />
-          <h2 className="text-sm font-semibold text-[#1D1D1F]">
-            Thermal Receipt & Register Defaults
-          </h2>
+      {/* SECTION 3: Receipt Formatting, Printers & Hardware Defaults */}
+      <div className="apple-card p-5 sm:p-6 rounded-3xl space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
+          <div className="flex items-center gap-2">
+            <Printer className="w-4 h-4 text-black" />
+            <div>
+              <h2 className="text-sm font-semibold text-[#1D1D1F]">
+                Hardware Printers, Cash Drawer &amp; Receipt Defaults
+              </h2>
+              <p className="text-[11px] text-[#86868B]">
+                Supports 58mm / 80mm ESC/POS Thermal Printers (USB, Serial, LAN 9100, OS Spooler) &amp; A4 Desktop Printers
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={scanHardwarePrinters}
+              disabled={isScanningPrinters}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.1] bg-white hover:bg-[#F5F5F7] text-xs font-semibold text-[#1D1D1F] transition cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isScanningPrinters ? "animate-spin" : ""}`} />
+              <span>{isScanningPrinters ? "Scanning..." : "Scan Printers"}</span>
+            </button>
+            <button
+              type="button"
+              disabled={isTestingPrinter}
+              onClick={async () => {
+                try {
+                  setIsTestingPrinter(true);
+                  const mode = formData.printer_type || "BROWSER_DIALOG";
+                  const pw = formData.paper_width || "80mm";
+                  if (mode === "BROWSER_DIALOG") {
+                    const { jsPDF } = await import("jspdf");
+                    const isA4 = pw === "A4";
+                    const w = isA4 ? 210 : pw === "58mm" ? 58 : 80;
+                    const h = isA4 ? 297 : 100;
+                    const pdf = new jsPDF({
+                      orientation: "portrait",
+                      unit: "mm",
+                      format: isA4 ? "a4" : [w, h],
+                    });
+                    pdf.setFont("helvetica", "bold");
+                    pdf.setFontSize(isA4 ? 16 : 11);
+                    pdf.text(formData.business_name || "LynTerminal Store", w / 2, isA4 ? 24 : 12, { align: "center" });
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(isA4 ? 11 : 8);
+                    pdf.text(`Printer Alignment Test (${pw})`, w / 2, isA4 ? 34 : 20, { align: "center" });
+                    pdf.text("Test Item x 1  |  Total: 118.00", w / 2, isA4 ? 44 : 28, { align: "center" });
+                    pdf.text("Powered by LynTerminal v1.7.0", w / 2, isA4 ? 56 : 38, { align: "center" });
+                    await printPdfDocument(pdf);
+                    toast({ message: `Opened system print dialog (${pw} test slip).`, type: "success" });
+                    return;
+                  }
+                  const msg = await api.testPrintReceipt({
+                    printerType: mode,
+                    printerTarget: formData.printer_target || "",
+                    paperWidth: pw,
+                    autoCut: formData.auto_cut ?? true,
+                    openCashDrawerFlag: formData.open_cash_drawer ?? false,
+                  });
+                  toast({ message: msg, type: "success" });
+                } catch (err) {
+                  alert({ title: "Test Print", message: String(err), type: "warning" });
+                } finally {
+                  setIsTestingPrinter(false);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold transition cursor-pointer disabled:opacity-50"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>{isTestingPrinter ? "Printing..." : "Test Print"}</span>
+            </button>
+            <button
+              type="button"
+              disabled={isOpeningDrawer}
+              onClick={async () => {
+                try {
+                  setIsOpeningDrawer(true);
+                  const msg = await api.openCashDrawer({
+                    printerType: formData.printer_type || "BROWSER_DIALOG",
+                    printerTarget: formData.printer_target || "",
+                  });
+                  toast({ message: msg, type: "success" });
+                } catch (err) {
+                  alert({ title: "Cash Drawer", message: String(err), type: "warning" });
+                } finally {
+                  setIsOpeningDrawer(false);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/[0.1] bg-[#F5F5F7] hover:bg-black/[0.08] text-xs font-bold text-[#1D1D1F] transition cursor-pointer disabled:opacity-50"
+            >
+              <span>{isOpeningDrawer ? "Opening..." : "Open Drawer"}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+              Printer Connection Mode
+            </label>
+            <select
+              value={formData.printer_type || "BROWSER_DIALOG"}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  printer_type: e.target.value as Settings["printer_type"],
+                })
+              }
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-semibold text-[#1D1D1F] focus:outline-none focus:border-black"
+            >
+              <option value="BROWSER_DIALOG">System / PDF Print Dialog</option>
+              <option value="OS_SPOOLER">OS Thermal Spooler (Raw USB / Bluetooth / Windows / CUPS)</option>
+              <option value="NETWORK_9100">Ethernet / Wi-Fi Thermal Printer (TCP Port 9100)</option>
+              <option value="SERIAL">Serial / COM Port (COMx / /dev/ttyUSB0)</option>
+              <option value="USB_RAW">Direct USB Device (/dev/usb/lp0 or Raw Queue)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+              Printer Target (Name / IP:9100 / Port)
+            </label>
+            <input
+              type="text"
+              placeholder={
+                formData.printer_type === "NETWORK_9100"
+                  ? "192.168.1.100:9100"
+                  : formData.printer_type === "SERIAL"
+                  ? "COM3 or /dev/ttyUSB0"
+                  : formData.printer_type === "USB_RAW"
+                  ? "/dev/usb/lp0 or Printer Name"
+                  : "Select or type printer name..."
+              }
+              value={formData.printer_target || ""}
+              onChange={(e) => setFormData({ ...formData, printer_target: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-black"
+            />
+            {discoveredPrinters.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => {
+                  const chosen = discoveredPrinters.find((p) => p.target === e.target.value);
+                  if (chosen) {
+                    setFormData({
+                      ...formData,
+                      printer_type: chosen.printer_type,
+                      printer_target: chosen.target,
+                    });
+                  }
+                }}
+                className="w-full mt-1.5 px-2.5 py-1.5 rounded-lg border border-black/[0.08] bg-white text-[11px] text-[#6E6E73] focus:outline-none"
+              >
+                <option value="">Quick-pick detected device ({discoveredPrinters.length})...</option>
+                {discoveredPrinters.map((d, idx) => (
+                  <option key={`${d.printer_type}-${d.target}-${idx}`} value={d.target}>
+                    {d.name} [{d.printer_type}]{d.is_default ? " ★" : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+              Default Paper Width
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 bg-[#F5F5F7] p-1 rounded-xl border border-black/[0.06]">
+              {(["58mm", "80mm", "A4"] as const).map((pw) => (
+                <button
+                  key={pw}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, paper_width: pw })}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    (formData.paper_width || "80mm") === pw
+                      ? "bg-white text-black shadow-xs"
+                      : "text-[#6E6E73] hover:text-black"
+                  }`}
+                >
+                  {pw}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          <label className="p-3 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] flex items-center justify-between gap-2 cursor-pointer">
+            <div>
+              <span className="text-xs font-semibold text-[#1D1D1F] block">Preview After Sale</span>
+              <span className="text-[10px] text-[#86868B]">Open receipt modal at checkout</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.preview_after_sale || false}
+              onChange={(e) => setFormData({ ...formData, preview_after_sale: e.target.checked })}
+              className="w-4 h-4 accent-[#0071E3] cursor-pointer"
+            />
+          </label>
+
+          <label className="p-3 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] flex items-center justify-between gap-2 cursor-pointer">
+            <div>
+              <span className="text-xs font-semibold text-[#1D1D1F] block">Auto-Print Receipt</span>
+              <span className="text-[10px] text-[#86868B]">Silent ESC/POS print on sale</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.auto_print || false}
+              onChange={(e) => setFormData({ ...formData, auto_print: e.target.checked })}
+              className="w-4 h-4 accent-[#0071E3] cursor-pointer"
+            />
+          </label>
+
+          <label className="p-3 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] flex items-center justify-between gap-2 cursor-pointer">
+            <div>
+              <span className="text-xs font-semibold text-[#1D1D1F] block">Thermal Auto-Cut</span>
+              <span className="text-[10px] text-[#86868B]">Send GS V 66 cutter command</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.auto_cut ?? true}
+              onChange={(e) => setFormData({ ...formData, auto_cut: e.target.checked })}
+              className="w-4 h-4 accent-[#0071E3] cursor-pointer"
+            />
+          </label>
+
+          <label className="p-3 rounded-2xl bg-[#FAFAFC] border border-black/[0.06] flex items-center justify-between gap-2 cursor-pointer">
+            <div>
+              <span className="text-xs font-semibold text-[#1D1D1F] block">Open Cash Drawer</span>
+              <span className="text-[10px] text-[#86868B]">RJ11 kick pulse after print</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.open_cash_drawer || false}
+              onChange={(e) => setFormData({ ...formData, open_cash_drawer: e.target.checked })}
+              className="w-4 h-4 accent-[#0071E3] cursor-pointer"
+            />
+          </label>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1206,7 +1474,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <div>
           <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-            Receipt Terms & Conditions Footer
+            Receipt Terms &amp; Conditions Footer
           </label>
           <textarea
             rows={2}

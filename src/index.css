@@ -540,4 +540,16 @@
     line-height: 1.35 !important;
     font-family: monospace !important;
   }
+
+  .thermal-receipt-58,
+  [data-printable="true"].thermal-receipt-58 {
+    width: 54mm !important;
+    max-width: 54mm !important;
+    margin: 0 auto !important;
+    padding: 2.5mm !important;
+    border: none !important;
+    font-size: 9.5px !important;
+    line-height: 1.3 !important;
+    font-family: monospace !important;
+  }
 }

@@ -95,6 +95,7 @@ fn test_credit_bill_creation_and_partial_and_full_settlement() {
         payment_date: "2026-11-16".to_string(),
         reference: "CR-SETTLE-01".to_string(),
         notes: "Partial payment via Google Pay".to_string(),
+        bank_account_id: None,
     };
 
     let recorded_pay1 = record_payment_internal(&mut conn, pay1).expect("Record payment 1");
@@ -130,6 +131,7 @@ fn test_credit_bill_creation_and_partial_and_full_settlement() {
         payment_date: "2026-11-16".to_string(),
         reference: "CR-SETTLE-02".to_string(),
         notes: "Final 100% settlement".to_string(),
+        bank_account_id: None,
     };
 
     let recorded_pay2 = record_payment_internal(&mut conn, pay2).expect("Record payment 2");

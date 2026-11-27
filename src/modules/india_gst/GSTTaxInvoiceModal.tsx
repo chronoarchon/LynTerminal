@@ -35,7 +35,12 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   onClose,
 }) => {
   const { invoice, gst_info, gst_items } = completeInvoice;
-  const [docFormat, setDocFormat] = useState<"standard" | "thermal">("standard");
+  const [docFormat, setDocFormat] = useState<"58mm" | "80mm" | "A4">(() => {
+    if (settings.paper_width === "58mm" || settings.paper_width === "80mm" || settings.paper_width === "A4") {
+      return settings.paper_width;
+    }
+    return "A4";
+  });
   const [copyType, setCopyType] = useState<
     "ORIGINAL FOR RECIPIENT" | "DUPLICATE FOR TRANSPORTER" | "TRIPLICATE FOR SUPPLIER"
   >("ORIGINAL FOR RECIPIENT");
@@ -73,8 +78,8 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
     let pdf: jsPDF;
 
-    if (docFormat === "thermal") {
-      const imgWidth = 80;
+    if (docFormat === "58mm" || docFormat === "80mm") {
+      const imgWidth = docFormat === "58mm" ? 58 : 80;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       pdf = new jsPDF({
         orientation: "portrait",
@@ -297,9 +302,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
 
               <div className="flex items-center p-0.5 rounded-xl bg-neutral-100 border border-black/[0.06] text-xs">
                 <button
-                  onClick={() => setDocFormat("standard")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    docFormat === "standard"
+                  onClick={() => setDocFormat("A4")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "A4"
                       ? "bg-white text-black shadow-xs"
                       : "text-neutral-500 hover:text-black"
                   }`}
@@ -308,9 +313,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   <span>A4 Tax</span>
                 </button>
                 <button
-                  onClick={() => setDocFormat("thermal")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    docFormat === "thermal"
+                  onClick={() => setDocFormat("80mm")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "80mm"
                       ? "bg-white text-black shadow-xs"
                       : "text-neutral-500 hover:text-black"
                   }`}
@@ -318,7 +323,59 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   <ReceiptIcon className="w-3.5 h-3.5" />
                   <span>80mm</span>
                 </button>
+                <button
+                  onClick={() => setDocFormat("58mm")}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    docFormat === "58mm"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-500 hover:text-black"
+                  }`}
+                >
+                  <ReceiptIcon className="w-3.5 h-3.5" />
+                  <span>58mm</span>
+                </button>
               </div>
+
+              {settings.printer_type && settings.printer_type !== "BROWSER_DIALOG" && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const msg = await api.printRawEscpos({
+                        invoice_number: invoice.invoice_number,
+                        invoice_date: invoice.invoice_date,
+                        invoice_type: invoice.invoice_type,
+                        party_name: invoice.party_name,
+                        payment_method: invoice.payment_method,
+                        subtotal: invoice.subtotal,
+                        discount_amount: invoice.discount_amount,
+                        tax_amount: invoice.tax_amount,
+                        round_off: gst_info.round_off || 0,
+                        total_amount: invoice.total_amount,
+                        paid_amount: invoice.paid_amount,
+                        items: completeInvoice.items.map((it, idx) => ({
+                          name: it.item_name,
+                          quantity: it.quantity,
+                          unit_price: it.unit_price,
+                          line_total: gst_items[idx]?.line_total ?? it.line_total,
+                          tax_rate: it.tax_rate,
+                        })),
+                        gstin: sellerGstin,
+                        notes: invoice.notes,
+                        paper_width: docFormat === "58mm" ? "58mm" : "80mm",
+                        open_drawer: settings.open_cash_drawer ?? false,
+                      });
+                      toast({ message: msg, type: "success" });
+                    } catch (err) {
+                      alert({ title: "ESC/POS Print Error", message: String(err), type: "error" });
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition active:scale-95 cursor-pointer shadow-2xs"
+                  title="Send raw ESC/POS directly to configured thermal printer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>ESC/POS</span>
+                </button>
+              )}
 
               <button
                 onClick={handleExportPdf}
@@ -355,7 +412,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 pb-20 bg-[#F5F5F7]">
           
           {/* FORMAT 1: A4 Commercial GST Tax Invoice (Rule 46 CGST Compliant) */}
-          {docFormat === "standard" && (
+          {docFormat === "A4" && (
             <div
               ref={docRef}
               data-printable="true"
@@ -781,12 +838,14 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
             </div>
           )}
 
-          {/* FORMAT 2: 80mm GST Thermal Slip */}
-          {docFormat === "thermal" && (
+          {/* FORMAT 2: 58mm / 80mm GST Thermal Slip */}
+          {(docFormat === "58mm" || docFormat === "80mm") && (
             <div
               ref={docRef}
               data-printable="true"
-              className="thermal-receipt mx-auto w-[360px] max-w-full bg-white p-6 rounded-2xl shadow-lg border border-black/[0.1] text-black font-mono text-xs space-y-3 select-text my-2"
+              className={`mx-auto max-w-full bg-white rounded-2xl shadow-lg border border-black/[0.1] text-black font-mono space-y-3 select-text my-2 ${
+                docFormat === "58mm" ? "w-[260px] p-4 text-[11px] thermal-receipt-58" : "w-[360px] p-6 text-xs thermal-receipt"
+              }`}
             >
               <div className="text-center space-y-1 pb-3 border-b border-solid border-black/20">
                 {customLogo ? (

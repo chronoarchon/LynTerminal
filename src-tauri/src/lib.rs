@@ -2,6 +2,7 @@ pub mod db;
 pub mod models;
 pub mod commands;
 pub mod gst;
+pub mod printer;
 
 use db::DatabaseManager;
 use commands::AppState;
@@ -126,6 +127,11 @@ pub fn run() {
             gst::settle_bill_by_bill,
             gst::get_gstr1_report,
             gst::get_gstr3b_report,
+            // Hardware Thermal Printer & Cash Drawer Engine
+            printer::list_printers,
+            printer::print_raw_escpos,
+            printer::test_print_receipt,
+            printer::open_cash_drawer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LynTerminal application");

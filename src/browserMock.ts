@@ -25,6 +25,11 @@ export const mockSettings = {
   capital_bank: 12000.0,
   capital_mode: "SPLIT" as const,
   opening_balance_mode: "SPLIT" as const,
+  printer_type: "BROWSER_DIALOG" as const,
+  printer_target: "",
+  paper_width: "80mm" as const,
+  auto_cut: true,
+  open_cash_drawer: false,
 };
 
 export const mockItems = [
@@ -800,6 +805,29 @@ export function initBrowserMock() {
             platform: "windows",
           };
         }
+        case "list_printers":
+          return [
+            {
+              name: "Browser / PDF Print Dialog (Default)",
+              printer_type: "BROWSER_DIALOG",
+              target: "",
+              is_default: true,
+              platform: "web",
+            },
+            {
+              name: "Epson TM-T82III (Mock Spooler)",
+              printer_type: "OS_SPOOLER",
+              target: "Epson TM-T82III",
+              is_default: false,
+              platform: "web",
+            },
+          ];
+        case "print_raw_escpos":
+          return "Sent mock ESC/POS receipt bytes (Browser preview mode)";
+        case "test_print_receipt":
+          return "Sent mock test receipt bytes (Browser preview mode)";
+        case "open_cash_drawer":
+          return "Cash drawer pulse dispatched (Browser preview mode)";
         case "show_main_window":
           return null;
         case "seed_demo_data": {

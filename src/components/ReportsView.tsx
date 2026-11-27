@@ -14,7 +14,7 @@ interface ReportsViewProps {
   summary: DashboardSummary | null;
 }
 
-export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, summary }) => {
+export const ReportsView: React.FC<ReportsViewProps> = ({ settings, summary }) => {
   const { currencySymbol, formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState<"daybook" | "pnl" | "stock" | "closings">("daybook");
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -30,9 +30,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
   const [loadingClosings, setLoadingClosings] = useState(false);
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [closingDate, setClosingDate] = useState(getLocalDateString());
-  const [openingFloat, setOpeningFloat] = useState("100.00");
+  const [openingFloat, setOpeningFloat] = useState(() =>
+    (settings?.opening_cash ?? 0).toFixed(2)
+  );
   const [salesCash, setSalesCash] = useState("0.00");
-  const [actualCash, setActualCash] = useState("100.00");
+  const [actualCash, setActualCash] = useState(() =>
+    (settings?.opening_cash ?? 0).toFixed(2)
+  );
   const [closingNotes, setClosingNotes] = useState("Standard evening register reconciliation");
   const [isSubmittingClosing, setIsSubmittingClosing] = useState(false);
 
@@ -90,13 +94,23 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
     return daybookEntries.reduce((sum, e) => sum + e.cash_out, 0);
   }, [daybookEntries]);
 
+  const totalBankIn = useMemo(() => {
+    return daybookEntries.reduce((sum, e) => sum + (e.bank_in || 0), 0);
+  }, [daybookEntries]);
+
+  const totalBankOut = useMemo(() => {
+    return daybookEntries.reduce((sum, e) => sum + (e.bank_out || 0), 0);
+  }, [daybookEntries]);
+
   const netDayCash = totalInflow - totalOutflow;
 
   const handleOpenClosingModal = () => {
     setClosingDate(getLocalDateString());
-    setSalesCash(totalInflow.toFixed(2));
-    const openVal = parseFloat(openingFloat) || 100;
-    setActualCash((openVal + totalInflow).toFixed(2));
+    const openVal = settings?.opening_cash ?? 0;
+    const netCash = totalInflow - totalOutflow;
+    setOpeningFloat(openVal.toFixed(2));
+    setSalesCash(netCash.toFixed(2));
+    setActualCash((openVal + netCash).toFixed(2));
     setIsClosingModalOpen(true);
   };
 
@@ -131,27 +145,31 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
     }
   };
 
-  // Stock Valuation calculations
-  const totalStockUnits = useMemo(() => {
-    return items.reduce((sum, i) => sum + i.stock_quantity, 0);
+  // Stock Valuation calculations (positive stock only to match backend dashboard summary)
+  const positiveStockItems = useMemo(() => {
+    return items.filter((i) => i.stock_quantity > 0);
   }, [items]);
+
+  const totalStockUnits = useMemo(() => {
+    return positiveStockItems.reduce((sum, i) => sum + i.stock_quantity, 0);
+  }, [positiveStockItems]);
 
   const totalCostValuation = useMemo(() => {
-    return items.reduce((sum, i) => sum + i.stock_quantity * i.purchase_price, 0);
-  }, [items]);
+    return positiveStockItems.reduce((sum, i) => sum + i.stock_quantity * i.purchase_price, 0);
+  }, [positiveStockItems]);
 
   const totalRetailValuation = useMemo(() => {
-    return items.reduce((sum, i) => sum + i.stock_quantity * i.sale_price, 0);
-  }, [items]);
+    return positiveStockItems.reduce((sum, i) => sum + i.stock_quantity * i.sale_price, 0);
+  }, [positiveStockItems]);
 
   const unrealizedProfit = totalRetailValuation - totalCostValuation;
 
   // P&L figures
   const grossSales = summary?.total_sales || 0;
-  const cogs = summary?.total_purchases || 0;
+  const cogs = summary?.cogs ?? summary?.total_purchases ?? 0;
   const grossProfit = grossSales - cogs;
   const operatingExpenses = summary?.total_expenses || 0;
-  const netProfit = summary?.net_profit || 0;
+  const netProfit = summary?.net_profit ?? (grossProfit - operatingExpenses);
   const grossMargin = grossSales > 0 ? (grossProfit / grossSales) * 100 : 0;
   const netMargin = grossSales > 0 ? (netProfit / grossSales) * 100 : 0;
 
@@ -249,16 +267,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
       {/* TAB 1: Daybook */}
       {activeTab === "daybook" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="apple-card p-4 rounded-2xl">
-              <div className="text-[11px] font-medium text-[#86868B]">Cash Inflows</div>
-              <div className="text-xl font-bold font-mono text-[#34C759] mt-0.5">
+              <div className="text-[11px] font-medium text-[#86868B]">Cash In / Out</div>
+              <div className="text-base font-bold font-mono text-[#34C759] mt-0.5">
                 +{formatCurrency(totalInflow)}
               </div>
-            </div>
-            <div className="apple-card p-4 rounded-2xl">
-              <div className="text-[11px] font-medium text-[#86868B]">Cash Outflows</div>
-              <div className="text-xl font-bold font-mono text-[#FF3B30] mt-0.5">
+              <div className="text-[11px] font-mono text-[#FF3B30]">
                 -{formatCurrency(totalOutflow)}
               </div>
             </div>
@@ -268,17 +283,29 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
                 {netDayCash >= 0 ? `+${formatCurrency(netDayCash)}` : formatCurrency(netDayCash)}
               </div>
             </div>
+            <div className="apple-card p-4 rounded-2xl">
+              <div className="text-[11px] font-medium text-[#86868B]">Bank / UPI In</div>
+              <div className="text-xl font-bold font-mono text-[#0071E3] mt-0.5">
+                +{formatCurrency(totalBankIn)}
+              </div>
+            </div>
+            <div className="apple-card p-4 rounded-2xl">
+              <div className="text-[11px] font-medium text-[#86868B]">Bank / UPI Out</div>
+              <div className="text-xl font-bold font-mono text-[#FF3B30] mt-0.5">
+                -{formatCurrency(totalBankOut)}
+              </div>
+            </div>
           </div>
 
-          <div className="apple-card rounded-2xl overflow-hidden shadow-2xs">
-            <table className="w-full text-xs text-left">
+          <div className="apple-card rounded-2xl overflow-x-auto shadow-2xs">
+            <table className="w-full text-xs text-left min-w-[640px]">
               <thead>
                 <tr className="border-b border-black/[0.06] bg-[#FBFBFC] text-[#86868B] font-semibold text-[11px]">
                   <th className="py-3 px-4">Transaction / Type</th>
                   <th className="py-3 px-3">Title / Particulars</th>
-                  <th className="py-3 px-3 text-right">Cash In</th>
-                  <th className="py-3 px-3 text-right">Cash Out</th>
-                  <th className="py-3 px-4 text-right">Balance</th>
+                  <th className="py-3 px-3 text-right">Cash In / Out</th>
+                  <th className="py-3 px-3 text-right">Bank In / Out</th>
+                  <th className="py-3 px-4 text-right">Cash Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/[0.04]">
@@ -291,17 +318,28 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
                 ) : daybookEntries.map((e, idx) => (
                   <tr key={idx} className="hover:bg-[#FBFBFC] transition-colors">
                     <td className="py-3 px-4">
-                      <span className="font-semibold text-[#1D1D1F]">{e.entry_type}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-[#1D1D1F]">{e.entry_type}</span>
+                        {e.payment_channel && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/[0.05] text-[#6E6E73] font-bold">
+                            {e.payment_channel}
+                          </span>
+                        )}
+                      </div>
                       {e.reference && (
                         <div className="text-[10px] text-[#86868B] font-mono">{e.reference}</div>
                       )}
                     </td>
                     <td className="py-3 px-3 text-[#1D1D1F] font-medium">{e.title}</td>
-                    <td className="py-3 px-3 text-right font-mono font-bold text-[#34C759]">
-                      {e.cash_in > 0 ? `+${formatCurrency(e.cash_in)}` : "—"}
+                    <td className="py-3 px-3 text-right font-mono font-bold">
+                      {e.cash_in > 0 && <span className="text-[#34C759]">+{formatCurrency(e.cash_in)}</span>}
+                      {e.cash_out > 0 && <span className="text-[#FF3B30] ml-1">-{formatCurrency(e.cash_out)}</span>}
+                      {e.cash_in <= 0 && e.cash_out <= 0 && <span className="text-[#86868B]">—</span>}
                     </td>
-                    <td className="py-3 px-3 text-right font-mono font-bold text-[#FF3B30]">
-                      {e.cash_out > 0 ? `-${formatCurrency(e.cash_out)}` : "—"}
+                    <td className="py-3 px-3 text-right font-mono font-bold">
+                      {(e.bank_in || 0) > 0 && <span className="text-[#0071E3]">+{formatCurrency(e.bank_in || 0)}</span>}
+                      {(e.bank_out || 0) > 0 && <span className="text-[#FF3B30] ml-1">-{formatCurrency(e.bank_out || 0)}</span>}
+                      {(e.bank_in || 0) <= 0 && (e.bank_out || 0) <= 0 && <span className="text-[#86868B]">—</span>}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-semibold text-[#1D1D1F]">
                       {formatCurrency(e.balance)}
@@ -313,7 +351,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ settings: _settings, s
 
             {!loadingDaybook && daybookEntries.length === 0 && (
               <div className="py-12 text-center text-[#86868B] text-xs">
-                No cash transactions recorded on {selectedDate}.
+                No transactions recorded on {selectedDate}.
               </div>
             )}
           </div>

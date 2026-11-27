@@ -1017,7 +1017,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       : "bg-black/[0.05] text-[#86868B] font-semibold";
 
                   const openInvs = invoices.filter(
-                    (i) => i.party_id === cust.id && i.invoice_type === "SALE" && (i.total_amount - (i.paid_amount || 0)) > 0.009
+                    (i) =>
+                      i.party_id === cust.id &&
+                      i.invoice_type === "SALE" &&
+                      (i.status as string) !== "RETURNED" &&
+                      (i.status as string) !== "CANCELLED" &&
+                      (i.total_amount - (i.paid_amount || 0)) > 0.009
                   );
 
                   return (
@@ -1672,8 +1677,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         settings={settings}
         summary={summary}
         onSuccess={() => {
+          loadData();
           if (onRefresh) onRefresh();
-          api.listBankAccounts().then(setBankAccounts).catch(console.error);
         }}
       />
     </div>

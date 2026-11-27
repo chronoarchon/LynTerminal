@@ -13,7 +13,8 @@ import {
   Eye,
 } from "lucide-react";
 import type { PartyCreditAging, PendingBill, BillSettlementPayload } from "./gstTypes";
-import type { Party, Settings } from "../../types";
+import type { Party, Settings, BankAccount } from "../../types";
+import { api } from "../../services/api";
 import { gstApi } from "./gstApi";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 import { formatLocalDate } from "../../utils/dateUtils";
@@ -43,6 +44,8 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
   const [loadingBills, setLoadingBills] = useState(false);
   const [settlementAmount, setSettlementAmount] = useState<string>("");
   const [settlementMethod, setSettlementMethod] = useState<string>("UPI");
+  const [settlementBankId, setSettlementBankId] = useState<string>("");
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [settlementDate, setSettlementDate] = useState<string>(
     formatLocalDate()
   );
@@ -118,8 +121,8 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
   const openSettleModal = async (party: PartyCreditAging) => {
     setSettleParty(party);
     setSettlementAmount(party.total_outstanding.toFixed(2));
-    setSettlementMethod(activeTab === "debtors" ? "UPI" : "Bank Transfer");
-    setSettlementDate(new Date().toISOString().split("T")[0]);
+    setSettlementMethod(activeTab === "debtors" ? "UPI" : "Bank NEFT");
+    setSettlementDate(formatLocalDate());
     setSettlementRef(activeTab === "debtors" ? "UPI-RCV" : "NEFT-PAY");
     setSettlementNotes(
       activeTab === "debtors"
@@ -129,8 +132,14 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
 
     try {
       setLoadingBills(true);
-      const bills = await gstApi.getPartyPendingBills(party.party_id);
+      const [bills, banks] = await Promise.all([
+        gstApi.getPartyPendingBills(party.party_id),
+        api.listBankAccounts().catch(() => [] as BankAccount[]),
+      ]);
       setPendingBills(bills);
+      setBankAccounts(banks);
+      const primary = banks.find((b) => b.is_primary) || banks[0];
+      setSettlementBankId(primary?.id || "");
 
       // Auto FIFO allocate
       const initialAlloc: { [id: string]: number } = {};
@@ -200,6 +209,7 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
         payment_date: settlementDate,
         reference: settlementRef || "SETTLE-VOUCHER",
         notes: settlementNotes,
+        bank_account_id: settlementMethod !== "Cash" ? (settlementBankId || null) : null,
         allocations: allocationList,
       };
 
@@ -532,6 +542,25 @@ export const CreditManagementView: React.FC<CreditManagementViewProps> = ({
                     <option value="Card">Card</option>
                   </select>
                 </div>
+
+                {settlementMethod !== "Cash" && bankAccounts.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Bank Account
+                    </label>
+                    <select
+                      value={settlementBankId}
+                      onChange={(e) => setSettlementBankId(e.target.value)}
+                      className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-white border border-black/[0.12] text-black focus:outline-none focus:border-black"
+                    >
+                      {bankAccounts.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.account_name} ({b.bank_name}) — ₹{b.current_balance.toFixed(2)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-1">

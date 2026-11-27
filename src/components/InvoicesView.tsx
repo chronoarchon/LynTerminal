@@ -16,6 +16,7 @@ import type {
   Estimate,
   PurchaseReturn,
   InvoiceItemPayload,
+  BankAccount,
 } from "../types";
 import { api } from "../services/api";
 import { formatLocalDate } from "../utils/dateUtils";
@@ -100,15 +101,29 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const [creditPayTarget, setCreditPayTarget] = useState<Invoice | null>(null);
   const [creditPayAmount, setCreditPayAmount] = useState<string>("");
   const [creditPayMethod, setCreditPayMethod] = useState<string>("CASH");
+  const [creditPayBankId, setCreditPayBankId] = useState<string>("");
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [creditPayNotes, setCreditPayNotes] = useState<string>("");
   const [isSubmittingCreditPay, setIsSubmittingCreditPay] = useState<boolean>(false);
 
-  const handleOpenCreditPayModal = (inv: Invoice) => {
+  const handleOpenCreditPayModal = async (inv: Invoice) => {
     setCreditPayTarget(inv);
     const due = Math.max(0, inv.total_amount - (inv.paid_amount || 0));
     setCreditPayAmount(due > 0 ? due.toFixed(2) : inv.total_amount.toFixed(2));
     setCreditPayMethod("CASH");
-    setCreditPayNotes(`Payment for Credit Bill #${inv.invoice_number}`);
+    setCreditPayNotes(
+      inv.invoice_type === "PURCHASE"
+        ? `Supplier payment for Bill #${inv.invoice_number}`
+        : `Payment for Credit Bill #${inv.invoice_number}`
+    );
+    try {
+      const banks = await api.listBankAccounts();
+      setBankAccounts(banks);
+      const primary = banks.find((b) => b.is_primary) || banks[0];
+      setCreditPayBankId(primary?.id || "");
+    } catch {
+      setBankAccounts([]);
+    }
   };
 
   const handleExecuteCreditPay = async (e?: React.FormEvent) => {
@@ -125,23 +140,28 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       return;
     }
 
+    const isPurchase = creditPayTarget.invoice_type === "PURCHASE";
+
     try {
       setIsSubmittingCreditPay(true);
       await api.recordPayment({
         id: "",
         invoice_id: creditPayTarget.id,
         party_id: creditPayTarget.party_id || "",
-        party_name: creditPayTarget.party_name || "Customer",
+        party_name: creditPayTarget.party_name || (isPurchase ? "Supplier" : "Customer"),
         amount: amt,
-        payment_type: "IN",
+        payment_type: isPurchase ? "OUT" : "IN",
         payment_method: creditPayMethod,
         payment_date: formatLocalDate(),
-        reference: `Credit Settlement #${creditPayTarget.invoice_number}`,
-        notes: creditPayNotes || `Credit settlement for Invoice #${creditPayTarget.invoice_number}`,
+        reference: `${isPurchase ? "Supplier Payment" : "Credit Settlement"} #${creditPayTarget.invoice_number}`,
+        notes:
+          creditPayNotes ||
+          `${isPurchase ? "Supplier bill payment" : "Credit settlement"} for #${creditPayTarget.invoice_number}`,
+        bank_account_id: creditPayMethod !== "CASH" ? (creditPayBankId || null) : null,
       });
       setCreditPayTarget(null);
       toast({
-        message: `Successfully recorded payment of ${formatCurrency(amt)} for #${creditPayTarget.invoice_number}`,
+        message: `Successfully recorded ${isPurchase ? "supplier payout" : "payment"} of ${formatCurrency(amt)} for #${creditPayTarget.invoice_number}`,
         type: "success",
       });
       onRefresh();
@@ -582,7 +602,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                             <button
                               onClick={() => handleOpenCreditPayModal(inv)}
                               className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB34E] text-black text-[11px] font-bold shadow-2xs transition apple-press cursor-pointer inline-flex items-center gap-1"
-                              title="Collect Payment / Settle Credit Bill"
+                              title={inv.invoice_type === "PURCHASE" ? "Pay Supplier Bill" : "Collect Payment / Settle Credit Bill"}
                             >
                               <span>Pay</span>
                             </button>
@@ -1180,10 +1200,12 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-black tracking-tight">
-                    Settle Credit
+                    {creditPayTarget.invoice_type === "PURCHASE" ? "Pay Supplier Bill" : "Settle Credit"}
                   </h3>
                   <p className="text-[11px] text-neutral-400">
-                    Record customer payment
+                    {creditPayTarget.invoice_type === "PURCHASE"
+                      ? "Deduct cash/bank & settle supplier payable"
+                      : "Record customer payment"}
                   </p>
                 </div>
               </div>
@@ -1205,9 +1227,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-neutral-400">Customer:</span>
+                  <span className="text-neutral-400">
+                    {creditPayTarget.invoice_type === "PURCHASE" ? "Supplier:" : "Customer:"}
+                  </span>
                   <span className="font-semibold text-black">
-                    {creditPayTarget.party_name || "Walk-in Customer"}
+                    {creditPayTarget.party_name || (creditPayTarget.invoice_type === "PURCHASE" ? "Supplier" : "Walk-in Customer")}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -1318,6 +1342,25 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   </button>
                 </div>
               </div>
+
+              {creditPayMethod !== "CASH" && bankAccounts.length > 0 && (
+                <div>
+                  <label className="text-[11px] font-semibold text-neutral-700 block mb-1">
+                    Bank Account
+                  </label>
+                  <select
+                    value={creditPayBankId}
+                    onChange={(e) => setCreditPayBankId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-black/[0.1] bg-white text-xs font-semibold text-black focus:outline-none focus:border-black"
+                  >
+                    {bankAccounts.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.account_name} ({b.bank_name}) — {formatCurrency(b.current_balance)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-2 pt-2 border-t border-black/[0.08]">

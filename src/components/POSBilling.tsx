@@ -27,6 +27,11 @@ import { useAppleDialog } from "./common/AppleDialog";
 import { useCurrency } from "../context/CurrencyContext";
 import { CurrencyIcon } from "./common/CurrencyIcon";
 import {
+  useBarcodeScanner,
+  findItemByBarcodeOrSku,
+  playScanFeedbackTone,
+} from "../hooks/useBarcodeScanner";
+import {
   calculateCounterSplit,
   createInitialSplit,
   formatSplitPaymentDescription,
@@ -172,31 +177,37 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       return (
         item.name.toLowerCase().includes(term) ||
         item.sku.toLowerCase().includes(term) ||
-        item.barcode.includes(term) ||
+        item.barcode.toLowerCase().includes(term) ||
         (item.brand && item.brand.toLowerCase().includes(term)) ||
         (item.size && item.size.toLowerCase().includes(term))
       );
     });
   }, [items, searchTerm, selectedCategory]);
 
-  const handleBarcodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = searchTerm.trim();
+  const processScannedCode = (rawCode: string) => {
+    const query = rawCode.trim();
     if (!query) return;
 
-    const exactMatch = items.find(
-      (i) =>
-        i.barcode.toLowerCase() === query.toLowerCase() ||
-        i.sku.toLowerCase() === query.toLowerCase()
-    );
-
+    const exactMatch = findItemByBarcodeOrSku(items, query);
     if (exactMatch) {
       addToCart(exactMatch);
+      playScanFeedbackTone(true);
       setSearchTerm("");
     } else {
+      playScanFeedbackTone(false);
       setQuickProduct((prev) => ({ ...prev, name: query }));
       setShowQuickAddModal(true);
     }
+  };
+
+  useBarcodeScanner({
+    enabled: !showQuickAddModal && !showAddCustomerModal && !completedInvoice,
+    onScan: processScannedCode,
+  });
+
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    processScannedCode(searchTerm);
   };
 
   const addToCart = (item: Item) => {
@@ -485,9 +496,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
       let effectivePaid = Math.round(totalAmount * 100) / 100;
       let paymentMethodDesc = "Cash";
 
-      if (billMode === "PURCHASE") {
-        paymentMethodDesc = paymentMethod === "CARD" ? "Bank Wire" : "Cash";
-      } else if (isSplitPayment) {
+      if (isSplitPayment) {
         if (!splitValidation.isValid) {
           appleAlert({
             title: "Invalid Split Tender",
@@ -506,7 +515,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           "Card"
         );
       } else if (paymentMethod === "CARD") {
-        paymentMethodDesc = "Card";
+        paymentMethodDesc = isPurchase ? "Bank Wire" : "Card";
       } else if (paymentMethod === "CUSTOM_1") {
         paymentMethodDesc = settings.custom_payment_1_name || "Custom 1";
       } else if (paymentMethod === "CUSTOM_2") {
@@ -515,8 +524,10 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         if (!selectedPartyId) {
           setShowAddCustomerModal(true);
           appleAlert({
-            title: "Customer Selection Required",
-            message: "Credit billing requires customer details (name and phone). Please select or register a customer.",
+            title: isPurchase ? "Supplier Selection Required" : "Customer Selection Required",
+            message: isPurchase
+              ? "Credit purchases require selecting or registering a supplier."
+              : "Credit billing requires customer details (name and phone). Please select or register a customer.",
             type: "warning",
           });
           setIsSubmitting(false);
@@ -546,7 +557,15 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         total_amount: Math.round(totalAmount * 100) / 100,
         paid_amount: effectivePaid,
         payment_method: paymentMethodDesc,
-        notes: notes || (paymentMethod === "CREDIT" ? "Customer Credit Bill" : (isPurchase ? "Purchase Inward" : "Counter Sale")),
+        notes:
+          notes ||
+          (paymentMethod === "CREDIT"
+            ? isPurchase
+              ? "Supplier Credit Purchase"
+              : "Customer Credit Bill"
+            : isPurchase
+            ? "Purchase Inward"
+            : "Counter Sale"),
         reference: referenceNumber.trim() || null,
         items: cart.map((ci) => {
           const lineTotal = ci.unit_price * ci.quantity * (1 - ci.discount_percent / 100);
@@ -573,6 +592,36 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       if (previewAfterSale) {
         setCompletedInvoice(invoiceDetail);
+      }
+
+      if (settings.auto_print) {
+        if (settings.printer_type && settings.printer_type !== "BROWSER_DIALOG") {
+          api.printRawEscpos({
+            invoice_number: invoiceDetail.invoice.invoice_number,
+            invoice_date: invoiceDetail.invoice.invoice_date,
+            invoice_type: invoiceDetail.invoice.invoice_type,
+            party_name: invoiceDetail.invoice.party_name,
+            payment_method: invoiceDetail.invoice.payment_method,
+            subtotal: invoiceDetail.invoice.subtotal,
+            discount_amount: invoiceDetail.invoice.discount_amount,
+            tax_amount: invoiceDetail.invoice.tax_amount,
+            round_off: 0,
+            total_amount: invoiceDetail.invoice.total_amount,
+            paid_amount: invoiceDetail.invoice.paid_amount,
+            items: invoiceDetail.items.map((it) => ({
+              name: it.item_name,
+              quantity: it.quantity,
+              unit_price: it.unit_price,
+              line_total: it.line_total,
+              tax_rate: it.tax_rate,
+            })),
+            notes: invoiceDetail.invoice.notes,
+            paper_width: settings.paper_width || "80mm",
+            open_drawer: settings.open_cash_drawer ?? false,
+          }).catch((e) => console.warn("Auto-print failed:", e));
+        } else if (!previewAfterSale) {
+          setCompletedInvoice(invoiceDetail);
+        }
       }
 
       clearCart();
@@ -691,6 +740,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             <input
               ref={barcodeInputRef}
               type="text"
+              data-barcode-input="true"
               placeholder="Search product, SKU, or scan barcode [Enter]..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -1098,8 +1148,8 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             </div>
           </div>
 
-          {/* Payment Methods */}
-          {billMode === "SALE" && (
+          {/* Payment Methods (enabled for both SALE and PURCHASE modes) */}
+          {billMode !== "QUOTATION" && (
             <div className="space-y-2 pt-1">
               <div className="flex flex-wrap gap-1.5">
                 {/* Cash */}
@@ -1283,8 +1333,9 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                         setPaymentMethod("CREDIT");
                         setIsSplitPayment(false);
                         if (!selectedPartyId) {
-                          const customers = parties.filter((p) => p.party_type === "CUSTOMER");
-                          if (customers.length === 0) {
+                          const targetType = billMode === "PURCHASE" ? "VENDOR" : "CUSTOMER";
+                          const matchingParties = parties.filter((p) => p.party_type === targetType);
+                          if (matchingParties.length === 0) {
                             setShowAddCustomerModal(true);
                           }
                         }
@@ -1391,16 +1442,20 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               {/* CREDIT BILLING PANEL */}
               {paymentMethod === "CREDIT" && !isSplitPayment && (
                 <div className="p-3 rounded-2xl bg-[#FFF9F2] border border-[#FF9500]/25 space-y-2.5 animate-in fade-in duration-150">
-                  {/* Customer status */}
+                  {/* Customer / Supplier status */}
                   {!selectedPartyId ? (
                     <div className="p-2.5 rounded-xl bg-amber-100/60 border border-amber-300/50 space-y-2">
                       <div className="flex items-start justify-between gap-2 text-xs text-amber-900">
                         <div className="flex items-start gap-2">
                           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-bold block">Customer Details Required</span>
+                            <span className="font-bold block">
+                              {billMode === "PURCHASE" ? "Supplier Details Required" : "Customer Details Required"}
+                            </span>
                             <span className="text-[11px] text-amber-800">
-                              Select an existing debtor or register a new customer with name & phone.
+                              {billMode === "PURCHASE"
+                                ? "Select an existing supplier or register a new vendor with name & phone."
+                                : "Select an existing debtor or register a new customer with name & phone."}
                             </span>
                           </div>
                         </div>
@@ -1409,15 +1464,17 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                           onClick={() => setShowAddCustomerModal(true)}
                           className="px-2.5 py-1 rounded-lg bg-[#0071E3] hover:bg-[#0077ED] text-white text-[10px] font-bold transition shrink-0 cursor-pointer shadow-xs"
                         >
-                          + New Customer
+                          {billMode === "PURCHASE" ? "+ New Supplier" : "+ New Customer"}
                         </button>
                       </div>
 
-                      {/* Quick picker from existing customers */}
-                      {parties.filter((p) => p.party_type === "CUSTOMER").length > 0 && (
+                      {/* Quick picker from existing customers or suppliers */}
+                      {parties.filter((p) =>
+                        billMode === "PURCHASE" ? p.party_type === "VENDOR" : p.party_type === "CUSTOMER"
+                      ).length > 0 && (
                         <div className="pt-1">
                           <label className="text-[10px] font-semibold text-amber-900 block mb-1">
-                            Choose debtor account:
+                            {billMode === "PURCHASE" ? "Choose supplier account:" : "Choose debtor account:"}
                           </label>
                           <select
                             value={selectedPartyId}
@@ -1428,12 +1485,18 @@ export const POSBilling: React.FC<POSBillingProps> = ({
                             }}
                             className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-black/[0.12] text-xs font-semibold text-black focus:outline-none focus:border-black"
                           >
-                            <option value="">-- Select Customer for Credit Bill --</option>
+                            <option value="">
+                              {billMode === "PURCHASE"
+                                ? "-- Select Supplier for Credit Purchase --"
+                                : "-- Select Customer for Credit Bill --"}
+                            </option>
                             {parties
-                              .filter((p) => p.party_type === "CUSTOMER")
+                              .filter((p) =>
+                                billMode === "PURCHASE" ? p.party_type === "VENDOR" : p.party_type === "CUSTOMER"
+                              )
                               .map((p) => (
                                 <option key={p.id} value={p.id}>
-                                  {p.name} {p.phone ? `(${p.phone})` : ""} · Balance: {formatCurrency(p.current_balance)}
+                                  {p.name} {p.phone ? `(${p.phone})` : ""} · Balance: {formatCurrency(Math.abs(p.current_balance))}
                                 </option>
                               ))}
                           </select>
@@ -1582,7 +1645,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               disabled={
                 cart.length === 0 ||
                 isSubmitting ||
-                (billMode === "SALE" && isSplitPayment && !splitValidation.isValid)
+                (billMode !== "QUOTATION" && isSplitPayment && !splitValidation.isValid)
               }
               className={`w-full py-3.5 rounded-full font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-sm transition apple-press disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 licenseStatus?.is_expired && licenseStatus?.platform !== "linux"

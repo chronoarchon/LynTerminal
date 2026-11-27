@@ -262,7 +262,7 @@ fn test_stage_2_accounting_reconciliation_and_working_capital() {
 
     let total_payables: f64 = conn
         .query_row(
-            "SELECT COALESCE(SUM(current_balance), 0.0) FROM parties WHERE party_type = 'VENDOR' AND current_balance > 0",
+            "SELECT COALESCE(SUM(ABS(current_balance)), 0.0) FROM parties WHERE party_type = 'VENDOR' AND current_balance < 0",
             [],
             |r| r.get(0),
         )

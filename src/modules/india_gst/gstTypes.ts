@@ -198,6 +198,7 @@ export interface BillSettlementPayload {
   payment_date: string;
   reference: string;
   notes: string;
+  bank_account_id?: string | null;
   allocations: BillAllocationPayload[];
 }
 
