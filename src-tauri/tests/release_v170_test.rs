@@ -492,6 +492,16 @@ fn test_v170_purchase_return_tax_void_cancel_and_sequences() {
     assert!(next_seq < 2000, "Sequence parser should not jump to year 2026 prefix");
 
     // Quote conversion records payment + GST metadata when GST active
+    conn.execute(
+        "UPDATE settings SET currency_code = 'INR', currency_symbol = '₹' WHERE id = 1",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "UPDATE gst_settings SET is_enabled = 1, state_code = '27', state_name = 'Maharashtra' WHERE id = 1",
+        [],
+    )
+    .unwrap();
     let est_id = Uuid::new_v4().to_string();
     conn.execute(
         "INSERT INTO estimates (id, estimate_number, party_id, party_name, estimate_date, expiry_date, subtotal, tax_amount, total_amount, status, notes, created_at)

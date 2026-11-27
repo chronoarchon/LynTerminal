@@ -1331,7 +1331,13 @@ pub fn get_gst_invoice_internal(conn: &Connection, invoice_id: &str) -> Result<C
             let tax_rate = ci.tax_rate;
             let gross = ci.unit_price * ci.quantity;
             let discount_amount = ((gross * (ci.discount_percent / 100.0)) * 100.0).round() / 100.0;
-            let (taxable_amount, total_tax, line_total) = if is_inclusive {
+            let net_before_tax = (gross - discount_amount).max(0.0);
+            let expected_inclusive = net_before_tax * (1.0 + tax_rate / 100.0);
+            let line_already_includes_tax = is_inclusive
+                || (tax_rate > 0.0
+                    && ((ci.line_total - expected_inclusive).abs() <= 0.05
+                        || ci.line_total > net_before_tax + 0.05));
+            let (taxable_amount, total_tax, line_total) = if line_already_includes_tax {
                 let taxable = if tax_rate > 0.0 {
                     ci.line_total / (1.0 + tax_rate / 100.0)
                 } else {
