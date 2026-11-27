@@ -2455,7 +2455,16 @@ pub fn parse_payment_liquidity(method: &str, amount: f64) -> (f64, f64) {
         let mut bank_part = 0.0;
         let mut has_credit_part = false;
 
-        let parts: Vec<&str> = upper.split('+').collect();
+        let inner = if let (Some(open), Some(close)) = (upper.find('('), upper.rfind(')')) {
+            if open < close {
+                &upper[open + 1..close]
+            } else {
+                upper.as_str()
+            }
+        } else {
+            upper.as_str()
+        };
+        let parts: Vec<&str> = inner.split('+').collect();
         for part in &parts {
             let has_cash = part.contains("CASH");
             let has_credit = is_credit_tender_token(part);
