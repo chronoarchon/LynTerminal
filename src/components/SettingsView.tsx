@@ -693,7 +693,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               type="text"
               required
               value={formData.business_name}
-              onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
+              onChange={(e) => {
+                const nextName = e.target.value;
+                const prevName = formData.business_name;
+                setFormData({ ...formData, business_name: nextName });
+                setGstForm((prevGst) => ({
+                  ...prevGst,
+                  legal_name:
+                    !prevGst.legal_name.trim() || prevGst.legal_name === prevName
+                      ? nextName
+                      : prevGst.legal_name,
+                  trade_name:
+                    !prevGst.trade_name.trim() || prevGst.trade_name === prevName
+                      ? nextName
+                      : prevGst.trade_name,
+                }));
+              }}
               className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-medium focus:outline-none focus:border-black"
             />
           </div>

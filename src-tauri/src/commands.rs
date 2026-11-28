@@ -84,6 +84,10 @@ pub fn save_settings(
     let app = state.lock().map_err(|e| e.to_string())?;
     let conn = app.db.conn.lock().map_err(|e| e.to_string())?;
 
+    let old_business_name: String = conn
+        .query_row("SELECT COALESCE(business_name, '') FROM settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap_or_default();
+
     conn.execute(
         "UPDATE settings SET
             business_name = ?1,
@@ -155,6 +159,17 @@ pub fn save_settings(
         ],
     )
     .map_err(|e| e.to_string())?;
+
+    // Sync GST legal_name / trade_name when Store / Business Name changes and GST names still match old store name or are empty
+    if !settings.business_name.trim().is_empty() && settings.business_name != old_business_name {
+        conn.execute(
+            "UPDATE gst_settings
+             SET legal_name = CASE WHEN TRIM(COALESCE(legal_name, '')) = '' OR TRIM(legal_name) = TRIM(?1) THEN ?2 ELSE legal_name END,
+                 trade_name = CASE WHEN TRIM(COALESCE(trade_name, '')) = '' OR TRIM(trade_name) = TRIM(?1) THEN ?2 ELSE trade_name END
+             WHERE id = 1",
+            params![old_business_name, settings.business_name],
+        ).ok();
+    }
 
     // Sync primary bank balance only when a single bank account exists (avoid clobbering multi-bank balances)
     let (_, cash_in_bank) = calculate_liquidity_internal(&conn).unwrap_or((0.0, 0.0));

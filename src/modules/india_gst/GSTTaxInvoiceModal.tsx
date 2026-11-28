@@ -198,13 +198,14 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   };
 
   const effectiveGst = sanitizeGstSettings(gstSettings, settings);
-  const sellerLegalName =
-    effectiveGst.legal_name || settings.business_name || "Your Business";
   const sellerGstin =
     effectiveGst.gstin ||
     (!isDemoTaxId(settings.tax_id) ? settings.tax_id : "") ||
     "Unregistered";
   const isRegisteredSeller = sellerGstin !== "Unregistered";
+  const sellerLegalName = isRegisteredSeller
+    ? effectiveGst.legal_name || settings.business_name || "Your Business"
+    : settings.business_name || effectiveGst.legal_name || "Your Business";
 
   const isInterstate = gst_info.is_interstate;
   const supplierState = getStateByCode(effectiveGst.state_code) || {

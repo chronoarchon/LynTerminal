@@ -680,7 +680,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         </div>
 
         {/* Product Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-4 gap-3">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-4 gap-3 content-start auto-rows-max">
           {filteredItems.map((item) => (
             <div
               key={item.id}
@@ -719,13 +719,13 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
       {/* RIGHT COLUMN: GST Tax Invoice Register & Credit Checkout */}
       <div
-        className={`w-full lg:w-[440px] flex-col h-full bg-white rounded-2xl border border-black/[0.08] shadow-md overflow-hidden shrink-0 ${
+        className={`w-full lg:w-[460px] xl:w-[490px] flex-col h-full bg-white rounded-2xl border border-black/[0.08] shadow-md overflow-hidden shrink-0 ${
           mobileView === "catalog" ? "hidden lg:flex" : "flex"
         }`}
       >
         
         {/* Register Header */}
-        <div className="p-3.5 bg-[#FAFAFA] border-b border-black/[0.06] space-y-2 shrink-0">
+        <div className="p-2.5 bg-[#FAFAFA] border-b border-black/[0.06] space-y-1.5 shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-1.5 font-bold text-xs text-black">
               <Receipt className="w-4 h-4 text-black" />
@@ -811,8 +811,10 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
           </div>
         </div>
 
+        {/* Scrollable Cart + Payment/Tax Details (keeps at least 3 cart items visible on 14" screens) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Cart Itemized Rows */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
+        <div className="p-2.5 space-y-2 min-h-[240px] shrink-0">
           {cart.length === 0 ? (
             <div className="py-12 text-center text-xs text-neutral-400">
               No items in cart. Click on products to add to bill.
@@ -821,21 +823,21 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             lineCalculations.map((line, idx) => (
               <div
                 key={idx}
-                className="p-2.5 rounded-xl border border-black/[0.06] bg-[#FAFAFA] space-y-1.5 text-xs"
+                className="p-2.5 rounded-xl border border-black/[0.06] bg-[#FAFAFA] space-y-1.5 text-xs overflow-hidden"
               >
-                <div className="flex justify-between items-start">
-                  <div className="font-semibold text-black leading-snug">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="font-semibold text-black leading-snug min-w-0 break-words">
                     {line.item_name}
                   </div>
                   <button
                     onClick={() => removeFromCart(idx)}
-                    className="text-neutral-400 hover:text-[#FF3B30] transition cursor-pointer"
+                    className="text-neutral-400 hover:text-[#FF3B30] transition cursor-pointer shrink-0"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] gap-2">
+                <div className="flex flex-wrap items-center justify-between text-[11px] gap-x-2 gap-y-1.5">
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-neutral-400">Rate ₹:</span>
                     <input
@@ -847,7 +849,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                         const r = Math.max(0, parseFloat(e.target.value) || 0);
                         setCart((prev) => prev.map((ci, i) => (i === idx ? { ...ci, rate: r } : ci)));
                       }}
-                      className="w-16 font-mono text-[10px] px-1 py-0.5 rounded bg-white border border-black/10 text-right"
+                      className="w-14 font-mono text-[10px] px-1 py-0.5 rounded bg-white border border-black/10 text-right"
                     />
                   </div>
                   <div className="flex items-center gap-1">
@@ -856,7 +858,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                       type="text"
                       value={line.hsn_code}
                       onChange={(e) => updateHsn(idx, e.target.value)}
-                      className="w-16 font-mono text-[10px] px-1 py-0.5 rounded bg-white border border-black/10 text-center"
+                      className="w-14 font-mono text-[10px] px-1 py-0.5 rounded bg-white border border-black/10 text-center"
                     />
                   </div>
 
@@ -878,7 +880,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
                   </div>
 
                   {/* Quantity controls */}
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 ml-auto">
                     <button
                       onClick={() => updateQuantity(idx, -1)}
                       className="w-5 h-5 rounded-md bg-white border border-black/10 flex items-center justify-center hover:bg-neutral-100"
@@ -912,8 +914,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         </div>
 
         {/* Register Footer: Payment Mode & Checkouts */}
-        <div className="border-t border-black/[0.08] bg-[#FAFAFA] flex flex-col shrink-0 min-h-0">
-          <div className="p-3.5 space-y-2.5 overflow-y-auto max-h-[46vh]">
+        <div className="border-t border-black/[0.08] bg-[#FAFAFA] p-3 space-y-2 shrink-0">
             {/* Payment Method Selector */}
           <div className="space-y-1">
             <label className="block text-[10px] font-bold uppercase text-neutral-500">
@@ -1241,6 +1242,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             </div>
           </div>
           </div>
+        </div>
 
           {/* Pinned Checkout Button */}
           <div className="p-3 pt-2 bg-white border-t border-black/[0.05] shrink-0">
@@ -1275,7 +1277,6 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
             </button>
           </div>
         </div>
-      </div>
       </div>
 
       {/* Completed Rule 46 Tax Invoice Modal */}
