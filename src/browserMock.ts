@@ -521,10 +521,10 @@ export function initBrowserMock() {
           const showUpdate = urlParams?.get("update") === "1" || urlParams?.get("modal") === "update";
           return {
             update_available: showUpdate,
-            current_version: "1.7.0",
-            latest_version: "1.7.0",
-            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.7.0/lynterminal_1.7.0_x64-setup.exe",
-            release_notes: "### What's New in v1.7.0\n- Full Accounting, GST & POS Reliability Audit Fixes",
+            current_version: "1.7.1",
+            latest_version: "1.7.1",
+            download_url: "https://github.com/chronoarchon/LynTerminal/releases/download/v1.7.1/lynterminal_1.7.1_x64-setup.exe",
+            release_notes: "### What's New in v1.7.1\n- 14-inch GST & Standard POS layout fixes, Store/GSTIN sync, Email/Retail Invoice polish, & CA 90-day audit math fixes",
             published_at: "2026-11-27T12:00:00Z",
             platform: "windows",
           };

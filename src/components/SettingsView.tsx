@@ -1348,7 +1348,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     pdf.setFontSize(isA4 ? 11 : 8);
                     pdf.text(`Printer Alignment Test (${pw})`, w / 2, isA4 ? 34 : 20, { align: "center" });
                     pdf.text("Test Item x 1  |  Total: 118.00", w / 2, isA4 ? 44 : 28, { align: "center" });
-                    pdf.text("Powered by LynTerminal v1.7.0", w / 2, isA4 ? 56 : 38, { align: "center" });
+                    pdf.text("Powered by LynTerminal v1.7.1", w / 2, isA4 ? 56 : 38, { align: "center" });
                     await printPdfDocument(pdf);
                     toast({ message: `Opened system print dialog (${pw} test slip).`, type: "success" });
                     return;
