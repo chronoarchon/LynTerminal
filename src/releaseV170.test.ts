@@ -214,4 +214,14 @@ describe("v1.7.0 Supplier Pay, Daybook/Z-Report, ESC/POS & Barcode Scanner", () 
     expect(breakdown.isInterstate).toBe(true);
     expect(breakdown.igstAmount).toBe(180);
   });
+
+  test("global multi-currency decimals & ESC/POS symbol sanitization (EUR/GBP/JPY/PHP/THB)", () => {
+    expect(sanitizeEscposText("€45.50 £19.99 ¥1200 ₱500 ฿350")).toBe(
+      "EUR 45.50 GBP 19.99 JPY 1200 PHP 500 THB 350"
+    );
+    expect(getDefaultCurrencyDecimals("JPY")).toBe(0);
+    expect(getDefaultCurrencyDecimals("KRW")).toBe(0);
+    expect(getDefaultCurrencyDecimals("EUR")).toBe(2);
+    expect(getDefaultCurrencyDecimals("INR")).toBe(2);
+  });
 });

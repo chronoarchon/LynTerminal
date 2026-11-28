@@ -1,8 +1,8 @@
 {
   "name": "lynterminal",
   "private": true,
-  "version": "1.7.1",
-  "description": "LynTerminal v1.7.1 — Modern Offline-First Business Management OS & Indian GST Accounting Terminal",
+  "version": "1.7.2",
+  "description": "LynTerminal v1.7.2 — Global Offline-First Business Management OS & Multi-Currency POS (with Full India GST Suite)",
   "type": "module",
   "scripts": {
     "dev": "vite",

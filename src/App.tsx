@@ -503,9 +503,12 @@ export function AppContent() {
         <Suspense fallback={null}>
           <SetupWizardModal
             isOpen={isSetupOpen}
-            onComplete={() => {
+            onComplete={async (selectedCurrencyCode) => {
               setIsSetupOpen(false);
-              loadAllData();
+              await loadAllData();
+              if (selectedCurrencyCode === "INR") {
+                setActiveTab("gst_pos");
+              }
             }}
           />
         </Suspense>
@@ -518,7 +521,7 @@ export function AppContent() {
           onUnlocked={handleUnlocked}
         />
 
-        {/* Commercial License & 14-Day Trial Activation Modal — Windows only */}
+        {/* Commercial License & 7-Day Trial Activation Modal — Windows only */}
         {licenseStatus?.platform !== "linux" && (
           <TrialActivationModal
             isOpen={isLicenseModalOpen}

@@ -5,7 +5,7 @@ use lynterminal_lib::commands::{create_invoice_internal};
 use lynterminal_lib::models::{InvoiceItemPayload, InvoicePayload};
 
 #[test]
-fn test_trial_initial_state_14_days() {
+fn test_trial_initial_state_7_days() {
     let db = DatabaseManager::in_memory().expect("In-memory SQLite DB must initialize");
     let status = db.get_license_status().expect("Must get license status");
 
@@ -25,8 +25,8 @@ fn test_trial_initial_state_14_days() {
         assert!(status.is_trial, "Fresh installation must be in trial mode");
         assert!(!status.is_expired, "Day 0 trial must not be expired");
         assert_eq!(status.days_elapsed, 0, "Initial days elapsed must be 0");
-        assert_eq!(status.days_remaining, 14, "Initial trial days remaining must be 14");
-        assert_eq!(status.trial_days_limit, 14, "Trial limit must be 14");
+        assert_eq!(status.days_remaining, 7, "Initial trial days remaining must be 7");
+        assert_eq!(status.trial_days_limit, 7, "Trial limit must be 7");
         assert!(!status.first_run_date.is_empty(), "First run date must be recorded");
     }
 }
@@ -113,11 +113,11 @@ fn test_trial_expiration_locks_and_activation_unlocks() {
 
     #[cfg(not(target_os = "linux"))]
     {
-    // 1. Advance trial start by 15 days ago (> 14 days)
-    db.set_trial_start_days_ago(15).expect("Must set trial start");
+    // 1. Advance trial start by 8 days ago (> 7 days)
+    db.set_trial_start_days_ago(8).expect("Must set trial start");
 
     let status = db.get_license_status().expect("Must get license status");
-    assert!(status.is_expired, "Trial must be expired after 15 days");
+    assert!(status.is_expired, "Trial must be expired after 8 days");
     assert_eq!(status.days_remaining, 0, "Days remaining must be 0");
     assert!(db.is_trial_expired(), "is_trial_expired must return true");
 
@@ -152,14 +152,14 @@ fn test_trial_expiration_locks_and_activation_unlocks() {
     // Confirm that when expired, trial engine detects it and strictly blocks checkout
     assert!(db.is_trial_expired(), "Trial must be detected as expired");
     let guard_result: Result<(), String> = if db.is_trial_expired() {
-        Err("14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into())
+        Err("7-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into())
     } else {
         Ok(())
     };
     assert!(guard_result.is_err(), "Billing attempt during expired trial must return error");
     assert_eq!(
         guard_result.unwrap_err(),
-        "14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices."
+        "7-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices."
     );
 
     // 3. Activate with valid cryptographic commercial key
@@ -215,23 +215,23 @@ fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
     // On Linux the app is free — trial days don't apply; skip trial countdown checks
     #[cfg(not(target_os = "linux"))]
     {
-    // 1. Verify 14-day trial countdown progression
+    // 1. Verify 7-day trial countdown progression
     let day0_status = db.get_license_status().expect("Status day 0");
-    assert_eq!(day0_status.days_remaining, 14);
+    assert_eq!(day0_status.days_remaining, 7);
     assert_eq!(day0_status.days_elapsed, 0);
     assert!(!day0_status.is_expired);
     assert!(!day0_status.is_licensed);
 
-    db.set_trial_start_days_ago(7).expect("Set to day 7");
-    let day7_status = db.get_license_status().expect("Status day 7");
-    assert!(day7_status.days_remaining >= 6 && day7_status.days_remaining <= 8, "Days remaining should be ~7, got {}", day7_status.days_remaining);
-    assert!(day7_status.days_elapsed >= 6 && day7_status.days_elapsed <= 8, "Days elapsed should be ~7, got {}", day7_status.days_elapsed);
-    assert!(!day7_status.is_expired);
+    db.set_trial_start_days_ago(3).expect("Set to day 3");
+    let day3_status = db.get_license_status().expect("Status day 3");
+    assert!(day3_status.days_remaining >= 3 && day3_status.days_remaining <= 5, "Days remaining should be ~4, got {}", day3_status.days_remaining);
+    assert!(day3_status.days_elapsed >= 2 && day3_status.days_elapsed <= 4, "Days elapsed should be ~3, got {}", day3_status.days_elapsed);
+    assert!(!day3_status.is_expired);
 
-    // 2. Simulate trial expiration (> 14 days)
-    db.set_trial_start_days_ago(15).expect("Set to day 15 (expired)");
-    let expired_status = db.get_license_status().expect("Status day 15");
-    assert!(expired_status.is_expired, "Day 15 must be expired");
+    // 2. Simulate trial expiration (> 7 days)
+    db.set_trial_start_days_ago(8).expect("Set to day 8 (expired)");
+    let expired_status = db.get_license_status().expect("Status day 8");
+    assert!(expired_status.is_expired, "Day 8 must be expired");
     assert_eq!(expired_status.days_remaining, 0);
     assert!(db.is_trial_expired(), "is_trial_expired must return true");
     }
@@ -326,4 +326,67 @@ fn test_razorpay_keygen_activation_unlock_and_negative_tamper_smoke() {
     };
     let invoice = create_invoice_internal(&mut conn, payload).expect("Invoice creation must succeed when unlocked");
     assert_eq!(invoice.invoice.total_amount, 189.0);
+}
+
+#[test]
+fn test_global_multicurrency_and_inr_full_gst_defaults() {
+    use lynterminal_lib::commands::{default_tax_profile_for_currency, switch_currency_and_reset_data_internal};
+    use lynterminal_lib::models::SwitchCurrencyPayload;
+
+    assert_eq!(
+        default_tax_profile_for_currency("INR"),
+        ("INDIA_GST", "GST", 18.0, "INCLUSIVE")
+    );
+    assert_eq!(
+        default_tax_profile_for_currency("USD"),
+        ("US_SALES_TAX", "Sales Tax", 8.25, "EXCLUSIVE")
+    );
+    assert_eq!(
+        default_tax_profile_for_currency("EUR"),
+        ("EU_UK_VAT", "VAT", 20.0, "INCLUSIVE")
+    );
+    assert_eq!(
+        default_tax_profile_for_currency("JPY"),
+        ("JAPAN_JCT", "Consumption Tax", 10.0, "INCLUSIVE")
+    );
+
+    let db = DatabaseManager::in_memory().expect("In-memory DB");
+    let mut conn = db.conn.lock().expect("Lock connection");
+
+    // Switching to INR activates INDIA_GST preset and enables gst_settings
+    let inr_settings = switch_currency_and_reset_data_internal(
+        &mut conn,
+        SwitchCurrencyPayload {
+            new_currency_code: "INR".into(),
+            new_currency_symbol: "₹".into(),
+            preserve_catalog: true,
+        },
+    )
+    .expect("Switch to INR");
+    assert_eq!(inr_settings.tax_preset, "INDIA_GST");
+    assert_eq!(inr_settings.tax_name, "GST");
+    assert_eq!(inr_settings.default_tax_rate, 18.0);
+    assert_eq!(inr_settings.tax_mode, "INCLUSIVE");
+    let gst_enabled_inr: i32 = conn
+        .query_row("SELECT is_enabled FROM gst_settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(gst_enabled_inr, 1);
+
+    // Switching back to EUR configures VAT cleanly and disables India GST
+    let eur_settings = switch_currency_and_reset_data_internal(
+        &mut conn,
+        SwitchCurrencyPayload {
+            new_currency_code: "EUR".into(),
+            new_currency_symbol: "€".into(),
+            preserve_catalog: true,
+        },
+    )
+    .expect("Switch to EUR");
+    assert_eq!(eur_settings.tax_preset, "EU_UK_VAT");
+    assert_eq!(eur_settings.tax_name, "VAT");
+    assert_eq!(eur_settings.default_tax_rate, 20.0);
+    let gst_enabled_eur: i32 = conn
+        .query_row("SELECT is_enabled FROM gst_settings WHERE id = 1", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(gst_enabled_eur, 0);
 }

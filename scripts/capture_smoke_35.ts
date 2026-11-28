@@ -258,12 +258,12 @@ const steps: Step[] = [
   // 29-33: Offline Commercial Licensing & Trial Lifecycle
   {
     filename: "29_trial_active_header_indicator.png",
-    desc: "14-Day Free Trial Active Badge in Top App Header",
+    desc: "7-Day Free Trial Active Badge in Top App Header",
     url: `${BASE_URL}/?tab=pos`,
   },
   {
     filename: "30_trial_activation_modal_14_day_active.png",
-    desc: "Trial Activation Modal (14 Days Remaining State)",
+    desc: "Trial Activation Modal (7-Day Trial Active State)",
     url: `${BASE_URL}/?modal=license`,
   },
   {

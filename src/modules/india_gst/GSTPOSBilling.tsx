@@ -449,7 +449,7 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
     if (licenseStatus?.is_expired && licenseStatus?.platform !== "linux") {
       onOpenLicenseModal?.();
       alert({
-        title: "14-Day Free Trial Expired",
+        title: "7-Day Free Trial Expired",
         message: "Your evaluation trial has ended. Please activate your commercial license to complete checkout and issue new GST bills.",
         type: "warning",
       });
@@ -593,12 +593,12 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
 
   return (
     <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
-      {/* 14-Day Free Trial Expired Warning Banner */}
+      {/* 7-Day Free Trial Expired Warning Banner */}
       {licenseStatus?.is_expired && licenseStatus?.platform !== "linux" && (
         <div className="w-full bg-rose-50 border border-rose-200 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 z-30 shrink-0">
           <div className="flex items-center gap-2 text-xs text-rose-800 font-medium">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>14-Day Free Trial Expired — GST counter billing is locked until activated. Past invoices and reports remain safe.</span>
+            <span>7-Day Free Trial Expired — GST counter billing is locked until activated. Past invoices and reports remain safe.</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <a

@@ -24,6 +24,8 @@ pub fn sanitize_escpos_text(input: &str) -> String {
             '€' => out.push_str("EUR "),
             '£' => out.push_str("GBP "),
             '¥' => out.push_str("JPY "),
+            '₱' => out.push_str("PHP "),
+            '฿' => out.push_str("THB "),
             '–' | '—' | '−' => out.push('-'),
             '’' | '‘' => out.push('\''),
             '“' | '”' => out.push('"'),

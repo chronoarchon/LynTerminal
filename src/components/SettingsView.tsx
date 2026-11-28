@@ -50,8 +50,9 @@ const COMMON_CURRENCIES = [
   { symbol: "¥", code: "JPY", name: "Japanese Yen (¥)" },
   { symbol: "C$", code: "CAD", name: "Canadian Dollar (C$)" },
   { symbol: "A$", code: "AUD", name: "Australian Dollar (A$)" },
-  { symbol: "CHF", code: "CHF", name: "Swiss Franc (CHF)" },
-  { symbol: "AED", code: "AED", name: "UAE Dirham (AED)" },
+  { symbol: "S$", code: "SGD", name: "Singapore Dollar (S$)" },
+  { symbol: "CHF ", code: "CHF", name: "Swiss Franc (CHF)" },
+  { symbol: "AED ", code: "AED", name: "UAE Dirham (AED)" },
   { symbol: "₱", code: "PHP", name: "Philippine Peso (₱)" },
   { symbol: "฿", code: "THB", name: "Thai Baht (฿)" },
 ];
@@ -1348,7 +1349,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     pdf.setFontSize(isA4 ? 11 : 8);
                     pdf.text(`Printer Alignment Test (${pw})`, w / 2, isA4 ? 34 : 20, { align: "center" });
                     pdf.text("Test Item x 1  |  Total: 118.00", w / 2, isA4 ? 44 : 28, { align: "center" });
-                    pdf.text("Powered by LynTerminal v1.7.1", w / 2, isA4 ? 56 : 38, { align: "center" });
+                    pdf.text("Powered by LynTerminal v1.7.2", w / 2, isA4 ? 56 : 38, { align: "center" });
                     await printPdfDocument(pdf);
                     toast({ message: `Opened system print dialog (${pw} test slip).`, type: "success" });
                     return;
@@ -2092,14 +2093,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               ? "LICENSED"
               : licenseStatus?.is_expired
               ? "EXPIRED"
-              : `TRIAL · ${licenseStatus?.days_remaining ?? 14}D LEFT`}
+              : `TRIAL · ${licenseStatus?.days_remaining ?? 7}D LEFT`}
           </span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFAFC] border border-black/[0.05]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-[#1D1D1F] flex items-center gap-2">
-              <span>{licenseStatus?.platform === "linux" ? "Linux Community Edition — Free Forever" : licenseStatus?.is_licensed ? "Commercial License Active" : licenseStatus?.is_expired ? "Trial Expired" : "14-Day Free Trial"}</span>
+              <span>{licenseStatus?.platform === "linux" ? "Linux Community Edition — Free Forever" : licenseStatus?.is_licensed ? "Commercial License Active" : licenseStatus?.is_expired ? "Trial Expired" : "7-Day Free Trial"}</span>
             </div>
             {licenseStatus?.platform === "linux" ? (
               <p className="text-[11px] text-[#6E6E73]">

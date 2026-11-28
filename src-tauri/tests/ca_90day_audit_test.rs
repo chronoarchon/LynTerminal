@@ -13,8 +13,8 @@ fn setup_ca_audit_store(conn: &rusqlite::Connection) {
     let settings = GstSettings {
         is_enabled: true,
         gstin: "29CCAPB5845A1Z1".into(),
-        legal_name: "Sri Durgambika Enterprises".into(),
-        trade_name: "Sri Durgambika Enterprises".into(),
+        legal_name: "Sunrise Electro Systems".into(),
+        trade_name: "Sunrise Electro Systems".into(),
         state_code: "29".into(),
         state_name: "Karnataka".into(),
         pan: "CCAPB5845A".into(),
@@ -25,8 +25,8 @@ fn setup_ca_audit_store(conn: &rusqlite::Connection) {
         bank_name: "SBI".into(),
         bank_account_no: "1234567890".into(),
         bank_ifsc: "SBIN0000123".into(),
-        bank_branch: "Davanagere".into(),
-        upi_id: "sridurgambika@sbi".into(),
+        bank_branch: "Bengaluru".into(),
+        upi_id: "sunrise@sbi".into(),
     };
     save_gst_settings_internal(conn, settings).unwrap();
 }

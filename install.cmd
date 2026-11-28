@@ -29,14 +29,14 @@ echo [*] Target Platform: Windows 64-bit (x86_64)
 echo [*] Fetching latest release binary from GitHub Releases...
 
 :: 2. Download Installer using PowerShell with TLS 1.2+
-set "INSTALLER_URL=https://github.com/chronoarchon/LynTerminal/releases/download/v1.7.1/lynterminal_1.7.1_x64-setup.exe"
-set "DEST_FILE=%TEMP%\lynterminal_1.7.1_setup.exe"
+set "INSTALLER_URL=https://github.com/chronoarchon/LynTerminal/releases/download/v1.7.2/lynterminal_1.7.2_x64-setup.exe"
+set "DEST_FILE=%TEMP%\lynterminal_1.7.2_setup.exe"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; " ^
     "$wc = New-Object System.Net.WebClient; " ^
     "$wc.Headers.Add('User-Agent', 'LynTerminal-Installer'); " ^
-    "Write-Host '[*] Downloading LynTerminal v1.7.1...'; " ^
+    "Write-Host '[*] Downloading LynTerminal v1.7.2...'; " ^
     "$wc.DownloadFile('%INSTALLER_URL%', '%DEST_FILE%'); " ^
     "if (Test-Path '%DEST_FILE%') { Write-Host '[+] Download complete (' + (Get-Item '%DEST_FILE%').Length + ' bytes).' } else { exit 1 }"
 

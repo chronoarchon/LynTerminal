@@ -741,7 +741,7 @@ pub struct DepositPayload {
 }
 
 // ----------------------------------------------------------------------------
-// COMMERCIAL LICENSING & 14-DAY TRIAL ENGINE
+// COMMERCIAL LICENSING & 7-DAY TRIAL ENGINE
 // ----------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

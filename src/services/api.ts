@@ -244,7 +244,7 @@ export const api = {
       printerTarget: params?.printerTarget ?? null,
     }),
 
-  // Commercial Licensing & 14-Day Trial Engine
+  // Commercial Licensing & 7-Day Trial Engine
   getLicenseStatus: () => invoke<LicenseStatus>("get_license_status"),
   activateLicense: (licenseKey: string, customerEmail?: string) =>
     invoke<LicenseStatus>("activate_license", {

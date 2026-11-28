@@ -44,7 +44,8 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
 
   const isExpired = licenseStatus?.is_expired ?? false;
   const isLicensed = licenseStatus?.is_licensed ?? false;
-  const daysRemaining = licenseStatus?.days_remaining ?? 14;
+  const trialDaysLimit = licenseStatus?.trial_days_limit ?? 7;
+  const daysRemaining = licenseStatus?.days_remaining ?? trialDaysLimit;
   const daysElapsed = licenseStatus?.days_elapsed ?? 0;
 
   const handleOpenStore = async () => {
@@ -144,14 +145,14 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                   ? "COMMERCIAL LICENSE ACTIVE"
                   : isExpired
                   ? "TRIAL EXPIRED"
-                  : `14-DAY TRIAL • ${daysRemaining} DAYS LEFT`}
+                  : `${trialDaysLimit}-DAY TRIAL • ${daysRemaining} DAYS LEFT`}
               </span>
               <h2 className="text-xl sm:text-2xl font-extrabold text-black tracking-tight mt-0.5">
                 {isLicensed
                   ? "Commercial License Active"
                   : isExpired
                   ? "Trial Expired"
-                  : "14-Day Free Trial"}
+                  : `${trialDaysLimit}-Day Free Trial`}
               </h2>
             </div>
           </div>
@@ -162,7 +163,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
               ? "Perpetual commercial license active on this workstation. Unlimited offline access."
               : isExpired
               ? "Trial expired. Enter license key to unlock billing."
-              : `Day ${daysElapsed + 1} of 14. All features unlocked.`}
+              : `Day ${daysElapsed + 1} of ${trialDaysLimit}. All features unlocked.`}
           </p>
 
           {/* Notice Banner */}
@@ -211,7 +212,7 @@ export const TrialActivationModal: React.FC<TrialActivationModalProps> = ({
                     COMMERCIAL LICENSE
                   </span>
                   <h3 className="text-sm font-bold text-black">
-                    Buy License (₹1,800 / $20)
+                    Buy License (₹999 / $20)
                   </h3>
                   <p className="text-[11px] text-neutral-500 mt-0.5">
                     One-time payment. Instant key sent to your email.

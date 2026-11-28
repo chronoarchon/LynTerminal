@@ -12,6 +12,8 @@ export function sanitizeEscposText(input: string): string {
     else if (ch === "€") out += "EUR ";
     else if (ch === "£") out += "GBP ";
     else if (ch === "¥") out += "JPY ";
+    else if (ch === "₱") out += "PHP ";
+    else if (ch === "฿") out += "THB ";
     else if (ch === "–" || ch === "—" || ch === "−") out += "-";
     else if (ch === "’" || ch === "‘") out += "'";
     else if (ch === "“" || ch === "”") out += '"';

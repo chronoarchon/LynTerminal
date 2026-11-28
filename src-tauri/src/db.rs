@@ -633,7 +633,7 @@ impl DatabaseManager {
                 license_tier TEXT NOT NULL DEFAULT '',
                 customer_email TEXT NOT NULL DEFAULT '',
                 activated_at TEXT NOT NULL DEFAULT '',
-                trial_days_limit INTEGER NOT NULL DEFAULT 14,
+                trial_days_limit INTEGER NOT NULL DEFAULT 7,
                 anti_tamper_hash TEXT NOT NULL DEFAULT ''
             );
 
@@ -1004,9 +1004,18 @@ impl DatabaseManager {
                 ) VALUES (
                     1, ?1, ?1, ?2,
                     ?3, ?4, '', '',
-                    14, ''
+                    7, ''
                 )",
                 params![now, is_lic_init, key_init, tier_init],
+            );
+        }
+
+        // Migrate unlicensed installations from legacy 14-day limit to 7-day trial
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = conn.execute(
+                "UPDATE app_license SET trial_days_limit = 7 WHERE id = 1 AND is_licensed = 0 AND trial_days_limit = 14",
+                [],
             );
         }
 

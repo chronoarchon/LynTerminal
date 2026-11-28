@@ -11,25 +11,27 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { api } from "../services/api";
-import { gstApi } from "../modules/india_gst/gstApi";
 import { useAppleDialog } from "./common/AppleDialog";
 import { AppleSelect } from "./common/AppleSelect";
 
 interface SetupWizardModalProps {
   isOpen: boolean;
-  onComplete: () => void;
+  onComplete: (selectedCurrencyCode?: string) => void;
 }
 
 const CURRENCIES = [
-  { code: "USD", symbol: "$", name: "US Dollar ($)" },
-  { code: "INR", symbol: "₹", name: "Indian Rupee (₹)" },
-  { code: "EUR", symbol: "€", name: "Euro (€)" },
-  { code: "GBP", symbol: "£", name: "British Pound (£)" },
-  { code: "AED", symbol: "د.إ", name: "UAE Dirham (د.إ)" },
-  { code: "CAD", symbol: "$", name: "Canadian Dollar ($)" },
-  { code: "AUD", symbol: "$", name: "Australian Dollar ($)" },
-  { code: "JPY", symbol: "¥", name: "Japanese Yen (¥)" },
-  { code: "SGD", symbol: "$", name: "Singapore Dollar ($)" },
+  { code: "USD", symbol: "$", name: "US Dollar ($)", taxLabel: "Sales Tax (8.25% Excl.)" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee (₹)", taxLabel: "India GST (18% Incl. · Full Suite)" },
+  { code: "EUR", symbol: "€", name: "Euro (€)", taxLabel: "VAT (20% Incl.)" },
+  { code: "GBP", symbol: "£", name: "British Pound (£)", taxLabel: "VAT (20% Incl.)" },
+  { code: "AED", symbol: "AED ", name: "UAE Dirham (AED)", taxLabel: "VAT (5% Excl.)" },
+  { code: "CAD", symbol: "C$", name: "Canadian Dollar (C$)", taxLabel: "GST / HST (13% Excl.)" },
+  { code: "AUD", symbol: "A$", name: "Australian Dollar (A$)", taxLabel: "GST (10% Incl.)" },
+  { code: "JPY", symbol: "¥", name: "Japanese Yen (¥)", taxLabel: "Consumption Tax (10% Incl.)" },
+  { code: "SGD", symbol: "S$", name: "Singapore Dollar (S$)", taxLabel: "GST (9% Excl.)" },
+  { code: "CHF", symbol: "CHF ", name: "Swiss Franc (CHF)", taxLabel: "VAT (8.1% Incl.)" },
+  { code: "PHP", symbol: "₱", name: "Philippine Peso (₱)", taxLabel: "VAT (12% Incl.)" },
+  { code: "THB", symbol: "฿", name: "Thai Baht (฿)", taxLabel: "VAT (7% Incl.)" },
 ];
 
 const QUICK_CURRENCY_CODES = ["USD", "INR", "EUR", "GBP"];
@@ -78,17 +80,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
         currency_code: currencyCode,
       });
 
-      const existingGst = await gstApi.getGstSettings().catch(() => null);
-      if (existingGst) {
-        await gstApi
-          .saveGstSettings({
-            ...existingGst,
-            is_enabled: currencyCode === "INR",
-          })
-          .catch(() => {});
-      }
-
-      onComplete();
+      onComplete(currencyCode);
     } catch (err) {
       alert({
         title: "Setup Error",
@@ -182,7 +174,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       if (storeError) setStoreError("");
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleStep1Next()}
-                    placeholder="e.g. Sri Durgambika Enterprises"
+                    placeholder="e.g. Apex Global Trading"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.1] bg-[#FAFAFC] focus:bg-white text-sm font-medium text-black placeholder-neutral-400 outline-none focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/15 transition"
                   />
                 </div>
@@ -237,6 +229,18 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                       label: curr.name,
                     }))}
                   />
+
+                  {currencyCode === "INR" ? (
+                    <div className="p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-[11px] text-amber-900 leading-snug">
+                      <span className="font-semibold">Full India GST Suite Included:</span>{" "}
+                      CGST/SGST/IGST billing register, HSN/SAC codes, Rule 46 tax invoices, GSTR-1 &amp; GSTR-3B are enabled automatically.
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-[#FAFAFC] border border-black/[0.06] text-[11px] text-neutral-600 leading-snug">
+                      <span className="font-semibold text-black">Global Business Mode:</span>{" "}
+                      Multi-currency POS, decimal precision &amp; regional tax defaults applied automatically.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -264,9 +268,15 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({
                   <span className="text-neutral-500">Store</span>
                   <span className="font-bold text-black">{businessName.trim() || "LynTerminal Store"}</span>
                 </div>
-                <div className="flex items-center justify-between py-1">
+                <div className="flex items-center justify-between py-1 border-b border-black/[0.06]">
                   <span className="text-neutral-500">Currency</span>
-                  <span className="font-mono font-semibold text-black">{currencyCode} ({currencySymbol})</span>
+                  <span className="font-mono font-semibold text-black">{currencyCode} ({currencySymbol.trim()})</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-neutral-500">Tax &amp; Compliance</span>
+                  <span className="font-semibold text-black">
+                    {CURRENCIES.find((c) => c.code === currencyCode)?.taxLabel || "Sales Tax"}
+                  </span>
                 </div>
               </div>
 

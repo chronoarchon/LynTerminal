@@ -1160,7 +1160,7 @@ pub fn create_invoice(
 ) -> Result<InvoiceDetail, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     if app.db.is_trial_expired() {
-        return Err("14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into());
+        return Err("7-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into());
     }
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     create_invoice_internal(&mut conn, payload)
@@ -1338,6 +1338,8 @@ fn escape_pdf_str(s: &str) -> String {
             '€' => out.push_str("EUR "),
             '£' => out.push_str("GBP "),
             '¥' => out.push_str("JPY "),
+            '₱' => out.push_str("PHP "),
+            '฿' => out.push_str("THB "),
             _ => out.push(' '),
         }
     }
@@ -1374,6 +1376,7 @@ pub fn generate_native_invoice_pdf(
     let mut pages_content: Vec<String> = Vec::new();
     let mut current = String::new();
     let mut y = 790.0;
+    let dec = crate::printer::currency_decimals(&settings.currency_code);
 
     let store_name = if !settings.business_name.is_empty() {
         &settings.business_name
@@ -1485,16 +1488,18 @@ pub fn generate_native_invoice_pdf(
 
         let name_trimmed: String = it.item_name.chars().take(42).collect();
         let y_line = y - 4.0;
+        let price_str = format!("{:.*}", dec, it.unit_price);
+        let tot_str = format!("{:.*}", dec, it.line_total);
         current.push_str(&format!(
-            "0.2 0.2 0.2 rg\nBT /F1 9 Tf 45 {y:.1} Td ({idx}) Tj ET\nBT /F2 9 Tf 75 {y:.1} Td ({name}) Tj ET\n0.4 0.4 0.4 rg\nBT /F1 9 Tf 330 {y:.1} Td ({curr}{price:.2}) Tj ET\nBT /F1 9 Tf 420 {y:.1} Td ({qty} {unit}) Tj ET\n0 0 0 rg\nBT /F2 9 Tf 500 {y:.1} Td ({curr}{tot:.2}) Tj ET\n0.92 0.92 0.93 RG 0.5 w\n40 {y_line:.1} m 555 {y_line:.1} l S\n",
+            "0.2 0.2 0.2 rg\nBT /F1 9 Tf 45 {y:.1} Td ({idx}) Tj ET\nBT /F2 9 Tf 75 {y:.1} Td ({name}) Tj ET\n0.4 0.4 0.4 rg\nBT /F1 9 Tf 330 {y:.1} Td ({curr}{price}) Tj ET\nBT /F1 9 Tf 420 {y:.1} Td ({qty} {unit}) Tj ET\n0 0 0 rg\nBT /F2 9 Tf 500 {y:.1} Td ({curr}{tot}) Tj ET\n0.92 0.92 0.93 RG 0.5 w\n40 {y_line:.1} m 555 {y_line:.1} l S\n",
             y = y,
             idx = idx + 1,
             name = escape_pdf_str(&name_trimmed),
             curr = escape_pdf_str(currency_sym),
-            price = it.unit_price,
+            price = price_str,
             qty = it.quantity,
             unit = escape_pdf_str(&it.unit),
-            tot = it.line_total,
+            tot = tot_str,
             y_line = y_line,
         ));
         y -= 18.0;
@@ -1516,26 +1521,31 @@ pub fn generate_native_invoice_pdf(
         y - 16.0, y - 28.0
     ));
 
+    let subtotal_str = format!("{:.*}", dec, detail.invoice.subtotal);
+    let tax_str = format!("{:.*}", dec, detail.invoice.tax_amount);
+    let total_str = format!("{:.*}", dec, detail.invoice.total_amount);
+    let paid_str = format!("{:.*}", dec, detail.invoice.paid_amount);
+
     current.push_str(&format!(
-        "0.3 0.3 0.3 rg\nBT /F1 9 Tf 360 {:.1} Td (Subtotal:) Tj ET\nBT /F1 9 Tf 480 {:.1} Td ({}{:.2}) Tj ET\n",
-        y - 14.0, y - 14.0, escape_pdf_str(currency_sym), detail.invoice.subtotal
+        "0.3 0.3 0.3 rg\nBT /F1 9 Tf 360 {:.1} Td (Subtotal:) Tj ET\nBT /F1 9 Tf 480 {:.1} Td ({}{}) Tj ET\n",
+        y - 14.0, y - 14.0, escape_pdf_str(currency_sym), subtotal_str
     ));
     current.push_str(&format!(
-        "BT /F1 9 Tf 360 {:.1} Td ({} ({:.1}%):) Tj ET\nBT /F1 9 Tf 480 {:.1} Td (+{}{:.2}) Tj ET\n",
+        "BT /F1 9 Tf 360 {:.1} Td ({} ({:.1}%):) Tj ET\nBT /F1 9 Tf 480 {:.1} Td (+{}{}) Tj ET\n",
         y - 28.0, escape_pdf_str(&settings.tax_name), settings.default_tax_rate,
-        y - 28.0, escape_pdf_str(currency_sym), detail.invoice.tax_amount
+        y - 28.0, escape_pdf_str(currency_sym), tax_str
     ));
     current.push_str(&format!(
         "0.88 0.88 0.89 RG 0.5 w\n360 {:.1} m 555 {:.1} l S\n",
         y - 34.0, y - 34.0
     ));
     current.push_str(&format!(
-        "0 0 0 rg\nBT /F2 12 Tf 360 {:.1} Td (Grand Total:) Tj ET\n0 0.44 0.89 rg\nBT /F2 14 Tf 475 {:.1} Td ({}{:.2}) Tj ET\n",
-        y - 48.0, y - 48.0, escape_pdf_str(currency_sym), detail.invoice.total_amount
+        "0 0 0 rg\nBT /F2 12 Tf 360 {:.1} Td (Grand Total:) Tj ET\n0 0.44 0.89 rg\nBT /F2 14 Tf 475 {:.1} Td ({}{}) Tj ET\n",
+        y - 48.0, y - 48.0, escape_pdf_str(currency_sym), total_str
     ));
     current.push_str(&format!(
-        "0.4 0.4 0.4 rg\nBT /F1 9 Tf 360 {:.1} Td (Amount Paid:) Tj ET\nBT /F1 9 Tf 480 {:.1} Td ({}{:.2}) Tj ET\n",
-        y - 62.0, y - 62.0, escape_pdf_str(currency_sym), detail.invoice.paid_amount
+        "0.4 0.4 0.4 rg\nBT /F1 9 Tf 360 {:.1} Td (Amount Paid:) Tj ET\nBT /F1 9 Tf 480 {:.1} Td ({}{}) Tj ET\n",
+        y - 62.0, y - 62.0, escape_pdf_str(currency_sym), paid_str
     ));
     current.push_str(&format!(
         "0.8 0.8 0.8 RG 0.75 w\n440 {:.1} m 555 {:.1} l S\n0.4 0.4 0.4 rg\nBT /F2 8 Tf 445 {:.1} Td (AUTHORIZED SIGNATORY) Tj ET\n",
@@ -5907,7 +5917,7 @@ pub fn convert_estimate_to_invoice(
 ) -> Result<Invoice, String> {
     let app = state.lock().map_err(|e| e.to_string())?;
     if app.db.is_trial_expired() {
-        return Err("14-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into());
+        return Err("7-Day Free Trial has expired. Please acquire and activate a perpetual commercial license to issue new sales and invoices.".into());
     }
     let mut conn = app.db.conn.lock().map_err(|e| e.to_string())?;
     let created_invoice = convert_estimate_to_invoice_internal(&mut conn, estimate_id, payment_method)?;
@@ -8015,6 +8025,23 @@ pub fn update_opening_capital(
     get_settings_internal(&conn)
 }
 
+pub fn default_tax_profile_for_currency(currency_code: &str) -> (&'static str, &'static str, f64, &'static str) {
+    match currency_code.trim().to_uppercase().as_str() {
+        "INR" => ("INDIA_GST", "GST", 18.0, "INCLUSIVE"),
+        "EUR" | "GBP" => ("EU_UK_VAT", "VAT", 20.0, "INCLUSIVE"),
+        "JPY" => ("JAPAN_JCT", "Consumption Tax", 10.0, "INCLUSIVE"),
+        "AED" => ("CUSTOM", "VAT", 5.0, "EXCLUSIVE"),
+        "AUD" => ("CUSTOM", "GST", 10.0, "INCLUSIVE"),
+        "SGD" => ("CUSTOM", "GST", 9.0, "EXCLUSIVE"),
+        "CAD" => ("CUSTOM", "GST / HST", 13.0, "EXCLUSIVE"),
+        "CHF" => ("CUSTOM", "VAT", 8.1, "INCLUSIVE"),
+        "PHP" => ("CUSTOM", "VAT", 12.0, "INCLUSIVE"),
+        "THB" => ("CUSTOM", "VAT", 7.0, "INCLUSIVE"),
+        "USD" => ("US_SALES_TAX", "Sales Tax", 8.25, "EXCLUSIVE"),
+        _ => ("CUSTOM", "Sales Tax", 5.0, "EXCLUSIVE"),
+    }
+}
+
 pub fn switch_currency_and_reset_data_internal(
     conn: &mut Connection,
     payload: SwitchCurrencyPayload,
@@ -8053,10 +8080,20 @@ pub fn switch_currency_and_reset_data_internal(
         tx.execute("DELETE FROM items", []).ok();
     }
 
-    // Update settings with new currency and reset opening/capital balances
+    let (tax_preset, tax_name, default_tax_rate, tax_mode) =
+        default_tax_profile_for_currency(&payload.new_currency_code);
+
+    // Update settings with new currency, regional tax defaults, and reset opening/capital balances
     tx.execute(
-        "UPDATE settings SET currency_code = ?1, currency_symbol = ?2, opening_cash = 0.0, opening_bank = 0.0, capital_cash = 0.0, capital_bank = 0.0 WHERE id = 1",
-        params![payload.new_currency_code.trim(), payload.new_currency_symbol.trim()],
+        "UPDATE settings SET currency_code = ?1, currency_symbol = ?2, tax_preset = ?3, tax_name = ?4, default_tax_rate = ?5, tax_mode = ?6, opening_cash = 0.0, opening_bank = 0.0, capital_cash = 0.0, capital_bank = 0.0 WHERE id = 1",
+        params![
+            payload.new_currency_code.trim(),
+            payload.new_currency_symbol.trim(),
+            tax_preset,
+            tax_name,
+            default_tax_rate,
+            tax_mode
+        ],
     )
     .map_err(|e| e.to_string())?;
 
@@ -8198,23 +8235,46 @@ pub fn complete_setup(
         let tagline = payload.tagline.unwrap_or_else(|| "Retail, Wholesale & Cafe Management".into());
         let currency_symbol = payload.currency_symbol.unwrap_or_else(|| "$".into());
         let currency_code = payload.currency_code.unwrap_or_else(|| "USD".into());
+        let (tax_preset, tax_name, default_tax_rate, tax_mode) =
+            default_tax_profile_for_currency(&currency_code);
+        let is_inr = currency_code.trim().eq_ignore_ascii_case("INR");
 
         conn.execute(
             "UPDATE settings
              SET business_name = ?1,
                  tagline = ?2,
                  currency_symbol = ?3,
-                 currency_code = ?4
+                 currency_code = ?4,
+                 tax_preset = ?5,
+                 tax_name = ?6,
+                 default_tax_rate = ?7,
+                 tax_mode = ?8
              WHERE id = 1",
-            params![b_name, tagline, currency_symbol, currency_code],
+            params![
+                b_name,
+                tagline,
+                currency_symbol,
+                currency_code,
+                tax_preset,
+                tax_name,
+                default_tax_rate,
+                tax_mode
+            ],
         )
         .map_err(|e| format!("Failed to update settings during onboarding: {}", e))?;
+
+        // Sync INR vs global GST suite state unambiguously during onboarding
+        conn.execute(
+            "UPDATE gst_settings SET is_enabled = ?1, updated_at = ?2 WHERE id = 1",
+            params![if is_inr { 1 } else { 0 }, now],
+        )
+        .ok();
 
         // Sync fresh store identity to GST profile if it only contains seeded placeholder values
         conn.execute(
             "UPDATE gst_settings
              SET legal_name = ?1,
-                 trade_name = '',
+                 trade_name = ?1,
                  gstin = '',
                  pan = '',
                  bank_name = '',
