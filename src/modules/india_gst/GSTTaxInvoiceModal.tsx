@@ -258,24 +258,24 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   const modalContent = (
     <div id="invoice-modal-portal">
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150 text-black">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl border border-black/[0.08] overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150 text-black">
         
         {/* Top Control Bar */}
-        <div className="px-5 py-3.5 bg-[#F9FAFB] border-b border-black/[0.08] no-print shrink-0 text-black">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+        <div className="px-4 py-3 bg-[#F9FAFB] border-b border-black/[0.08] no-print shrink-0 text-black">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 shrink-0">
               <div className="w-8 h-8 rounded-xl bg-black/5 text-black flex items-center justify-center font-bold text-xs border border-black/[0.08] shrink-0">
                 GST
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold text-black font-mono">
+                <div className="flex items-center gap-1.5 flex-nowrap">
+                  <span className="text-xs font-extrabold text-black font-mono whitespace-nowrap">
                     {invoice.invoice_number}
                   </span>
                   <button
                     onClick={handleCopyNumber}
                     title="Copy Invoice Number"
-                    className="text-neutral-400 hover:text-black transition cursor-pointer p-0.5"
+                    className="text-neutral-400 hover:text-black transition cursor-pointer p-0.5 shrink-0"
                   >
                     {copied ? (
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -284,7 +284,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     )}
                   </button>
                   <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border uppercase ${
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase whitespace-nowrap shrink-0 ${
                       isRegisteredSeller
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200/50"
                         : "bg-amber-50 text-amber-700 border-amber-200/60"
@@ -293,7 +293,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     {isRegisteredSeller ? "Rule 46 CGST" : "Retail Invoice"}
                   </span>
                 </div>
-                <span className="text-[11px] text-neutral-500 font-mono truncate block">
+                <span className="text-[11px] text-neutral-500 font-mono truncate block whitespace-nowrap">
                   {invoice.invoice_date} · {invoice.payment_method}
                 </span>
               </div>

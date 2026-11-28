@@ -173,6 +173,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [authState, setAuthState] = useState<AuthState | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [legalNameDirty, setLegalNameDirty] = useState(false);
+  const [tradeNameDirty, setTradeNameDirty] = useState(false);
 
   // Indian GST Profile Form
   const [gstForm, setGstForm] = useState<GstSettings>({
@@ -476,9 +478,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         const syncedGstForm = {
           ...gstForm,
           gstin: gstForm.gstin.trim() || (payload.tax_id || "").trim().toUpperCase(),
+          legal_name: !legalNameDirty ? payload.business_name : gstForm.legal_name,
+          trade_name: !tradeNameDirty ? payload.business_name : gstForm.trade_name,
         };
-        await gstApi.saveGstSettings(sanitizeGstSettings(syncedGstForm));
+        await gstApi.saveGstSettings(sanitizeGstSettings(syncedGstForm, updated));
         setGstForm(sanitizeGstSettings(syncedGstForm, updated));
+        setLegalNameDirty(false);
+        setTradeNameDirty(false);
       }
       setFormData(updated);
       onSettingsUpdated(updated);
@@ -996,7 +1002,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <input
                 type="text"
                 value={gstForm.legal_name}
-                onChange={(e) => setGstForm({ ...gstForm, legal_name: e.target.value })}
+                onChange={(e) => {
+                  setLegalNameDirty(true);
+                  setGstForm({ ...gstForm, legal_name: e.target.value });
+                }}
                 placeholder="e.g. Acme Retail Pvt Ltd"
                 className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#FF9500]"
               />
@@ -1009,7 +1018,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <input
                 type="text"
                 value={gstForm.trade_name}
-                onChange={(e) => setGstForm({ ...gstForm, trade_name: e.target.value })}
+                onChange={(e) => {
+                  setTradeNameDirty(true);
+                  setGstForm({ ...gstForm, trade_name: e.target.value });
+                }}
                 placeholder="e.g. Acme Supermarket"
                 className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-white text-xs font-medium focus:outline-none focus:border-[#FF9500]"
               />
