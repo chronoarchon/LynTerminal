@@ -2617,7 +2617,7 @@ pub fn calculate_liquidity_internal(conn: &rusqlite::Connection) -> Result<(f64,
             if inv_type == "SALE" {
                 cash += c;
                 bank += b;
-            } else if inv_type == "PURCHASE" {
+            } else if inv_type == "PURCHASE" || inv_type == "RETURN" {
                 cash -= c;
                 bank -= b;
             }
@@ -3108,7 +3108,7 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
                 for (amt, m, t) in rows.flatten() {
                     if amt > 0.005 {
                         let (c, _) = parse_payment_liquidity(&m, amt);
-                        if t == "PURCHASE" { running_balance -= c; } else if t == "SALE" { running_balance += c; }
+                        if t == "PURCHASE" || t == "RETURN" { running_balance -= c; } else if t == "SALE" { running_balance += c; }
                     }
                 }
             }
@@ -3221,6 +3221,8 @@ pub fn get_daybook_internal(conn: &rusqlite::Connection, date: &str) -> Result<V
             }
             let (cash_in, cash_out, bank_in, bank_out, entry_type, title) = if inv_type == "PURCHASE" {
                 (0.0, c, 0.0, b, "PURCHASE".to_string(), format!("Walk-in Purchase: {}", p_name))
+            } else if inv_type == "RETURN" {
+                (0.0, c, 0.0, b, "RETURN".to_string(), format!("Walk-in Return Refund: {}", p_name))
             } else {
                 (c, 0.0, b, 0.0, "SALE".to_string(), format!("Walk-in Sale: {}", p_name))
             };

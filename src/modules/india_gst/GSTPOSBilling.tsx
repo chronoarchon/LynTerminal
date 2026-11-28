@@ -331,7 +331,20 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
     });
   }, [cart, supplierCode, posCode, isTaxInclusive, discFactor]);
 
+  const grossSubtotalTaxable = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      const gross = item.rate * item.quantity;
+      const netLine = Math.max(0, gross - item.discount_amount);
+      const combinedRate = item.tax_rate + (item.cess_rate || 0);
+      const taxable = isTaxInclusive && combinedRate > 0
+        ? Math.round((netLine / (1 + combinedRate / 100)) * 100) / 100
+        : Math.round(netLine * 100) / 100;
+      return sum + taxable;
+    }, 0);
+  }, [cart, isTaxInclusive]);
+
   const subtotalTaxable = lineCalculations.reduce((sum, l) => sum + l.taxable_amount, 0);
+  const taxableBillDiscount = Math.max(0, Math.round((grossSubtotalTaxable - subtotalTaxable) * 100) / 100);
   const totalCgst = lineCalculations.reduce((sum, l) => sum + l.cgstAmount, 0);
   const totalSgst = lineCalculations.reduce((sum, l) => sum + l.sgstAmount, 0);
   const totalIgst = lineCalculations.reduce((sum, l) => sum + l.igstAmount, 0);
@@ -483,8 +496,8 @@ export const GSTPOSBilling: React.FC<GSTPOSBillingProps> = ({
         party_name: partyName,
         invoice_date: todayStr,
         due_date: dueDateStr,
-        subtotal: Math.round((subtotalTaxable + effectiveBillDiscount) * 100) / 100,
-        discount_amount: Math.round(effectiveBillDiscount * 100) / 100,
+        subtotal: Math.round(grossSubtotalTaxable * 100) / 100,
+        discount_amount: taxableBillDiscount,
         total_tax: totalTax,
         cgst_amount: totalCgst,
         sgst_amount: totalSgst,

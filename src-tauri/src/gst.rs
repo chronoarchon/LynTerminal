@@ -28,6 +28,40 @@ fn parse_flexible_date(raw: &str) -> Option<NaiveDate> {
     None
 }
 
+fn extract_core_item_taxable_and_tax(
+    unit_price: f64,
+    quantity: f64,
+    discount_percent: f64,
+    tax_rate: f64,
+    line_total: f64,
+    is_tax_inclusive: bool,
+    bill_disc_factor: f64,
+) -> (f64, f64, f64) {
+    let rate = tax_rate.max(0.0);
+    let gross = unit_price * quantity;
+    let net_before_tax = (gross * (1.0 - discount_percent / 100.0)).max(0.0);
+    let expected_inclusive = net_before_tax * (1.0 + rate / 100.0);
+    let already_includes_tax = is_tax_inclusive
+        || (rate > 0.0
+            && ((line_total - expected_inclusive).abs() <= 0.05
+                || line_total > net_before_tax + 0.05));
+
+    let scaled_line = line_total * bill_disc_factor;
+    if already_includes_tax {
+        let taxable = if rate > 0.0 {
+            scaled_line / (1.0 + rate / 100.0)
+        } else {
+            scaled_line
+        };
+        let tax = (scaled_line - taxable).max(0.0);
+        (taxable, tax, scaled_line)
+    } else {
+        let taxable = scaled_line;
+        let tax = (taxable * (rate / 100.0)).max(0.0);
+        (taxable, tax, taxable + tax)
+    }
+}
+
 // ----------------------------------------------------------------------------
 // GST DATA STRUCTURES
 // ----------------------------------------------------------------------------
@@ -2158,7 +2192,7 @@ pub fn get_gstr1_report_internal(
         .map_err(|e| e.to_string())?;
 
     let mut core_item_stmt = conn
-        .prepare("SELECT tax_rate, line_total FROM invoice_items WHERE invoice_id = ?1")
+        .prepare("SELECT unit_price, quantity, discount_percent, tax_rate, line_total FROM invoice_items WHERE invoice_id = ?1")
         .map_err(|e| e.to_string())?;
 
     for row in rows.filter_map(Result::ok) {
@@ -2255,25 +2289,26 @@ pub fn get_gstr1_report_internal(
                     entry.4 += sign * item_cess;
                 }
             } else {
-                let core_items: Vec<(f64, f64)> = core_item_stmt
-                    .query_map(params![inv_id], |r| Ok((r.get(0)?, r.get(1)?)))
+                let core_items: Vec<(f64, f64, f64, f64, f64)> = core_item_stmt
+                    .query_map(params![inv_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))
                     .map_err(|e| e.to_string())?
                     .filter_map(Result::ok)
                     .collect();
 
                 if !core_items.is_empty() {
                     let disc_factor = if subtotal > 0.0 { taxable / subtotal } else { 1.0 };
-                    for (item_rate, line_tot) in core_items {
+                    for (u_price, qty, disc_pct, item_rate, line_tot) in core_items {
                         let rate = item_rate.max(0.0);
                         let rate_bps = (rate * 100.0).round() as i64;
-                        let (item_taxable, item_tax) = if is_tax_inclusive {
-                            let gross = line_tot * disc_factor;
-                            let tax_excl = if rate > 0.0 { gross / (1.0 + rate / 100.0) } else { gross };
-                            (tax_excl, gross - tax_excl)
-                        } else {
-                            let tax_excl = line_tot * disc_factor;
-                            (tax_excl, tax_excl * (rate / 100.0))
-                        };
+                        let (item_taxable, item_tax, _) = extract_core_item_taxable_and_tax(
+                            u_price,
+                            qty,
+                            disc_pct,
+                            rate,
+                            line_tot,
+                            is_tax_inclusive,
+                            disc_factor,
+                        );
                         let (i_igst, i_cgst, i_sgst) = if is_interstate {
                             (item_tax, 0.0, 0.0)
                         } else {
@@ -2362,14 +2397,14 @@ pub fn get_gstr1_report_internal(
                         ii.tax_rate as tax_rate,
                         (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * ii.quantity as total_qty,
                         (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
-                            CASE WHEN ?3 = 1 THEN
+                            CASE WHEN (?3 = 1 OR (ii.tax_rate > 0 AND ii.line_total > (ii.unit_price * ii.quantity * (1.0 - ii.discount_percent / 100.0)) + 0.05)) THEN
                                 ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)
                             ELSE
                                 (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) * (1.0 + ii.tax_rate / 100.0)
                             END
                         ) as total_val,
                         (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
-                            CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                            CASE WHEN (?3 = 1 OR (ii.tax_rate > 0 AND ii.line_total > (ii.unit_price * ii.quantity * (1.0 - ii.discount_percent / 100.0)) + 0.05)) AND ii.tax_rate > 0 THEN
                                 (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0)
                             ELSE
                                 ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)
@@ -2377,7 +2412,7 @@ pub fn get_gstr1_report_internal(
                         ) as taxable_val,
                         CASE WHEN COALESCE(g.is_interstate, 0) = 1 THEN
                             (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
-                                CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                CASE WHEN (?3 = 1 OR (ii.tax_rate > 0 AND ii.line_total > (ii.unit_price * ii.quantity * (1.0 - ii.discount_percent / 100.0)) + 0.05)) AND ii.tax_rate > 0 THEN
                                     (ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END))
                                     - ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0))
                                 ELSE
@@ -2387,7 +2422,7 @@ pub fn get_gstr1_report_internal(
                         ELSE 0.0 END as igst_amt,
                         CASE WHEN COALESCE(g.is_interstate, 0) = 0 THEN
                             (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
-                                CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                CASE WHEN (?3 = 1 OR (ii.tax_rate > 0 AND ii.line_total > (ii.unit_price * ii.quantity * (1.0 - ii.discount_percent / 100.0)) + 0.05)) AND ii.tax_rate > 0 THEN
                                     ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END))
                                     - ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0))) / 2.0
                                 ELSE
@@ -2397,7 +2432,7 @@ pub fn get_gstr1_report_internal(
                         ELSE 0.0 END as cgst_amt,
                         CASE WHEN COALESCE(g.is_interstate, 0) = 0 THEN
                             (CASE WHEN i.invoice_type = 'RETURN' THEN -1.0 ELSE 1.0 END) * (
-                                CASE WHEN ?3 = 1 AND ii.tax_rate > 0 THEN
+                                CASE WHEN (?3 = 1 OR (ii.tax_rate > 0 AND ii.line_total > (ii.unit_price * ii.quantity * (1.0 - ii.discount_percent / 100.0)) + 0.05)) AND ii.tax_rate > 0 THEN
                                     ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END))
                                     - ((ii.line_total * (CASE WHEN i.subtotal > 0 THEN MAX(0.0, i.subtotal - i.discount_amount) / i.subtotal ELSE 1.0 END)) / (1.0 + ii.tax_rate / 100.0))) / 2.0
                                 ELSE
@@ -2568,7 +2603,7 @@ pub fn get_gstr3b_report_internal(
             .map_err(|e| e.to_string())?;
 
         let mut core_item_stmt = conn
-            .prepare("SELECT tax_rate, line_total FROM invoice_items WHERE invoice_id = ?1")
+            .prepare("SELECT unit_price, quantity, discount_percent, tax_rate, line_total FROM invoice_items WHERE invoice_id = ?1")
             .map_err(|e| e.to_string())?;
 
         let rows = out_stmt
@@ -2647,23 +2682,24 @@ pub fn get_gstr3b_report_internal(
                     }
                 }
             } else {
-                let core_items: Vec<(f64, f64)> = core_item_stmt
-                    .query_map(params![inv_id], |r| Ok((r.get(0)?, r.get(1)?)))
+                let core_items: Vec<(f64, f64, f64, f64, f64)> = core_item_stmt
+                    .query_map(params![inv_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))
                     .map_err(|e| e.to_string())?
                     .filter_map(Result::ok)
                     .collect();
 
                 if !core_items.is_empty() {
                     let disc_factor = if subtotal > 0.0 { taxable / subtotal } else { 1.0 };
-                    for (rate, line_tot) in core_items {
-                        let (item_taxable, item_tax) = if is_tax_inclusive {
-                            let gross = line_tot * disc_factor;
-                            let tax_excl = if rate > 0.0 { gross / (1.0 + rate / 100.0) } else { gross };
-                            (tax_excl, gross - tax_excl)
-                        } else {
-                            let tax_excl = line_tot * disc_factor;
-                            (tax_excl, tax_excl * (rate / 100.0))
-                        };
+                    for (u_price, qty, disc_pct, rate, line_tot) in core_items {
+                        let (item_taxable, item_tax, _) = extract_core_item_taxable_and_tax(
+                            u_price,
+                            qty,
+                            disc_pct,
+                            rate,
+                            line_tot,
+                            is_tax_inclusive,
+                            disc_factor,
+                        );
                         if rate <= 0.001 {
                             nil_exempt_taxable += sign * item_taxable;
                         } else {
