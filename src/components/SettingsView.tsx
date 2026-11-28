@@ -473,7 +473,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       };
       const updated = await api.saveSettings(payload);
       if (formData.currency_code === "INR") {
-        await gstApi.saveGstSettings(sanitizeGstSettings(gstForm));
+        const syncedGstForm = {
+          ...gstForm,
+          gstin: gstForm.gstin.trim() || (payload.tax_id || "").trim().toUpperCase(),
+        };
+        await gstApi.saveGstSettings(sanitizeGstSettings(syncedGstForm));
+        setGstForm(sanitizeGstSettings(syncedGstForm, updated));
       }
       setFormData(updated);
       onSettingsUpdated(updated);
@@ -758,7 +763,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <input
               type="text"
               value={formData.tax_id}
-              onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData({ ...formData, tax_id: val });
+                if (formData.currency_code === "INR") {
+                  const upper = val.toUpperCase();
+                  const stateCode = upper.slice(0, 2);
+                  const foundState = INDIAN_STATES.find((s) => s.code === stateCode);
+                  setGstForm((prev) => ({
+                    ...prev,
+                    gstin: upper,
+                    state_code: foundState ? stateCode : prev.state_code,
+                    state_name: foundState ? foundState.name : prev.state_name,
+                    pan: upper.length >= 12 ? upper.slice(2, 12) : prev.pan,
+                  }));
+                }
+              }}
               className="w-full px-3 py-2 rounded-xl border border-black/[0.08] bg-[#F5F5F7] text-xs font-mono font-medium focus:outline-none focus:border-black"
             />
           </div>
@@ -952,6 +972,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   const stateCode = val.slice(0, 2);
                   const pan = val.length >= 12 ? val.slice(2, 12) : gstForm.pan;
                   const foundState = INDIAN_STATES.find((s) => s.code === stateCode);
+                  setFormData((prev) => ({ ...prev, tax_id: val }));
                   setGstForm((prev) => ({
                     ...prev,
                     gstin: val,

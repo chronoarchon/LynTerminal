@@ -17,7 +17,7 @@ import { printPdfDocument } from "../../utils/printPdf";
 import type { CompleteGstInvoice, GstSettings } from "./gstTypes";
 import type { Settings } from "../../types";
 import { amountToIndianWords, getStateByCode } from "./gstUtils";
-import { sanitizeGstSettings, isDemoTaxId } from "./gstDefaults";
+import { sanitizeGstSettings, isDemoGstin, isDemoTaxId } from "./gstDefaults";
 import { useAppleDialog } from "../../components/common/AppleDialog";
 import { api } from "../../services/api";
 
@@ -200,6 +200,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
   const effectiveGst = sanitizeGstSettings(gstSettings, settings);
   const sellerGstin =
     effectiveGst.gstin ||
+    (!isDemoGstin(gst_info.supplier_gstin) ? gst_info.supplier_gstin : "") ||
     (!isDemoTaxId(settings.tax_id) ? settings.tax_id : "") ||
     "Unregistered";
   const isRegisteredSeller = sellerGstin !== "Unregistered";
@@ -282,8 +283,14 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                       <Copy className="w-3.5 h-3.5" />
                     )}
                   </button>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/50 uppercase">
-                    Rule 46 CGST
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border uppercase ${
+                      isRegisteredSeller
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200/50"
+                        : "bg-amber-50 text-amber-700 border-amber-200/60"
+                    }`}
+                  >
+                    {isRegisteredSeller ? "Rule 46 CGST" : "Retail Invoice"}
                   </span>
                 </div>
                 <span className="text-[11px] text-neutral-500 font-mono truncate block">
@@ -425,8 +432,8 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
               {/* Top Banner Marking */}
               <div className="flex justify-between items-center pb-2 border-b-2 border-black/80 print-avoid-break">
                 <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px] text-black">
-                  <ShieldCheck className={`w-4 h-4 ${isRegisteredSeller ? "text-emerald-600" : "text-neutral-500"}`} />
-                  <span>{isRegisteredSeller ? "GSTIN Registered Enterprise" : "Commercial Tax Invoice"}</span>
+                  <ShieldCheck className={`w-4 h-4 ${isRegisteredSeller ? "text-emerald-600" : "text-amber-600"}`} />
+                  <span>{isRegisteredSeller ? "GSTIN Registered Enterprise" : "Retail Invoice (Unregistered Seller)"}</span>
                 </div>
                 <div className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-black/5 uppercase text-black border border-black/10">
                   {copyType}
@@ -440,6 +447,8 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     ? "CREDIT NOTE"
                     : invoice.invoice_type === "PURCHASE"
                     ? "PURCHASE BILL"
+                    : !isRegisteredSeller
+                    ? "RETAIL INVOICE"
                     : invoice.tax_amount <= 0 && !effectiveGst.gst_composition
                     ? "BILL OF SUPPLY"
                     : effectiveGst.gst_composition
@@ -447,7 +456,9 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                     : "TAX INVOICE"}
                 </h1>
                 <p className="text-[10px] text-neutral-500 font-medium tracking-wide">
-                  (Issued under Section 31 of CGST Act, 2017 read with Rule 46 of CGST Rules)
+                  {isRegisteredSeller
+                    ? "(Issued under Section 31 of CGST Act, 2017 read with Rule 46 of CGST Rules)"
+                    : "(Unregistered Supplier — Add GSTIN in Settings to issue Rule 46 CGST Tax Invoices)"}
                 </p>
               </div>
 
@@ -483,12 +494,11 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                         {settings.address}
                       </div>
                     )}
-                    {(settings.phone || settings.email) && (
-                      <div className="text-neutral-600">
-                        {settings.phone ? `Tel: ${settings.phone}` : ""}
-                        {settings.phone && settings.email ? " · " : ""}
-                        {settings.email ? `Email: ${settings.email}` : ""}
-                      </div>
+                    {settings.phone && (
+                      <div className="text-neutral-600">Tel: {settings.phone}</div>
+                    )}
+                    {settings.email && (
+                      <div className="text-neutral-600 break-all">Email: {settings.email}</div>
                     )}
                     <div className="font-mono font-bold text-black pt-0.5">
                       GSTIN:{" "}
@@ -898,7 +908,7 @@ export const GSTTaxInvoiceModal: React.FC<GSTTaxInvoiceModalProps> = ({
                   State: {supplierState.name} ({supplierState.code})
                 </div>
                 <div className="text-xs font-bold pt-1 border-t border-solid border-black/15 mt-1">
-                  *** GST TAX INVOICE ***
+                  {isRegisteredSeller ? "*** GST TAX INVOICE ***" : "*** RETAIL INVOICE ***"}
                 </div>
                 <div className="text-[9px] text-neutral-500 uppercase font-sans">
                   {copyType}

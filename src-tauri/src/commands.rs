@@ -171,6 +171,15 @@ pub fn save_settings(
         ).ok();
     }
 
+    // Sync GSTIN into gst_settings when Store Tax Registration ID is saved in INR mode
+    if settings.currency_code.eq_ignore_ascii_case("INR") && !settings.tax_id.trim().is_empty() {
+        let upper_gstin = settings.tax_id.trim().to_uppercase();
+        conn.execute(
+            "UPDATE gst_settings SET gstin = ?1 WHERE id = 1 AND TRIM(COALESCE(gstin, '')) = ''",
+            params![upper_gstin],
+        ).ok();
+    }
+
     // Sync primary bank balance only when a single bank account exists (avoid clobbering multi-bank balances)
     let (_, cash_in_bank) = calculate_liquidity_internal(&conn).unwrap_or((0.0, 0.0));
     let bank_count: i64 = conn

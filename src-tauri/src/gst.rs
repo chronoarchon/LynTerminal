@@ -482,16 +482,28 @@ pub fn save_gst_settings_internal(conn: &Connection, settings: GstSettings) -> R
     .map_err(|e| e.to_string())?;
 
     if settings.is_enabled {
-        let _ = conn.execute(
-            "UPDATE settings SET
-                tax_preset = 'INDIA_GST',
-                tax_name = 'GST',
-                currency_symbol = '₹',
-                currency_code = 'INR',
-                tax_id = ?1
-             WHERE id = 1",
-            params![settings.gstin],
-        );
+        if !settings.gstin.trim().is_empty() {
+            let _ = conn.execute(
+                "UPDATE settings SET
+                    tax_preset = 'INDIA_GST',
+                    tax_name = 'GST',
+                    currency_symbol = '₹',
+                    currency_code = 'INR',
+                    tax_id = ?1
+                 WHERE id = 1",
+                params![settings.gstin.trim().to_uppercase()],
+            );
+        } else {
+            let _ = conn.execute(
+                "UPDATE settings SET
+                    tax_preset = 'INDIA_GST',
+                    tax_name = 'GST',
+                    currency_symbol = '₹',
+                    currency_code = 'INR'
+                 WHERE id = 1",
+                [],
+            );
+        }
     }
 
     Ok(settings)
