@@ -928,14 +928,14 @@ export const POSBilling: React.FC<POSBillingProps> = ({
 
       {/* RIGHT COLUMN: Active Ticket & Checkout */}
       <div
-        className={`w-full lg:w-[410px] bg-white flex flex-col h-full shrink-0 border-l border-black/[0.07] shadow-sm overflow-hidden ${
+        className={`w-full lg:w-[430px] xl:w-[450px] bg-white flex flex-col h-full shrink-0 border-l border-black/[0.07] shadow-sm overflow-hidden ${
           mobileView === "catalog" ? "hidden lg:flex" : "flex"
         }`}
       >
         {/* Ticket Header & Customer Selector */}
-        <div className="p-3.5 border-b border-black/[0.06] bg-white">
+        <div className="p-2.5 border-b border-black/[0.06] bg-white shrink-0">
           {/* Bill Mode Tabs */}
-          <div className="flex items-center p-0.5 bg-[#F5F5F7] rounded-xl border border-black/[0.06] mb-3">
+          <div className="flex items-center p-0.5 bg-[#F5F5F7] rounded-xl border border-black/[0.06] mb-2">
             <button
               type="button"
               onClick={() => switchBillMode("SALE")}
@@ -1081,48 +1081,52 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           )}
         </div>
 
+        {/* Scrollable Ticket Items + Payment Controls (always keeps 3+ items visible on 14" screens) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Ticket Line Items */}
-        <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
+        <div className="p-2.5 space-y-1.5 min-h-[215px] shrink-0">
           {cart.map((item) => (
             <div
               key={item.item_id}
-              className="p-3 rounded-2xl border border-black/[0.06] bg-[#FBFBFC] flex flex-col gap-2"
+              className="px-2.5 py-2 rounded-xl border border-black/[0.06] bg-[#FBFBFC] flex flex-col gap-1"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex flex-col pr-2">
-                  <span className="text-xs font-semibold text-[#1D1D1F] leading-snug">
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-baseline gap-1.5 min-w-0 pr-1">
+                  <span className="text-xs font-semibold text-[#1D1D1F] leading-snug truncate">
                     {item.item_name}
                   </span>
-                  <span className="text-[10px] text-[#86868B] font-mono">
-                    {item.sku || "—"}
-                  </span>
+                  {item.sku && (
+                    <span className="text-[10px] text-[#86868B] font-mono shrink-0">
+                      ({item.sku})
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={() => removeFromCart(item.item_id)}
-                  className="text-[#86868B] hover:text-[#FF3B30] transition p-1"
+                  className="text-[#86868B] hover:text-[#FF3B30] transition p-0.5 shrink-0 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => updateQuantity(item.item_id, -1)}
-                    className="w-6 h-6 rounded-lg bg-white border border-black/[0.08] text-[#1D1D1F] hover:bg-[#F5F5F7] flex items-center justify-center transition apple-press"
+                    className="w-5 h-5 rounded-md bg-white border border-black/[0.08] text-[#1D1D1F] hover:bg-[#F5F5F7] flex items-center justify-center transition apple-press cursor-pointer"
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="w-8 text-center text-xs font-bold font-mono text-[#1D1D1F]">
+                  <span className="w-6 text-center text-xs font-bold font-mono text-[#1D1D1F]">
                     {item.quantity}
                   </span>
                   <button
                     onClick={() => updateQuantity(item.item_id, 1)}
-                    className="w-6 h-6 rounded-lg bg-white border border-black/[0.08] text-[#1D1D1F] hover:bg-[#F5F5F7] flex items-center justify-center transition apple-press"
+                    className="w-5 h-5 rounded-md bg-white border border-black/[0.08] text-[#1D1D1F] hover:bg-[#F5F5F7] flex items-center justify-center transition apple-press cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                   </button>
-                  <span className="text-[10px] text-[#86868B] ml-1">{item.unit}</span>
+                  <span className="text-[10px] text-[#86868B] ml-0.5">{item.unit}</span>
                 </div>
 
                 <div className="text-right">
@@ -1150,7 +1154,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
           ))}
 
           {cart.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center py-16 text-center text-[#86868B]">
+            <div className="h-full flex flex-col items-center justify-center py-10 text-center text-[#86868B]">
               <div className="w-10 h-10 rounded-2xl bg-[#F5F5F7] text-[#86868B] flex items-center justify-center mb-2">
                 <Barcode className="w-5 h-5" />
               </div>
@@ -1163,8 +1167,7 @@ export const POSBilling: React.FC<POSBillingProps> = ({
         </div>
 
         {/* Totals & Payment Control */}
-        <div className="border-t border-black/[0.07] bg-white flex flex-col shrink-0 min-h-0">
-          <div className="p-3.5 space-y-2.5 overflow-y-auto max-h-[46vh]">
+        <div className="border-t border-black/[0.07] bg-white p-2.5 space-y-2 shrink-0">
           
           {/* Numbers breakdown */}
           <div className="space-y-1 text-xs">
@@ -1729,9 +1732,10 @@ export const POSBilling: React.FC<POSBillingProps> = ({
             </div>
           )}
           </div>
+        </div>
 
           {/* Pinned Checkout Button */}
-          <div className="p-3 pt-2 bg-white border-t border-black/[0.05] shrink-0">
+          <div className="p-2.5 pt-2 bg-white border-t border-black/[0.05] shrink-0">
             <button
               onClick={handleCheckout}
               disabled={
@@ -1766,7 +1770,6 @@ export const POSBilling: React.FC<POSBillingProps> = ({
               )}
             </button>
           </div>
-        </div>
       </div>
 
       {/* QUICK ADD PRODUCT MODAL */}
